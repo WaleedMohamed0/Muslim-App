@@ -5,6 +5,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/components/components.dart';
 import 'package:untitled8/cubit/cubit.dart';
 import 'package:untitled8/cubit/states.dart';
+import 'package:untitled8/screens/asmaa_allah_screen.dart';
 import 'package:untitled8/screens/azkar_screen.dart';
 import 'package:untitled8/screens/home_screen.dart';
 import 'package:untitled8/screens/prayer_times_screen.dart';
@@ -55,60 +56,9 @@ class StartUpScreen extends StatelessWidget {
                         ),
                         itemCount: azkarList.length),
                   ),
-                  InkWell(
-                    onTap: () {
-                      navigateTo(context, const HomeScreen());
-                    },
-                    child: Stack(
-                      alignment: AlignmentDirectional.bottomCenter,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.zero,
-                          width: Adaptive.w(78),
-                          height: Adaptive.h(9),
-                          alignment: AlignmentDirectional.center,
-                          decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(60),
-                                bottomLeft: Radius.circular(60)),
-                            color: HexColor('ffca85'),
-                          ),
-                        ),
-                        defaultText(
-                            text: 'السُّورُ',
-                            fontsize: 40,
-                            textAlign: TextAlign.center,
-                            textColor: Colors.black)
-                      ],
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      navigateTo(context, PrayerTimes());
-                    },
-                    child: Stack(
-                      alignment: AlignmentDirectional.bottomCenter,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.zero,
-                          width: Adaptive.w(78),
-                          height: Adaptive.h(9),
-                          alignment: AlignmentDirectional.center,
-                          decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(60),
-                                bottomLeft: Radius.circular(60)),
-                            color: HexColor('ffca85'),
-                          ),
-                        ),
-                        defaultText(
-                            text: 'مواقيتُ الصَّلاَةُ',
-                            fontsize: 38,
-                            textAlign: TextAlign.center,
-                            textColor: Colors.black)
-                      ],
-                    ),
-                  ),
+                  homeItem(context, 'السُّورُ', HomeScreen()),
+                  homeItem(context, 'مواقيتُ الصَّلاَةُ', PrayerTimes()),
+                  homeItem(context, 'أسماء الله الحسنى', AsmaaAllahScreen()),
                 ],
               ),
             ));
