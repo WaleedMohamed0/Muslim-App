@@ -1,108 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hexcolor/hexcolor.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:quran/quran.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/components/components.dart';
+import 'package:untitled8/components/constants.dart';
 import 'package:untitled8/cubit/cubit.dart';
 import 'package:untitled8/cubit/states.dart';
+import 'package:untitled8/shared/cache_helper.dart';
 
 class SurahScreen extends StatelessWidget {
-  int? surahIndex;
+  int? surahNumber;
 
-  SurahScreen({required this.surahIndex});
+  SurahScreen({required this.surahNumber});
 
   @override
   Widget build(BuildContext context) {
     var cubit = AppCubit.get(context);
-    String surah = "";
-    return BlocConsumer<AppCubit, AppStates>(
-      listener: (context, state) {},
+    List<int> numsOfPages = getSurahPages(surahNumber!);
+    String surahName = getSurahNameArabic(surahNumber!);
+
+    return BlocBuilder<AppCubit, AppStates>(
       builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(
-            title: defaultText(
-              text: getSurahNameArabic(surahIndex!),
-              fontsize: 30,
-            ),
-            centerTitle: true,
-          ),
-          body: Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: Adaptive.w(3), vertical: Adaptive.h(3)),
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                  opacity: .65,
-                  image: AssetImage(
-                    'assets/images/background.jpg',
-                  ),
-                  fit: BoxFit.cover),
-            ),
-            child: ListView.separated(
+        final PageController pageController = PageController(
+            initialPage: surahName == surahNameFromSharedPref
+                ? pageNumberFromSharedPref - numsOfPages[0]
+                : 0);
+        return SafeArea(
+          child: Scaffold(
+              appBar: defaultAppBar(text: surahName, actions: [
+                IconButton(
+                    onPressed: () {
+                      CacheHelper.saveData(key: "surahName", value: surahName);
+                      CacheHelper.saveData(
+                          key: "surahNumber", value: surahNumber);
+                      CacheHelper.saveData(
+                          key: "pageNumber", value: cubit.currentPageNumber);
+                      surahNameFromSharedPref = surahName;
+                      surahNumFromSharedPref = surahNumber!;
+                      pageNumberFromSharedPref = cubit.currentPageNumber;
+                      Fluttertoast.showToast(
+                          msg: "تم حفظ السورة", fontSize: 20.sp);
+                    },
+                    icon: const Icon(
+                      Icons.bookmark,
+                      color: Colors.white,
+                      size: 30,
+                    )),
+                playIconButton(cubit: cubit),
+              ]),
+              body: PageView.builder(
+                itemCount: numsOfPages.length,
+                reverse: true,
+                controller: pageController,
                 itemBuilder: (context, index) {
-                  surah = "";
-                  surah +=
-                      getVerse(surahIndex!, index + 1, verseEndSymbol: true);
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  cubit.setCurrentPageNumber(numsOfPages[index]);
+                  return Stack(
+                    alignment: Alignment.topLeft,
                     children: [
-                      if (index == 0)
-                        Column(
-                          children: [
-                            Center(
-                                child: defaultText(
-                              text: basmala,
-                              fontsize: 30,
-                            )),
-                            SizedBox(
-                              height: Adaptive.h(2.5),
+                      Image.asset(
+                          "assets/quranImages/${numsOfPages[index]}.png",
+                          fit: BoxFit.fill),
+                      if (index == pageController.initialPage)
+                        Image.asset('assets/images/savedPageNumIcon.png',
+                          height: 25.w,
                             ),
-                          ],
-                        ),
-                      defaultText(
-                        text: surah,
-                        fontsize: 25,
-                        fontWeight: FontWeight.bold,
-                        textHeight: 2,
-                        txtDirection: TextDirection.rtl,
-                      ),
+
+
                     ],
                   );
                 },
-                separatorBuilder: (context, index) => SizedBox(
-                      height: Adaptive.h(.2),
-                    ),
-                itemCount: getVerseCount(surahIndex!)),
-          ),
-          floatingActionButton: Container(
-            alignment: AlignmentDirectional.bottomStart,
-            margin: EdgeInsets.only(left: Adaptive.w(10)),
-            child: FloatingActionButton(
-              backgroundColor: HexColor('22211f').withOpacity(.9),
-              onPressed: () {
-                cubit.togglePlay();
-
-                //  For Getting Surah Sound Ayah By Ayah
-                //  but i found that i can get the link of Surah sound directly and easier..
-
-                // if (!cubit.stopAudio) {
-                //   cubit.stopAudio = true;
-                //   cubit.nextAyah = 1;
-                //   cubit.getSound(surahNum: surahIndex!).then((value) {
-                //     cubit.setUrlSrc(
-                //         // first Ayah
-                //         urlSrc: cubit.quranSound!.audio[0],
-                //         numOfAyahs: getVerseCount(surahIndex!));
-                //
-                //   });
-                // } else {
-                //   cubit.stop();
-                //   cubit.stopAudio = false;
-                // }
-              },
-              child: Icon(cubit.soundIcon),
-            ),
-          ),
+              )),
         );
       },
     );

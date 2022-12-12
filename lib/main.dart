@@ -8,6 +8,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/cubit/cubit.dart';
 import 'package:untitled8/models/asmaa_allah_elhosna.dart';
 import 'package:untitled8/models/azkar&Tsabeeh.dart';
+import 'package:untitled8/shared/cache_helper.dart';
 import 'package:untitled8/shared/network/dio.dart';
 import 'package:untitled8/screens/startup_screen.dart';
 import 'components/components.dart';
@@ -17,14 +18,17 @@ import 'components/constants.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DioHelper.init();
-  await DioHelper.initSound();
-
+  await DioHelper.initHadeeth();
   Map<String, dynamic> json1 = jsonDecode(azkar);
   AzkarAndTsabeeh.fromJson(json1);
   Map<String,dynamic> json2 = jsonDecode(asmaaAllahElHosna);
   AsmaaAllahElHosna.fromJson(json2);
+  await CacheHelper.init();
+  surahNameFromSharedPref = CacheHelper.getData(key: "surahName");
+  surahNumFromSharedPref = CacheHelper.getData(key: "surahNumber");
+  pageNumberFromSharedPref = CacheHelper.getData(key: "pageNumber");
   runApp(BlocProvider(
-      create: (context) => AppCubit()..getPrayerTime(), child: MyApp()));
+      create: (context) => AppCubit()..getPrayerTime()..getHadeeth(), child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {

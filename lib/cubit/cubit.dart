@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:untitled8/cubit/states.dart';
+import 'package:untitled8/models/hadeeth.dart';
 import 'package:untitled8/models/prayertimes.dart';
 
 import '../models/quran_sound.dart';
@@ -32,34 +33,38 @@ class AppCubit extends Cubit<AppStates> {
 
   PrayerTimesModel? prayerTimesModel;
   bool gotPrayerTimes = false;
-  int elAsrHours=0,
-      elMaghribHours=0,
-      elIshaHours=0,
-      elDuhrHours=0,
-      elDuhrMins=0,
-      elFajrHours=0,
-      elAsrMins=0,
-      elMaghribMins=0,
-      elIshaMins=0,
-      elFajrMins=0;
+  int elAsrHours = 0,
+      elMaghribHours = 0,
+      elIshaHours = 0,
+      elDuhrHours = 0,
+      elDuhrMins = 0,
+      elFajrHours = 0,
+      elAsrMins = 0,
+      elMaghribMins = 0,
+      elIshaMins = 0,
+      elFajrMins = 0;
 
-  int duhrDurationInHours =0,
-    duhrDurationInMins=0,
-    asrDurationInHours=0,
-    asrDurationInMins=0,
-    maghribDurationInHours=0,
-    maghribDurationInMins=0,
-    ishaDurationInHours=0,
-    ishaDurationInMins=0,
-    fajrDurationInHours=0,
-    fajrDurationInMins=0;
-  bool azanElDuhr=false, azanElAsr=false, azanElMaghrib=false, azanElIsha=false, azanElFajr = false;
+  int duhrDurationInHours = 0,
+      duhrDurationInMins = 0,
+      asrDurationInHours = 0,
+      asrDurationInMins = 0,
+      maghribDurationInHours = 0,
+      maghribDurationInMins = 0,
+      ishaDurationInHours = 0,
+      ishaDurationInMins = 0,
+      fajrDurationInHours = 0,
+      fajrDurationInMins = 0;
+  bool azanElDuhr = false,
+      azanElAsr = false,
+      azanElMaghrib = false,
+      azanElIsha = false,
+      azanElFajr = false;
+
   void getPrayerTime() {
     getLocation().then((value) {
       DioHelper.getData(endPoint: 'calendar', query: {
         'latitude': lat,
         'longitude': long,
-        'method': 5,
         'month': now.month,
         'year': now.year
       }).then((value) {
@@ -102,13 +107,27 @@ class AppCubit extends Cubit<AppStates> {
   AudioPlayer quranSound = AudioPlayer();
   AudioPlayer azanSound = AudioPlayer();
   IconData soundIcon = Icons.play_arrow;
-
+  bool quranSoundActive = false;
+  String surahName = '';
+  int surahNumber = 0;
+  int currentPageNumber = 0;
+  void setCurrentPageNumber(int pageNumber) {
+    currentPageNumber = pageNumber;
+    emit(SetCurrentPageNumberAppState());
+  }
+  void setSurahInfo(int number, String name) {
+    surahNumber = number;
+    surahName = name;
+  }
   void setUrlQuranSoundSrc({required String urlSrc}) {
+    quranSoundActive = true;
     quranSound.setUrl(urlSrc);
   }
-
-  // File file = File('C:/Users/Waleed/Desktop/azan.mp3');
-
+  void changeQuranSoundActive() {
+    quranSoundActive = false;
+    quranSound.stop();
+    emit(ChangeQuranSoundActiveState());
+  }
   void setUrlAzanSoundSrc() {
     azanSound.setAsset('assets/sounds/azan.mp3').then((value) {
       azanSound.play();
@@ -126,6 +145,43 @@ class AppCubit extends Cubit<AppStates> {
       emit(PauseSoundAppState());
     }
     isPlaying = !isPlaying;
+
+    quranSound.playerStateStream.listen((event) {
+      if (event.processingState == ProcessingState.completed) {
+        quranSound.seek(Duration.zero);
+        quranSound.stop();
+        isPlaying = false;
+        soundIcon = Icons.play_arrow;
+        emit(PauseSoundAppState());
+      }
+    });
+  }
+
+  Hadeeth? hadeeth;
+
+  void getHadeeth() {
+    for (int i = 1; i <= 2; i++) {
+      DioHelper.getHadeeth(endPoint: 'hadeeths/list', query: {
+        'language': 'ar',
+        'category_id': 1,
+        'page': i,
+      }).then((value) {
+        hadeeth = Hadeeth.getIds(value.data);
+      }).then((value) {
+        for (String id in Hadeeth.ids) {
+          // to avoid duplicate ids
+          if (Hadeeth.ids.contains(id) && i > 1) {
+            continue;
+          }
+          DioHelper.getHadeeth(endPoint: 'hadeeths/one', query: {
+            'language': 'ar',
+            'id': id,
+          }).then((value) {
+            hadeeth = Hadeeth.getHadeethInfo(value.data);
+          });
+        }
+      });
+    }
   }
 
 // For Getting Surah Sound Ayah By Ayah
