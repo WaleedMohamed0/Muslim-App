@@ -1,9 +1,14 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:hexcolor/hexcolor.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:untitled8/components/constants.dart';
 import 'package:untitled8/cubit/cubit.dart';
 import 'package:untitled8/screens/surah_screen.dart';
 import 'package:we_slide/we_slide.dart';
@@ -94,6 +99,7 @@ Future awesomeDialog(context, title, text,
         {dialogType = DialogType.question}) =>
     AwesomeDialog(
       context: context,
+      headerAnimationLoop: false,
       animType: AnimType.bottomSlide,
       dialogType: dialogType,
       isDense: true,
@@ -172,10 +178,8 @@ Widget myPanel({
                 color: HexColor('22211f').withOpacity(0.95),
                 child: Row(
                   children: [
-                    Image.network(
-                        'https://www.sqorebda3.com/vb/Photo/new_1421865147_476.jpg',
-                        width: 17.w,
-                        height: 17.w),
+                    Image.asset('assets/images/العفاسي.jpg',
+                        width: 17.w, height: 17.w),
                     SizedBox(
                       width: 3.w,
                     ),
@@ -200,7 +204,11 @@ Widget myPanel({
                     Align(
                         widthFactor: .6,
                         alignment: Alignment.center,
-                        child: playIconButton(cubit: cubit)),
+                        child: playIconButton(
+                          cubit: cubit,
+                          context: context,
+                          surahNumber: cubit.surahNumber,
+                        )),
                     Align(
                       alignment: AlignmentDirectional.topEnd,
                       widthFactor: 1,
@@ -232,13 +240,52 @@ Widget myPanel({
   );
 }
 
-Widget playIconButton({required AppCubit cubit}) => Padding(
+Widget playIconButton({required AppCubit cubit, context, surahNumber}) =>
+    Padding(
       padding: EdgeInsets.only(right: 2.5.w),
       child: FloatingActionButton(
         mini: true,
         backgroundColor: HexColor('fefbec'),
         onPressed: () {
-          cubit.togglePlay();
+          if (!cubit.isDownloading) {
+            if (cubit.isCached) {
+              cubit.togglePlay();
+            } else {
+              if (!cubit.isPlaying) {
+                AwesomeDialog(
+                  context: context,
+                  dialogType: DialogType.noHeader,
+                  animType: AnimType.scale,
+                  title: 'هل تود تحميل السورة ؟',
+                  desc: "اذا ضغط نعم سيمكنك لاحقا الاستماع للسورة بدون انترنت",
+                  btnOkOnPress: () {
+                    if (!internetConnection && !cubit.isCached) {
+                      defaultFlutterToast(
+                          msg: "للسماع للسورة يجب الاتصال بالانترنت");
+                    } else {
+                      cubit.downloadSurahSound();
+                    }
+                  },
+                  btnOkText: 'نعم',
+                  btnOkColor: Colors.teal,
+                  btnCancelOnPress: () {
+                    if (internetConnection) {
+                      if (cubit.quranSoundUrl == "") {
+                        cubit.setUrlQuranSoundSrcOnline(
+                            urlSrc: "$quranSoundUrl$surahNumber.mp3");
+                      }
+
+                      cubit.togglePlay();
+                    }
+                  },
+                  btnCancelText: 'لا',
+                  btnCancelColor: Colors.red,
+                ).show();
+              } else {
+                cubit.togglePlay();
+              }
+            }
+          }
         },
         child: Icon(
           cubit.soundIcon,
@@ -246,3 +293,42 @@ Widget playIconButton({required AppCubit cubit}) => Padding(
         ),
       ),
     );
+
+Future<bool?> defaultFlutterToast({
+  required String msg,
+  Color textColor = Colors.white,
+  Color backgroundColor = Colors.red,
+  Toast toastLength = Toast.LENGTH_LONG,
+}) =>
+    Fluttertoast.showToast(
+        msg: msg,
+        toastLength: toastLength,
+        backgroundColor: backgroundColor,
+        textColor: textColor,
+        fontSize: 16.0);
+
+void checkInternetConnection(context) {
+  InternetConnectionChecker().onStatusChange.listen((status) {
+    if (status == InternetConnectionStatus.connected) {
+      internetConnection = true;
+      defaultFlutterToast(
+          msg: "تم الاتصال بالانترنت",
+          backgroundColor: Colors.green,
+          toastLength: Toast.LENGTH_SHORT);
+      AppCubit.get(context).getHadeeth();
+      AppCubit.get(context).getPrayerTime();
+    } else {
+      internetConnection = false;
+    }
+  });
+}
+
+Future<void> checkLocationPermission() async {
+  Geolocator.isLocationServiceEnabled().then((value) {
+    if (value) {
+      locationPermission = true;
+    } else {
+      locationPermission = false;
+    }
+  });
+}

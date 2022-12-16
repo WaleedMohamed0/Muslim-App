@@ -5,6 +5,8 @@ class Hadeeth
   static List<String> explanation = [];
   Hadeeth.getIds(Map<String, dynamic> json)
   {
+    // to avoid duplicate ids
+    ids.clear();
     json['data'].forEach((element) {
       ids.add(element['id']);
     });

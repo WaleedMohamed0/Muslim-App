@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/components/components.dart';
+import 'package:untitled8/components/constants.dart';
 import 'package:untitled8/cubit/cubit.dart';
 import 'package:untitled8/cubit/states.dart';
 import 'package:untitled8/screens/elazan_screen.dart';
@@ -26,7 +27,23 @@ class PrayerTimes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var cubit = AppCubit.get(context);
-
+    if (!internetConnection) {
+      defaultFlutterToast(msg: "يرجي الاتصال بالانترنت");
+      Future.delayed(
+        const Duration(seconds: 3),
+        () => {
+          Navigator.pop(context),
+        },
+      );
+    } else if (!locationPermission) {
+      defaultFlutterToast(msg: "يرجي تفعيل ال Location");
+      Future.delayed(
+        const Duration(seconds: 3),
+            () => {
+          Navigator.pop(context),
+        },
+      );
+    }
     return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {},
       builder: (context, state) {
@@ -62,7 +79,7 @@ class PrayerTimes extends StatelessWidget {
                   imageIcon: 'assets/images/salahIcon.png',
                   elSala: 'العِشَاءِ',
                   time: '${cubit.elIshaHours - 12}'
-                      " : "
+                      ":"
                       '${cubit.prayerTimesModel!.Isha!.substring(3, 5)}',
                   morning: false),
             ];

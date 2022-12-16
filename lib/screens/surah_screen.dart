@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:hexcolor/hexcolor.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:quran/quran.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/components/components.dart';
@@ -25,9 +23,11 @@ class SurahScreen extends StatelessWidget {
     return BlocBuilder<AppCubit, AppStates>(
       builder: (context, state) {
         final PageController pageController = PageController(
-            initialPage: surahName == surahNameFromSharedPref
-                ? pageNumberFromSharedPref - numsOfPages[0]
+            initialPage: surahNameFromSharedPref != null &&
+                    (surahName == surahNameFromSharedPref)
+                ? pageNumberFromSharedPref! - numsOfPages[0]
                 : 0);
+
         return SafeArea(
           child: Scaffold(
               appBar: defaultAppBar(text: surahName, actions: [
@@ -42,14 +42,15 @@ class SurahScreen extends StatelessWidget {
                       surahNumFromSharedPref = surahNumber!;
                       pageNumberFromSharedPref = cubit.currentPageNumber;
                       Fluttertoast.showToast(
-                          msg: "تم حفظ السورة", fontSize: 20.sp);
+                          msg: "تم حفظ السورة", fontSize: 16.sp);
                     },
                     icon: const Icon(
                       Icons.bookmark,
                       color: Colors.white,
                       size: 30,
                     )),
-                playIconButton(cubit: cubit),
+                playIconButton(
+                    cubit: cubit, surahNumber: surahNumber, context: context),
               ]),
               body: PageView.builder(
                 itemCount: numsOfPages.length,
@@ -58,19 +59,18 @@ class SurahScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   cubit.setCurrentPageNumber(numsOfPages[index]);
                   return Stack(
-                    alignment: Alignment.topLeft,
-                    children: [
-                      Image.asset(
-                          "assets/quranImages/${numsOfPages[index]}.png",
-                          fit: BoxFit.fill),
-                      if (index == pageController.initialPage)
-                        Image.asset('assets/images/savedPageNumIcon.png',
-                          height: 25.w,
-                            ),
-
-
-                    ],
-                  );
+                      alignment: AlignmentDirectional.topStart,
+                      children: [
+                        Image.asset(
+                            "assets/quranImages/${numsOfPages[index]}.png",
+                            fit: BoxFit.fill,
+                            width: double.infinity,
+                            height: double.infinity),
+                        if (index == pageController.initialPage &&
+                            surahName == surahNameFromSharedPref)
+                          Image.asset("assets/images/savedPageNumIcon.png",
+                              height: 40.sp),
+                      ]);
                 },
               )),
         );

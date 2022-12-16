@@ -1,8 +1,8 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hexcolor/hexcolor.dart';
-import 'package:page_transition/page_transition.dart';
 import 'package:quran/quran.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/components/components.dart';
@@ -17,36 +17,37 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print(pageNumberFromSharedPref);
     var cubit = AppCubit.get(context);
-    Future.delayed(
-        const Duration(milliseconds: 150),
-        () => {
-              AwesomeDialog(
-                barrierColor: Colors.black.withOpacity(0.5),
-                context: context,
-                dialogType: DialogType.noHeader,
-                animType: AnimType.scale,
-                title: 'هل تود الانتقال الي العلامة؟',
-                btnOkOnPress: () {
-                  navigateTo(
-                      context,
-                      SurahScreen(
-                        surahNumber: surahNumFromSharedPref,
-                      ));
-                },
-                btnOkText: 'نعم',
-                customHeader: const Icon(
-                  Icons.bookmark,
-                  color: Colors.teal,
-                  size: 50,
-                ),
-                btnOkColor: Colors.teal,
-                btnCancelOnPress: () {},
-                btnCancelText: 'لا',
-                btnCancelColor: Colors.red,
-              )..show()
-            });
+    if (surahNameFromSharedPref != null) {
+      Future.delayed(
+          const Duration(milliseconds: 150),
+          () => {
+                AwesomeDialog(
+                  barrierColor: Colors.black.withOpacity(0.5),
+                  context: context,
+                  dialogType: DialogType.noHeader,
+                  animType: AnimType.scale,
+                  title: 'هل تود الانتقال الي العلامة؟',
+                  btnOkOnPress: () {
+                    navigateTo(
+                        context,
+                        SurahScreen(
+                          surahNumber: surahNumFromSharedPref,
+                        ));
+                  },
+                  btnOkText: 'نعم',
+                  customHeader: const Icon(
+                    Icons.bookmark,
+                    color: Colors.teal,
+                    size: 50,
+                  ),
+                  btnOkColor: Colors.teal,
+                  btnCancelOnPress: () {},
+                  btnCancelText: 'لا',
+                  btnCancelColor: Colors.red,
+                )..show()
+              });
+    }
     return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {},
       builder: (context, state) {
@@ -59,21 +60,40 @@ class HomeScreen extends StatelessWidget {
                   separatorBuilder: (context, index) => myDivider(),
                   itemCount: 114,
                   itemBuilder: ((context, index) => InkWell(
-                        onTap: () {
+                        onTap: () async {
                           // to not stop the audio when we navigate to the same surah
                           if (cubit.surahName !=
                               getSurahNameArabic(index + 1)) {
-                            cubit.setUrlQuranSoundSrc(
-                                urlSrc: getAudioURLBySurah(index + 1));
+                            FileInfo? cacheIsEmpty = await DefaultCacheManager()
+                                .getFileFromCache(
+                                    "$quranSoundUrl${index + 1}.mp3");
+                            if (cacheIsEmpty == null) {
+                              cubit.isCached = false;
+                              if (internetConnection) {
+                                cubit.setUrlQuranSoundSrcOnline(
+                                    urlSrc: "$quranSoundUrl${index + 1}.mp3");
+
+                              }
+                            } else {
+                              cubit.isCached = true;
+                              DefaultCacheManager()
+                                  .getFileFromCache(
+                                      "$quranSoundUrl${index + 1}.mp3")
+                                  .then((value) {
+                                cubit.setUrlQuranSoundSrcOffline(
+                                    urlSrc: value!.file.path);
+                              });
+                            }
                             cubit.setSurahInfo(
                                 index + 1, getSurahNameArabic(index + 1));
 
-                            if (!cubit.isPlaying) {
-                              cubit.togglePlay();
-                            } else {
-                              cubit.togglePlay();
+                            if (cubit.isPlaying) {
                               cubit.togglePlay();
                             }
+                            // else {
+                            //   cubit.togglePlay();
+                            //   cubit.togglePlay();
+                            // }
                           }
 
                           navigateTo(

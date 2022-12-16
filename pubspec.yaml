@@ -53,7 +53,8 @@ dependencies:
   page_transition: "^2.0.9"
   we_slide: ^2.3.0
   shared_preferences: ^2.0.15
-
+  internet_connection_checker: ^1.0.0+1
+  flutter_cache_manager: ^3.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
