@@ -1,16 +1,18 @@
-# untitled8
+# Muslim-App
 
 A new Flutter project.
 
-## Getting Started
+## Features
+- It Contains the whole quran to read.
+- Also You can listen to quran by Sheikh Mashary Rashed El Afasi voice.
+- Read Azkar (الصباح, المساء, النوم) , التسابيح , أدعية.
+- Hadiths Of The Messenger Mohammed (صل الله عليه و سلم).
+- Asmaa Allah El Hosna.
+- Prayer Times.
+<br>
+<br>
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+| | || |
+| - | - | - | - |
+| <img src="https://drive.google.com/uc?export=view&id=1uTd8HzYemaioY375aJGqPmsiwR164eux" width=300> | <img src="https://drive.google.com/uc?export=view&id=1rKtGh-QRsM8m4pwfgicIoGmQitQUG3pf" width=300> | <img src="https://drive.google.com/uc?export=view&id=1KayHnF4aX0EuC_Q_NAt7Fw76uTgAwz1c" width=300>
+| <img src="https://drive.google.com/uc?export=view&id=1AZGtPre4ZLACZGZlCKsRsnDFwqgqxnMn" width=300> | <img src="https://drive.google.com/uc?export=view&id=11iRNMpL9sCHIhxN6umOp5IdDrdBb9WZb" width=300> | <img src="https://drive.google.com/uc?export=view&id=1DWd5GDC337Q_XwAYA6aptNngVfKHcBR8" width=300>|
