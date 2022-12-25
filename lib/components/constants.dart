@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/azkar_start_up.dart';
-
+Color defaultColor = Colors.teal;
 List<AzkarModel> azkarList = [
   AzkarModel(text: 'أذكار الصباح', img: 'assets/images/azkarElsabah.jpg'),
   AzkarModel(text: 'أذكار المساء', img: 'assets/images/azkarElmasa2.jpg'),

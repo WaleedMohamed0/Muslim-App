@@ -8,8 +8,6 @@ import 'package:untitled8/components/constants.dart';
 import 'package:untitled8/cubit/states.dart';
 import 'package:untitled8/models/hadeeth.dart';
 import 'package:untitled8/models/prayertimes.dart';
-
-import '../models/quran_sound.dart';
 import '../shared/network/dio.dart';
 
 class AppCubit extends Cubit<AppStates> {
@@ -123,6 +121,9 @@ class AppCubit extends Cubit<AppStates> {
 
   void setSurahInfo(int number, String name) {
     surahNumber = number;
+    if (name == 'اللهب') {
+      name = 'المسد';
+    }
     surahName = name;
   }
 
@@ -138,6 +139,7 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   void changeQuranSoundActive() {
+    soundIcon = Icons.play_arrow;
     quranSoundActive = false;
     quranSound.stop();
     quranSound.seek(Duration.zero);
@@ -174,7 +176,9 @@ class AppCubit extends Cubit<AppStates> {
       }
     });
   }
+
   bool isDownloading = false;
+
   void downloadSurahSound() {
     isDownloading = true;
     soundIcon = Icons.download;
@@ -190,8 +194,10 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   Hadeeth? hadeeth;
+  bool gotHadeeths = false;
 
   void getHadeeth() {
+    gotHadeeths = true;
     if (internetConnection) {
       for (int i = 1; i <= 2; i++) {
         // each iterate gets 20 hadeeth

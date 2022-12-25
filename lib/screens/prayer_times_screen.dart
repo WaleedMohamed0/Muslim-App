@@ -27,7 +27,7 @@ class PrayerTimes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var cubit = AppCubit.get(context);
-    if (!internetConnection) {
+    if (!internetConnection && !cubit.gotPrayerTimes) {
       defaultFlutterToast(msg: "يرجي الاتصال بالانترنت");
       Future.delayed(
         const Duration(seconds: 3),
@@ -35,15 +35,23 @@ class PrayerTimes extends StatelessWidget {
           Navigator.pop(context),
         },
       );
-    } else if (!locationPermission) {
-      defaultFlutterToast(msg: "يرجي تفعيل ال Location");
-      Future.delayed(
-        const Duration(seconds: 3),
-            () => {
-          Navigator.pop(context),
-        },
-      );
     }
+    checkLocationPermission().then((value) {
+      if (!locationPermission && !cubit.gotPrayerTimes) {
+        defaultFlutterToast(msg: "يرجي تفعيل ال Location");
+        Future.delayed(
+          const Duration(seconds: 3),
+          () => {
+            Navigator.pop(context),
+          },
+        );
+      } else if (locationPermission &&
+          internetConnection &&
+          !cubit.gotPrayerTimes) {
+        cubit.getPrayerTime();
+      }
+    });
+
     return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {},
       builder: (context, state) {
@@ -132,10 +140,10 @@ class PrayerTimes extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(23),
-                            boxShadow: const [
+                            boxShadow: [
                               BoxShadow(
-                                  color: Colors.teal,
-                                  offset: Offset(3, 3),
+                                  color: defaultColor,
+                                  offset: const Offset(3, 3),
                                   blurRadius: 6)
                             ],
                           ),
@@ -176,8 +184,8 @@ class PrayerTimes extends StatelessWidget {
               ),
             );
           },
-          fallback: (context) => const Center(
-            child: CircularProgressIndicator(color: Colors.teal),
+          fallback: (context) => Center(
+            child: CircularProgressIndicator(color: defaultColor),
           ),
         );
       },

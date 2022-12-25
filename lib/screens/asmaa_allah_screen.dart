@@ -34,11 +34,11 @@ class AsmaaAllahScreen extends StatelessWidget {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                               begin: Alignment.bottomCenter,
                               tileMode: TileMode.mirror,
                               end: Alignment.center,
-                              colors: [Colors.teal, Colors.lightGreen]),
+                              colors: [defaultColor, Colors.lightGreen]),
                           border: Border.all(
                             color: Colors.black,
                             width: .3,

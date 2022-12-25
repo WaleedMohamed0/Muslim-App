@@ -20,7 +20,6 @@ class AzkarAndHadeethScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     var cubit = AppCubit.get(context);
 
     if (index == 0) {
@@ -48,8 +47,7 @@ class AzkarAndHadeethScreen extends StatelessWidget {
                   onScreenOpen(context),
                 });
         joinedHadeethsScreenBefore = true;
-      }
-      else if (!internetConnection && Hadeeth.hadeeths.isEmpty) {
+      } else if (!internetConnection && Hadeeth.hadeeths.isEmpty) {
         defaultFlutterToast(msg: "يرجي الاتصال بالانترنت لتحميل الأحاديث");
       }
     }
@@ -75,13 +73,15 @@ class AzkarAndHadeethScreen extends StatelessWidget {
                     horizontal: Adaptive.w(5), vertical: Adaptive.h(3)),
                 padding: EdgeInsets.symmetric(
                     horizontal: Adaptive.w(3), vertical: Adaptive.h(2)),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius:
-                      BorderRadius.only(bottomRight: Radius.circular(50)),
+                      const BorderRadius.only(bottomRight: Radius.circular(50)),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.teal, offset: Offset(3, 3), blurRadius: 7)
+                        color: defaultColor,
+                        offset: const Offset(3, 3),
+                        blurRadius: 7)
                   ],
                 ),
                 child: Column(
@@ -120,10 +120,10 @@ class AzkarAndHadeethScreen extends StatelessWidget {
                                     onPressed: () {
                                       cubit.clearTimes(index);
                                     },
-                                    icon: const CircleAvatar(
+                                    icon: CircleAvatar(
                                         radius: 15,
-                                        backgroundColor: Colors.teal,
-                                        child: Icon(Icons.recycling)),
+                                        backgroundColor: defaultColor,
+                                        child: const Icon(Icons.recycling)),
                                     color: Colors.white,
                                   ),
                                   SizedBox(
@@ -141,10 +141,10 @@ class AzkarAndHadeethScreen extends StatelessWidget {
                                     onPressed: () {
                                       cubit.incrementAzkarTimes(index);
                                     },
-                                    icon: const CircleAvatar(
+                                    icon: CircleAvatar(
                                         radius: 15,
-                                        backgroundColor: Colors.teal,
-                                        child: Icon(Icons.add)),
+                                        backgroundColor: defaultColor,
+                                        child: const Icon(Icons.add)),
                                     color: Colors.white,
                                   ),
                                 ],

@@ -10,6 +10,7 @@ import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/components/constants.dart';
 import 'package:untitled8/cubit/cubit.dart';
+import 'package:untitled8/models/hadeeth.dart';
 import 'package:untitled8/screens/surah_screen.dart';
 import 'package:we_slide/we_slide.dart';
 
@@ -85,7 +86,10 @@ Widget homeItem(context, text, screen) {
 }
 
 AppBar defaultAppBar(
-        {required String text, double fontSize = 30, List<Widget>? actions}) =>
+        {required String text,
+        double fontSize = 30,
+        List<Widget>? actions,
+        Widget? leading}) =>
     AppBar(
       title: Text(
         text,
@@ -93,6 +97,7 @@ AppBar defaultAppBar(
       ),
       actions: actions,
       centerTitle: true,
+      leading: leading,
     );
 
 Future awesomeDialog(context, title, text,
@@ -149,7 +154,7 @@ AwesomeDialog onScreenOpen(context) => AwesomeDialog(
           Navigator.pop(context);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.teal,
+          backgroundColor: defaultColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -251,32 +256,28 @@ Widget playIconButton({required AppCubit cubit, context, surahNumber}) =>
             if (cubit.isCached) {
               cubit.togglePlay();
             } else {
-              if (!cubit.isPlaying) {
+              if (!internetConnection) {
+                defaultFlutterToast(msg: 'لا يوجد اتصال بالانترنت');
+              } else if (!cubit.isPlaying && internetConnection) {
                 AwesomeDialog(
                   context: context,
                   dialogType: DialogType.noHeader,
                   animType: AnimType.scale,
                   title: 'هل تود تحميل السورة ؟',
-                  desc: "اذا ضغط نعم سيمكنك لاحقا الاستماع للسورة بدون انترنت",
+                  desc:
+                      "عند تحميل السورة سيمكنك لاحقا الاستماع لها بدون انترنت",
                   btnOkOnPress: () {
-                    if (!internetConnection && !cubit.isCached) {
-                      defaultFlutterToast(
-                          msg: "للسماع للسورة يجب الاتصال بالانترنت");
-                    } else {
-                      cubit.downloadSurahSound();
-                    }
+                    cubit.downloadSurahSound();
                   },
                   btnOkText: 'نعم',
-                  btnOkColor: Colors.teal,
+                  btnOkColor: defaultColor,
                   btnCancelOnPress: () {
-                    if (internetConnection) {
-                      if (cubit.quranSoundUrl == "") {
-                        cubit.setUrlQuranSoundSrcOnline(
-                            urlSrc: "$quranSoundUrl$surahNumber.mp3");
-                      }
-
-                      cubit.togglePlay();
+                    if (cubit.quranSoundUrl !=
+                        "$quranSoundUrl$surahNumber.mp3") {
+                      cubit.setUrlQuranSoundSrcOnline(
+                          urlSrc: "$quranSoundUrl$surahNumber.mp3");
                     }
+                    cubit.togglePlay();
                   },
                   btnCancelText: 'لا',
                   btnCancelColor: Colors.red,
@@ -307,28 +308,28 @@ Future<bool?> defaultFlutterToast({
         textColor: textColor,
         fontSize: 16.0);
 
-void checkInternetConnection(context) {
+void checkInternetConnection(AppCubit cubit) {
   InternetConnectionChecker().onStatusChange.listen((status) {
     if (status == InternetConnectionStatus.connected) {
       internetConnection = true;
-      defaultFlutterToast(
-          msg: "تم الاتصال بالانترنت",
-          backgroundColor: Colors.green,
-          toastLength: Toast.LENGTH_SHORT);
-      AppCubit.get(context).getHadeeth();
-      AppCubit.get(context).getPrayerTime();
+
+      if (!cubit.gotHadeeths) {
+        cubit.getHadeeth();
+        cubit.getPrayerTime();
+      }
     } else {
       internetConnection = false;
     }
   });
 }
 
-Future<void> checkLocationPermission() async {
-  Geolocator.isLocationServiceEnabled().then((value) {
+Future<void> checkLocationPermission()async {
+  await Geolocator.isLocationServiceEnabled().then((value) {
     if (value) {
       locationPermission = true;
     } else {
       locationPermission = false;
     }
   });
+
 }

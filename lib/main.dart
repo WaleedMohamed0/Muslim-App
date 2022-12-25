@@ -14,6 +14,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/cubit/cubit.dart';
 import 'package:untitled8/models/asmaa_allah_elhosna.dart';
 import 'package:untitled8/models/azkar&Tsabeeh.dart';
+import 'package:untitled8/models/hadeeth.dart';
 import 'package:untitled8/shared/cache_helper.dart';
 import 'package:untitled8/shared/network/dio.dart';
 import 'package:untitled8/screens/startup_screen.dart';
@@ -30,20 +31,15 @@ void main() async {
   Map<String, dynamic> json2 = jsonDecode(asmaaAllahElHosna);
   AsmaaAllahElHosna.fromJson(json2);
   await CacheHelper.init();
-
   surahNameFromSharedPref = CacheHelper.getData(key: "surahName");
   surahNumFromSharedPref = CacheHelper.getData(key: "surahNumber");
   pageNumberFromSharedPref = CacheHelper.getData(key: "pageNumber");
-  await checkLocationPermission();
-
   print(surahNameFromSharedPref);
   print(surahNumFromSharedPref);
   print(pageNumberFromSharedPref);
 
   runApp(BlocProvider(
-      create: (context) => AppCubit()
-        ..getPrayerTime()
-        ..getHadeeth(),
+      create: (context) => AppCubit(),
       child: const MyApp()));
 }
 
@@ -52,7 +48,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    checkInternetConnection(context);
+    checkInternetConnection(AppCubit.get(context));
 
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -67,7 +63,6 @@ class MyApp extends StatelessWidget {
             fontFamily: 'QuranFont',
           ),
           debugShowCheckedModeBanner: false,
-          // home: StartUpScreen(),
           home: (AnimatedSplashScreen(
               splash: splash(),
               centered: true,

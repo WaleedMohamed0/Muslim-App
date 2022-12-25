@@ -19,7 +19,10 @@ class SurahScreen extends StatelessWidget {
     var cubit = AppCubit.get(context);
     List<int> numsOfPages = getSurahPages(surahNumber!);
     String surahName = getSurahNameArabic(surahNumber!);
-
+    if(surahName == 'اللهب')
+      {
+        surahName = 'المسد';
+      }
     return BlocBuilder<AppCubit, AppStates>(
       builder: (context, state) {
         final PageController pageController = PageController(
@@ -33,16 +36,29 @@ class SurahScreen extends StatelessWidget {
               appBar: defaultAppBar(text: surahName, actions: [
                 IconButton(
                     onPressed: () {
-                      CacheHelper.saveData(key: "surahName", value: surahName);
-                      CacheHelper.saveData(
-                          key: "surahNumber", value: surahNumber);
-                      CacheHelper.saveData(
-                          key: "pageNumber", value: cubit.currentPageNumber);
-                      surahNameFromSharedPref = surahName;
-                      surahNumFromSharedPref = surahNumber!;
-                      pageNumberFromSharedPref = cubit.currentPageNumber;
-                      Fluttertoast.showToast(
-                          msg: "تم حفظ السورة", fontSize: 16.sp);
+                      if (CacheHelper.getData(key: "pageNumber") !=
+                          cubit.currentPageNumber) {
+                        CacheHelper.saveData(
+                            key: "surahName", value: surahName);
+                        CacheHelper.saveData(
+                            key: "surahNumber", value: surahNumber);
+                        CacheHelper.saveData(
+                            key: "pageNumber", value: cubit.currentPageNumber);
+                        surahNameFromSharedPref = surahName;
+                        surahNumFromSharedPref = surahNumber!;
+                        pageNumberFromSharedPref = cubit.currentPageNumber;
+                        defaultFlutterToast(
+                            msg: "تم حفظ الصفحة",
+                            backgroundColor: defaultColor);
+                      } else {
+                        CacheHelper.removeData(key: "surahName");
+                        CacheHelper.removeData(key: "surahNumber");
+                        CacheHelper.removeData(key: "pageNumber");
+                        surahNameFromSharedPref = null;
+                        surahNumFromSharedPref = null;
+                        pageNumberFromSharedPref = null;
+                        defaultFlutterToast(msg: "تم الغاء حفظ الصفحة");
+                      }
                     },
                     icon: const Icon(
                       Icons.bookmark,

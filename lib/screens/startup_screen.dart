@@ -27,11 +27,11 @@ class StartUpScreen extends StatelessWidget {
         return SafeArea(
           child: Scaffold(
               body: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Colors.teal, Colors.black87]),
+                      colors: [defaultColor, Colors.black87]),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
