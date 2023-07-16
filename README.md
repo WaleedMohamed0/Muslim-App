@@ -14,5 +14,5 @@ A new Flutter project.
 
 | | ||
 | - | - | - |
-| ![Splash Screen](ScreenShots/1.png =300x) | <img src="https://drive.google.com/uc?export=view&id=1rKtGh-QRsM8m4pwfgicIoGmQitQUG3pf" width=300> | <img src="https://drive.google.com/uc?export=view&id=1KayHnF4aX0EuC_Q_NAt7Fw76uTgAwz1c" width=300>
+| ![Splash Screen](ScreenShots/1.png){width = 300px} | <img src="https://drive.google.com/uc?export=view&id=1rKtGh-QRsM8m4pwfgicIoGmQitQUG3pf" width=300> | <img src="https://drive.google.com/uc?export=view&id=1KayHnF4aX0EuC_Q_NAt7Fw76uTgAwz1c" width=300>
 | <img src="https://drive.google.com/uc?export=view&id=1AZGtPre4ZLACZGZlCKsRsnDFwqgqxnMn" width=300> | <img src="https://drive.google.com/uc?export=view&id=11iRNMpL9sCHIhxN6umOp5IdDrdBb9WZb" width=300> | <img src="https://drive.google.com/uc?export=view&id=1DWd5GDC337Q_XwAYA6aptNngVfKHcBR8" width=300>|
