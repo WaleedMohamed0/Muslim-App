@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class SurahListTile extends StatelessWidget {
-  const SurahListTile({super.key, required this.number, required this.name, required this.verses, required this.place, required this.onTap});
+  const SurahListTile({
+    super.key,
+    required this.number,
+    required this.name,
+    required this.verses,
+    required this.place,
+    required this.onTap,
+  });
   final int number;
   final String name;
   final int verses;
@@ -16,29 +23,51 @@ class SurahListTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 12),
           child: Row(
             children: [
               Container(
                 width: 42,
                 height: 42,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(14)),
-                child: Text('$number', style: TextStyle(color: colors.onPrimaryContainer, fontWeight: FontWeight.w700)),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(
+                    '$number',
+                    style: TextStyle(
+                      color: colors.onPrimaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, textDirection: TextDirection.rtl, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      name,
+                      textAlign: TextAlign.start,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('$place  •  $verses آيات', textDirection: TextDirection.rtl, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      '$place  •  $verses آيات',
+                      textAlign: TextAlign.start,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+              Icon(Icons.chevron_right_rounded, color: colors.onSurfaceVariant),
             ],
           ),
         ),

@@ -21,7 +21,6 @@ dependencies:
   intl: ^0.20.3
   responsive_sizer: ^3.3.1
   awesome_dialog: ^3.3.0
-  fluttertoast: ^10.0.2
   page_transition: ^2.2.2
   we_slide: ^2.4.0
   shared_preferences: ^2.5.6
@@ -49,7 +48,6 @@ flutter:
     - assets/features/prayer_times/audio/
     - assets/features/prayer_times/images/
     - assets/features/quran/images/
-    - assets/features/quran/pages/
   fonts:
     - family: QuranFont
       fonts:

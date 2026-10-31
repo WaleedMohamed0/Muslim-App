@@ -10,10 +10,21 @@ import '../../../azkar/presentation/cubit/azkar_cubit.dart';
 import 'app_state.dart';
 
 class AppCubit extends Cubit<AppState> {
-  AppCubit({required ConnectivityService connectivity, required HadeethCubit hadeeth, required PrayerTimesCubit prayerTimes, required QuranCubit quran, required AzkarCubit azkar})
-      : _connectivity = connectivity, _hadeeth = hadeeth, _prayerTimes = prayerTimes, _quran = quran, _azkar = azkar, super(const AppState()) {
+  AppCubit({
+    required ConnectivityService connectivity,
+    required HadeethCubit hadeeth,
+    required PrayerTimesCubit prayerTimes,
+    required QuranCubit quran,
+    required AzkarCubit azkar,
+  }) : _connectivity = connectivity,
+       _hadeeth = hadeeth,
+       _prayerTimes = prayerTimes,
+       _quran = quran,
+       _azkar = azkar,
+       super(const AppState()) {
     _subscription = _connectivity.changes.listen(_onConnectivityChanged);
-    loadThemeMode();
+    _themeLoad = _restoreThemeMode();
+    refreshConnectivity();
   }
   final ConnectivityService _connectivity;
   final HadeethCubit _hadeeth;
@@ -21,21 +32,74 @@ class AppCubit extends Cubit<AppState> {
   final QuranCubit _quran;
   final AzkarCubit _azkar;
   late final StreamSubscription<bool> _subscription;
+  late final Future<void> _themeLoad;
+  Future<void> _themeWrite = Future<void>.value();
+  ThemeMode _requestedThemeMode = ThemeMode.light;
+  bool _hasRequestedThemeMode = false;
 
-  Future<void> loadThemeMode() async {
-    final preferences = await SharedPreferences.getInstance();
-    final isDark = preferences.getBool('isDarkMode') ?? false;
-    emit(AppState(isConnected: state.isConnected, themeMode: isDark ? ThemeMode.dark : ThemeMode.light));
+  Future<void> refreshConnectivity() async {
+    try {
+      _emitConnectivity(await _connectivity.hasConnection);
+    } catch (_) {
+      _emitConnectivity(false);
+    }
+  }
+
+  Future<void> _restoreThemeMode() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      if (isClosed) return;
+      final isDark =
+          _hasRequestedThemeMode
+              ? _requestedThemeMode == ThemeMode.dark
+              : preferences.getBool('isDarkMode') ?? false;
+      emit(
+        AppState(
+          isConnected: state.isConnected,
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+        ),
+      );
+    } catch (_) {
+      // Keep the light default if local preferences are temporarily unavailable.
+    }
   }
 
   Future<void> toggleThemeMode() async {
-    final themeMode = state.themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool('isDarkMode', themeMode == ThemeMode.dark);
-    emit(AppState(isConnected: state.isConnected, themeMode: themeMode));
+    await _themeLoad;
+    final current =
+        _hasRequestedThemeMode ? _requestedThemeMode : state.themeMode;
+    await setThemeMode(
+      current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark,
+    );
   }
 
-  void _onConnectivityChanged(bool connected) {
+  Future<void> setThemeMode(ThemeMode themeMode) async {
+    await _themeLoad;
+    _hasRequestedThemeMode = true;
+    _requestedThemeMode = themeMode;
+    if (state.themeMode == themeMode) {
+      await _writeThemeMode(themeMode);
+      return;
+    }
+    emit(AppState(isConnected: state.isConnected, themeMode: themeMode));
+    await _writeThemeMode(themeMode);
+  }
+
+  Future<void> _writeThemeMode(ThemeMode themeMode) async {
+    _themeWrite = _themeWrite.then((_) async {
+      try {
+        final preferences = await SharedPreferences.getInstance();
+        await preferences.setBool('isDarkMode', themeMode == ThemeMode.dark);
+      } catch (_) {
+        // Keep the in-memory preference if local storage is unavailable.
+      }
+    });
+    await _themeWrite;
+  }
+
+  void _emitConnectivity(bool connected) {
+    if (isClosed) return;
+    if (connected == state.isConnected) return;
     emit(AppState(isConnected: connected, themeMode: state.themeMode));
     _prayerTimes.setConnectivity(connected);
     _quran.setConnectivity(connected);
@@ -45,6 +109,8 @@ class AppCubit extends Cubit<AppState> {
       _prayerTimes.getPrayerTime();
     }
   }
+
+  void _onConnectivityChanged(bool connected) => _emitConnectivity(connected);
 
   @override
   Future<void> close() async {

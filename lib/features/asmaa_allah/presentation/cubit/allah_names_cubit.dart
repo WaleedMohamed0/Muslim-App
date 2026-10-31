@@ -13,9 +13,14 @@ class AllahNamesCubit extends Cubit<AllahNamesState> {
         super(const AllahNamesState());
   final AllahNamesRepository? _injectedRepository;
   Future<void> load() async {
-    final repository = _injectedRepository ?? LocalAllahNamesRepository(
-      LocalAllahNamesDataSource(jsonDecode(await rootBundle.loadString(AppAssets.allahNamesData)) as Map<String, dynamic>),
-    );
-    emit(AllahNamesState(names: repository.getNames()));
+    emit(AllahNamesState(names: state.names, isLoading: true));
+    try {
+      final repository = _injectedRepository ?? LocalAllahNamesRepository(
+        LocalAllahNamesDataSource(jsonDecode(await rootBundle.loadString(AppAssets.allahNamesData))),
+      );
+      emit(AllahNamesState(names: repository.getNames()));
+    } catch (error) {
+      emit(AllahNamesState(names: state.names, error: error.toString()));
+    }
   }
 }

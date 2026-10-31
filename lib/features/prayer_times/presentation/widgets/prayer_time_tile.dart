@@ -11,13 +11,13 @@ class PrayerTimeTile extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
         child: Row(
           children: [
-            CircleAvatar(backgroundColor: colors.primaryContainer, child: Icon(Icons.mosque_outlined, color: colors.primary)),
+            Expanded(child: Text(name, textAlign: TextAlign.start, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
+            Directionality(textDirection: TextDirection.ltr, child: Text('$time $period', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.primary, fontWeight: FontWeight.w800))),
             const SizedBox(width: 14),
-            Expanded(child: Text(name, textDirection: TextDirection.rtl, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
-            Text('$time $period', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.primary, fontWeight: FontWeight.w800)),
+            CircleAvatar(backgroundColor: colors.primaryContainer, child: Icon(Icons.mosque_outlined, color: colors.primary)),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -12,6 +13,7 @@ import 'package:untitled8/features/app/presentation/cubit/app_state.dart';
 import 'package:untitled8/core/network/connectivity_service.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:untitled8/core/bootstrap/app_bootstrap.dart';
+import 'package:untitled8/core/widgets/app_snackbar.dart';
 import 'core/theme/app_theme.dart';
 import 'features/app/presentation/pages/startup_screen.dart';
 
@@ -54,8 +56,11 @@ class _MyAppState extends State<MyApp> {
     return ResponsiveSizer(
       builder: (p0, p1, p2) {
         return BlocBuilder<AppCubit, AppState>(
-
           builder: (context, state) => MaterialApp(
+            scaffoldMessengerKey: AppSnackBar.messengerKey,
+            locale: const Locale('ar'),
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: state.themeMode,
