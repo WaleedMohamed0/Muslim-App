@@ -54,6 +54,7 @@ class _MyAppState extends State<MyApp> {
     return ResponsiveSizer(
       builder: (p0, p1, p2) {
         return BlocBuilder<AppCubit, AppState>(
+
           builder: (context, state) => MaterialApp(
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
