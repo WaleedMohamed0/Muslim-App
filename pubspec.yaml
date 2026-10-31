@@ -1,0 +1,56 @@
+name: untitled8
+description: A Muslim companion app for Quran, azkar, prayer times, and more.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.9
+  quran: ^1.4.1
+  hexcolor: ^3.1.3
+  dio: ^5.11.1
+  flutter_bloc: ^9.1.1
+  geolocator: ^14.1.2
+  just_audio: ^0.10.6
+  intl: ^0.20.3
+  responsive_sizer: ^3.3.1
+  awesome_dialog: ^3.3.0
+  fluttertoast: ^10.0.2
+  page_transition: ^2.2.2
+  we_slide: ^2.4.0
+  shared_preferences: ^2.5.6
+  internet_connection_checker: ^3.0.1
+  flutter_cache_manager: ^3.4.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: launcher_icon
+  ios: true
+  image_path: assets/features/app/images/logo.png
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/features/app/images/
+    - assets/features/asmaa_allah/
+    - assets/features/azkar/data/
+    - assets/features/azkar/images/
+    - assets/features/prayer_times/audio/
+    - assets/features/prayer_times/images/
+    - assets/features/quran/images/
+    - assets/features/quran/pages/
+  fonts:
+    - family: QuranFont
+      fonts:
+        - asset: assets/features/quran/fonts/quran.ttf
