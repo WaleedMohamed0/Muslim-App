@@ -10,11 +10,9 @@ class PrayerDisplayTime {
 enum PrayerTimesStatus { initial, loading, loaded, failure }
 
 class PrayerTimesState {
-  const PrayerTimesState({this.error, this.prayerTimes, this.status = PrayerTimesStatus.initial, this.azanPrayer, this.displayTimes = const []});
+  const PrayerTimesState({this.error, this.prayerTimes, this.status = PrayerTimesStatus.initial, this.displayTimes = const []});
   final String? error;
   final PrayerTimes? prayerTimes;
   final PrayerTimesStatus status;
-  final String? azanPrayer;
   final List<PrayerDisplayTime> displayTimes;
-  bool get isAzanTime => azanPrayer != null;
 }

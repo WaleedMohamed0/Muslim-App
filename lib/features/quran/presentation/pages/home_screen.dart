@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:untitled8/core/utils/arabic_digits.dart';
 import 'package:untitled8/core/widgets/app_widgets.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
@@ -20,6 +22,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _bookmarkPromptShownForEntry = false;
   bool _bookmarkLoadStarted = false;
+  final TextEditingController _surahSearchController = TextEditingController();
+  String _surahSearchQuery = '';
+
+  @override
+  void dispose() {
+    _surahSearchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -52,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             title: const Text('متابعة القراءة؟'),
             content: Text(
-              'آخر موضع قراءة: سورة ${bookmark.surahName}، الآية ${bookmark.pageNumber}',
+              'آخر موضع قراءة: سورة ${bookmark.surahName}، الآية ${toArabicIndicDigits(bookmark.pageNumber)}',
               textAlign: TextAlign.center,
             ),
             actions: [
@@ -180,8 +190,41 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
+                    child: TextField(
+                      controller: _surahSearchController,
+                      textDirection: TextDirection.rtl,
+                      textInputAction: TextInputAction.search,
+                      onChanged: (value) => setState(() => _surahSearchQuery = value),
+                      decoration: InputDecoration(
+                        hintText: 'ابحث عن سورة',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: _surahSearchQuery.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'مسح البحث',
+                                onPressed: () {
+                                  _surahSearchController.clear();
+                                  setState(() => _surahSearchQuery = '');
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadii.card),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
                   Expanded(
-                    child: SurahList(cubit: cubit, online: cubit.isOnline),
+                    child: SurahList(
+                      cubit: cubit,
+                      online: cubit.isOnline,
+                      searchQuery: _surahSearchQuery,
+                    ),
                   ),
                 ],
               ),

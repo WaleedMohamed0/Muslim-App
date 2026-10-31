@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:untitled8/core/theme/app_theme.dart';
+import 'package:untitled8/core/utils/arabic_digits.dart';
 import 'package:untitled8/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:untitled8/features/azkar/presentation/cubit/azkar_state.dart';
 import 'package:untitled8/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
@@ -240,7 +241,7 @@ class _TextCard extends StatelessWidget {
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  '$counter',
+                                  toArabicIndicDigits(counter!),
                                   textAlign: TextAlign.center,
                                   style:
                                       Theme.of(context).textTheme.titleMedium,

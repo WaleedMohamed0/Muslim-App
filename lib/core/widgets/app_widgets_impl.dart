@@ -109,6 +109,34 @@ AppBar defaultAppBar({
   centerTitle: true,
 );
 
+/// Opens a modal sheet above system navigation and gesture insets.
+///
+/// Flutter's `useSafeArea` option protects the top and horizontal edges but
+/// does not apply a bottom safe area. Keep that handling here so every app
+/// sheet gets the same navigation-bar clearance.
+Future<T?> showAppModalBottomSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool isScrollControlled = false,
+  bool showDragHandle = false,
+  Color? backgroundColor,
+}) =>
+    showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: isScrollControlled,
+      useSafeArea: true,
+      showDragHandle: showDragHandle,
+      backgroundColor: backgroundColor,
+      builder: (sheetContext) => Padding(
+        // Use viewPadding because the app-level SafeArea removes `padding`
+        // from descendants of the Navigator.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewPaddingOf(sheetContext).bottom + AppSpacing.md,
+        ),
+        child: builder(sheetContext),
+      ),
+    );
+
 Future awesomeDialog(
   context,
   title,

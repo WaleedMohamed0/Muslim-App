@@ -99,14 +99,13 @@ class AppCubit extends Cubit<AppState> {
 
   void _emitConnectivity(bool connected) {
     if (isClosed) return;
+    _prayerTimes.setConnectivity(connected);
     if (connected == state.isConnected) return;
     emit(AppState(isConnected: connected, themeMode: state.themeMode));
-    _prayerTimes.setConnectivity(connected);
     _quran.setConnectivity(connected);
     _azkar.setConnectivity(connected);
     if (connected) {
       _hadeeth.getHadeeth();
-      _prayerTimes.getPrayerTime();
     }
   }
 

@@ -1,114 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:untitled8/core/theme/app_theme.dart';
-
 import 'package:untitled8/core/widgets/app_widgets.dart';
 import 'package:untitled8/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 import 'package:untitled8/features/prayer_times/presentation/cubit/prayer_times_state.dart';
-import 'package:untitled8/features/prayer_times/presentation/pages/elazan_screen.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
-import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_time_tile.dart';
+import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_times_content.dart';
 
 class PrayerTimes extends StatefulWidget {
   const PrayerTimes({super.key});
+
   @override
   State<PrayerTimes> createState() => _PrayerTimesState();
 }
 
 class _PrayerTimesState extends State<PrayerTimes> {
-  bool _adhanHandled = false;
-
   @override
   void initState() {
     super.initState();
     final cubit = context.read<PrayerTimesCubit>();
-    if (cubit.state.status == PrayerTimesStatus.initial && cubit.isOnline)
+    if (cubit.state.status == PrayerTimesStatus.initial && cubit.isOnline) {
       cubit.getPrayerTime();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<PrayerTimesCubit, PrayerTimesState>(
-      listener: (context, state) {
-        if (state.isAzanTime && !_adhanHandled) {
-          _adhanHandled = true;
-          context.read<QuranCubit>().playAzan();
-          navigateTo(context, ElAzanScreen(prayer: state.azanPrayer!));
-        }
-      },
+    return BlocBuilder<PrayerTimesCubit, PrayerTimesState>(
       builder: (context, state) {
-        if (state.status == PrayerTimesStatus.loading ||
-            state.status == PrayerTimesStatus.initial) {
-          return Scaffold(
-            appBar: defaultAppBar(context: context, text: 'مواقيت الصلاة'),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (state.status == PrayerTimesStatus.failure) {
-          return Scaffold(
-            appBar: defaultAppBar(context: context, text: 'مواقيت الصلاة'),
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  state.error ?? 'تعذر تحميل مواقيت الصلاة',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          );
-        }
         return Scaffold(
-          appBar: defaultAppBar(context: context, text: 'مواقيت الصلاة'),
-          body: ListView(
-            padding: const EdgeInsetsDirectional.fromSTEB(18, 10, 18, 24),
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                margin: const EdgeInsetsDirectional.only(bottom: AppSpacing.xl),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(AppRadii.dialog),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.wb_twilight_rounded,
-                      size: 34,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        'الصلاة نور يومك\nحافظ على مواقيتها',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
-                          height: 1.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          appBar: defaultAppBar(
+            context: context,
+            text: 'مواقيت الصلاة',
+            actions: [
+              IconButton(
+                tooltip: 'تحديث المواقيت',
+                onPressed: () {
+                  final cubit = context.read<PrayerTimesCubit>();
+                  if (cubit.isOnline) {
+                    cubit.getPrayerTime();
+                  } else {
+                    AppSnackBar.show(message: 'يلزم الاتصال بالإنترنت لتحديث المواقيت');
+                  }
+                },
+                icon: const Icon(Icons.refresh_rounded),
               ),
-              for (
-                var index = 0;
-                index < state.displayTimes.length;
-                index++
-              ) ...[
-                PrayerTimeTile(
-                  name: state.displayTimes[index].name,
-                  time: state.displayTimes[index].time,
-                  period: state.displayTimes[index].period,
-                ),
-                if (index != state.displayTimes.length - 1)
-                  const SizedBox(height: 10),
-              ],
             ],
           ),
+          body: switch (state.status) {
+            PrayerTimesStatus.initial || PrayerTimesStatus.loading =>
+              const Center(child: CircularProgressIndicator()),
+            PrayerTimesStatus.failure => _PrayerTimesError(
+              message: state.error ?? 'تعذر تحميل مواقيت الصلاة',
+              onRetry: () => context.read<PrayerTimesCubit>().getPrayerTime(),
+            ),
+            PrayerTimesStatus.loaded => PrayerTimesContent(state: state),
+          },
         );
       },
     );
   }
+}
+
+class _PrayerTimesError extends StatelessWidget {
+  const _PrayerTimesError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.xxl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud_off_rounded,
+            size: 42,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('إعادة المحاولة'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

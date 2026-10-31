@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:untitled8/core/utils/arabic_digits.dart';
 
 class SurahListTile extends StatelessWidget {
   const SurahListTile({
@@ -37,7 +38,7 @@ class SurahListTile extends StatelessWidget {
                 child: Directionality(
                   textDirection: TextDirection.ltr,
                   child: Text(
-                    '$number',
+                    toArabicIndicDigits(number),
                     style: TextStyle(
                       color: colors.onPrimaryContainer,
                       fontWeight: FontWeight.w700,
@@ -59,7 +60,7 @@ class SurahListTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$place  •  $verses آيات',
+                      '$place  •  ${toArabicIndicDigits(verses)} آيات',
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

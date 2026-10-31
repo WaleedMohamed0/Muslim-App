@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
@@ -46,7 +48,41 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  DateTime _lastLocalDate = DateTime.now();
+  String _lastTimeZone = DateTime.now().timeZoneName;
+  Duration _lastUtcOffset = DateTime.now().timeZoneOffset;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final now = DateTime.now();
+    final dayChanged = now.year != _lastLocalDate.year ||
+        now.month != _lastLocalDate.month ||
+        now.day != _lastLocalDate.day;
+    final timezoneChanged = now.timeZoneName != _lastTimeZone ||
+        now.timeZoneOffset != _lastUtcOffset;
+    _lastLocalDate = now;
+    _lastTimeZone = now.timeZoneName;
+    _lastUtcOffset = now.timeZoneOffset;
+    if (dayChanged || timezoneChanged) {
+      final prayerTimes = context.read<PrayerTimesCubit>();
+      if (prayerTimes.isOnline) unawaited(prayerTimes.getPrayerTime());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([
@@ -57,6 +93,31 @@ class _MyAppState extends State<MyApp> {
       builder: (p0, p1, p2) {
         return BlocBuilder<AppCubit, AppState>(
           builder: (context, state) => MaterialApp(
+            builder: (context, child) {
+              final theme =
+                  state.themeMode == ThemeMode.dark
+                      ? AppTheme.dark
+                      : AppTheme.light;
+              final isDark = theme.brightness == Brightness.dark;
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle(
+                  statusBarColor: theme.scaffoldBackgroundColor,
+                  statusBarIconBrightness:
+                      isDark ? Brightness.light : Brightness.dark,
+                  statusBarBrightness:
+                      isDark ? Brightness.dark : Brightness.light,
+                  systemNavigationBarColor: theme.scaffoldBackgroundColor,
+                  systemNavigationBarIconBrightness:
+                      isDark ? Brightness.light : Brightness.dark,
+                  systemNavigationBarDividerColor:
+                      theme.colorScheme.outlineVariant,
+                ),
+                child: ColoredBox(
+                  color: theme.scaffoldBackgroundColor,
+                  child: SafeArea(child: child ?? const SizedBox.shrink()),
+                ),
+              );
+            },
             scaffoldMessengerKey: AppSnackBar.messengerKey,
             locale: const Locale('ar'),
             supportedLocales: const [Locale('ar'), Locale('en')],

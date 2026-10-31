@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:untitled8/core/utils/arabic_digits.dart';
 import 'package:untitled8/core/widgets/app_widgets.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
@@ -31,7 +32,7 @@ class _SurahScreenState extends State<SurahScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _cubit = context.read<QuranCubit>();
     final bookmarkedVerse =
         _cubit.bookmark?.surahNumber == widget.surahNumber
@@ -109,10 +110,9 @@ class _SurahScreenState extends State<SurahScreen> {
     }
     final rawName = quran.getSurahNameArabic(surahNumber);
     final surahName = rawName == 'اللهب' ? 'المسد' : rawName;
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       showDragHandle: true,
       backgroundColor:
           QuranReaderPalette.fromTheme(context).surface,
@@ -153,51 +153,44 @@ class _SurahScreenState extends State<SurahScreen> {
         _cubit.bookmark?.surahNumber == surahNumber &&
         _cubit.bookmark?.pageNumber == verse;
     final palette = QuranReaderPalette.fromTheme(context);
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       showDragHandle: true,
       backgroundColor: palette.surface,
-      builder:
-          (sheetContext) => SafeArea(
-            minimum: const EdgeInsets.only(bottom: 24),
-            child: SingleChildScrollView(
-              child: _AyahActionSheet(
-                surahName: surahName,
-                verseNumber: verse,
-                verseText: verseText,
-                palette: palette,
-                isBookmarked: isBookmarked,
-                onTafsir: () {
-                  Navigator.pop(sheetContext);
-                  _openTafsir(surahNumber, verse);
-                },
-                onCopy: () {
-                  Navigator.pop(sheetContext);
-                  Clipboard.setData(
-                    ClipboardData(
-                      text: '$verseText\n$surahName - الآية $verse',
-                    ),
-                  );
-                  AppSnackBar.show(message: 'تم نسخ الآية');
-                },
-                onBookmark: () {
-                  Navigator.pop(sheetContext);
-                  _cubit.toggleBookmark(surahName);
-                },
-                onShare: () {
-                  Navigator.pop(sheetContext);
-                  unawaited(
-                    _cubit.shareAyah(
-                      text: '$verseText\n\n$surahName - الآية $verse',
-                      title: 'آية من سورة $surahName',
-                    ),
-                  );
-                },
+      builder: (sheetContext) => SingleChildScrollView(
+        child: _AyahActionSheet(
+          surahName: surahName,
+          verseNumber: verse,
+          verseText: verseText,
+          palette: palette,
+          isBookmarked: isBookmarked,
+          onTafsir: () {
+            Navigator.pop(sheetContext);
+            _openTafsir(surahNumber, verse);
+          },
+          onCopy: () {
+            Navigator.pop(sheetContext);
+            Clipboard.setData(
+              ClipboardData(text: '$verseText\n$surahName - الآية ${toArabicIndicDigits(verse)}'),
+            );
+            AppSnackBar.show(message: 'تم نسخ الآية');
+          },
+          onBookmark: () {
+            Navigator.pop(sheetContext);
+            _cubit.toggleBookmark(surahName);
+          },
+          onShare: () {
+            Navigator.pop(sheetContext);
+            unawaited(
+              _cubit.shareAyah(
+                text: '$verseText\n\n$surahName - الآية ${toArabicIndicDigits(verse)}',
+                title: 'آية من سورة $surahName',
               ),
-            ),
-          ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -286,7 +279,7 @@ class _SurahScreenState extends State<SurahScreen> {
               ),
               if (!_controlsVisible) ...[
                 PositionedDirectional(
-                  top: MediaQuery.viewPaddingOf(context).top + 10,
+                  top: 10,
                   end: 18,
                   child: IgnorePointer(
                     child: Text(
@@ -300,11 +293,11 @@ class _SurahScreenState extends State<SurahScreen> {
                   ),
                 ),
                 PositionedDirectional(
-                  bottom: MediaQuery.viewPaddingOf(context).bottom + 10,
+                  bottom: 10,
                   end: 18,
                   child: IgnorePointer(
                     child: Text(
-                      'صفحة ${_toArabicIndic(_pageIndex + 1)}',
+                        'صفحة ${toArabicIndicDigits(_pageIndex + 1)}',
                       style: TextStyle(
                         color: palette.muted.withValues(alpha: .72),
                         fontSize: 11,
@@ -365,7 +358,7 @@ class _ReaderControlsOverlay extends StatelessWidget {
         child: Container(
           padding: EdgeInsetsDirectional.fromSTEB(
             12,
-            MediaQuery.viewPaddingOf(context).top + 8,
+            8,
             12,
             18,
           ),
@@ -407,7 +400,7 @@ class _ReaderControlsOverlay extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'سورة $surahNumber • الجزء ${_toArabicIndic(juzNumber)}',
+                        'سورة ${toArabicIndicDigits(surahNumber)} • الجزء ${toArabicIndicDigits(juzNumber)}',
                         style: TextStyle(color: palette.muted, fontSize: 12),
                       ),
                     ],
@@ -427,7 +420,7 @@ class _ReaderControlsOverlay extends StatelessWidget {
             12,
             18,
             12,
-            MediaQuery.viewPaddingOf(context).bottom + 8,
+            8,
           ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -482,7 +475,7 @@ class _ReaderControlsOverlay extends StatelessWidget {
                     child: Directionality(
                       textDirection: TextDirection.ltr,
                       child: Text(
-                        '${(zoomScale * 100).round()}٪',
+                        '${toArabicIndicDigits((zoomScale * 100).round())}٪',
                         style: TextStyle(
                           color: palette.text,
                           fontWeight: FontWeight.w600,
@@ -500,7 +493,7 @@ class _ReaderControlsOverlay extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'صفحة $pageNumber من $pageCount',
+                'صفحة ${toArabicIndicDigits(pageNumber)} من ${toArabicIndicDigits(pageCount)}',
                 style: TextStyle(
                   color: palette.muted,
                   fontSize: 12,
@@ -781,7 +774,7 @@ class _MushafRunningHeader extends StatelessWidget {
       ),
       const Spacer(),
       Text(
-        'الجزء ${_toArabicIndic(juzNumber)}',
+        'الجزء ${toArabicIndicDigits(juzNumber)}',
         style: TextStyle(
           color: palette.metadata,
           fontSize: 15,
@@ -813,7 +806,7 @@ class _SurahPageHeading extends StatelessWidget {
       ),
     ),
     child: Text(
-      'سُورَةُ $name  •  ${_toArabicIndic(number)}',
+      'سُورَةُ $name  •  ${toArabicIndicDigits(number)}',
       textAlign: TextAlign.center,
       textDirection: TextDirection.rtl,
       style: TextStyle(
@@ -938,7 +931,7 @@ class _VerseMarker extends StatelessWidget {
       color: palette.highlight,
     ),
     child: Text(
-      _toArabicIndic(number),
+      toArabicIndicDigits(number),
       textDirection: TextDirection.ltr,
       style: TextStyle(
         color: palette.text,
@@ -963,7 +956,7 @@ class _MushafPageNumber extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
     ),
     child: Text(
-      _toArabicIndic(pageNumber),
+      toArabicIndicDigits(pageNumber),
       textDirection: TextDirection.ltr,
       style: TextStyle(
         color: palette.metadata,
@@ -974,11 +967,6 @@ class _MushafPageNumber extends StatelessWidget {
   );
 }
 
-
-String _toArabicIndic(int value) => value.toString().replaceAllMapped(
-  RegExp(r'\d'),
-  (match) => '٠١٢٣٤٥٦٧٨٩'[int.parse(match[0]!)],
-);
 
 class QuranReaderPalette {
   const QuranReaderPalette({
@@ -1052,7 +1040,7 @@ class _AyahActionSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '$surahName • الآية $verseNumber',
+          '$surahName • الآية ${toArabicIndicDigits(verseNumber)}',
           textAlign: TextAlign.center,
           style: TextStyle(color: palette.muted, fontWeight: FontWeight.w600),
         ),
@@ -1189,7 +1177,7 @@ class _QuranTafsirSheetState extends State<QuranTafsirSheet> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${widget.surahName} • الآية ${widget.verseNumber}',
+                  '${widget.surahName} • الآية ${toArabicIndicDigits(widget.verseNumber)}',
                   style: TextStyle(color: palette.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
