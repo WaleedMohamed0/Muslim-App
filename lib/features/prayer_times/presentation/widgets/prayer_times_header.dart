@@ -35,14 +35,18 @@ class PrayerTimesIntroCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'الصلاة نور يومك',
+                  '﴿إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَوْقُوتًا﴾',
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.start,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'حافظ على صلاتك في وقتها',
+                  '[سورة النساء: 103]',
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.start,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),

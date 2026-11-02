@@ -18,9 +18,7 @@ class _PrayerTimesState extends State<PrayerTimes> {
   void initState() {
     super.initState();
     final cubit = context.read<PrayerTimesCubit>();
-    if (cubit.state.status == PrayerTimesStatus.initial && cubit.isOnline) {
-      cubit.getPrayerTime();
-    }
+    cubit.getPrayerTime();
   }
 
   @override
@@ -37,7 +35,7 @@ class _PrayerTimesState extends State<PrayerTimes> {
                 onPressed: () {
                   final cubit = context.read<PrayerTimesCubit>();
                   if (cubit.isOnline) {
-                    cubit.getPrayerTime();
+                    cubit.getPrayerTime(forceRefresh: true);
                   } else {
                     AppSnackBar.show(message: 'يلزم الاتصال بالإنترنت لتحديث المواقيت');
                   }
@@ -48,7 +46,20 @@ class _PrayerTimesState extends State<PrayerTimes> {
           ),
           body: switch (state.status) {
             PrayerTimesStatus.initial || PrayerTimesStatus.loading =>
-              const Center(child: CircularProgressIndicator()),
+              const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 14),
+                    Text(
+                      'جارٍ تحميل مواقيت الصلاة...',
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             PrayerTimesStatus.failure => _PrayerTimesError(
               message: state.error ?? 'تعذر تحميل مواقيت الصلاة',
               onRetry: () => context.read<PrayerTimesCubit>().getPrayerTime(),
@@ -80,7 +91,11 @@ class _PrayerTimesError extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center),
+          Text(
+            message,
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: onRetry,

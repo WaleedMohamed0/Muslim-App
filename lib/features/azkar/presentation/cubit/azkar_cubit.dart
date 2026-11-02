@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/data_sources/local_azkar_data_source.dart';
+import '../../domain/entities/azkar_entry.dart';
+import '../../data/repositories/local_azkar_repository.dart';
 import '../../domain/use_cases/get_azkar.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
@@ -16,7 +20,10 @@ class AzkarCubit extends Cubit<AzkarState> {
   final LocalAzkarDataSource? _dataSource;
 
   List<int> azkarTimes = [];
+  final Map<String, int> _progress = {};
+  Map<int, List<AzkarEntry>> _entriesByCategory = const {};
   LocalAzkarDataSource? _content;
+  LocalAzkarRepository? _repository;
   Future<void>? _loadFuture;
   bool isOnline = false;
   void setConnectivity(bool connected) => isOnline = connected;
@@ -38,18 +45,29 @@ class AzkarCubit extends Cubit<AzkarState> {
     try {
       if (_dataSource == null) {
         final data = await rootBundle.loadString(AppAssets.azkarData);
-        _content = LocalAzkarDataSource(
-          jsonDecode(data) as Map<String, dynamic>,
-        );
+        final categories = jsonDecode(data) as Map<String, dynamic>;
+        _content = LocalAzkarDataSource(categories);
       } else {
         _content = _dataSource;
       }
+      _repository = LocalAzkarRepository(_content!);
+      _entriesByCategory = Map.unmodifiable({
+        for (var category = 0; category < 10; category++)
+          category: List<AzkarEntry>.unmodifiable(
+            _repository!.entriesFor(category),
+          ),
+      });
       // Initialize Tasbeeh counters as part of loading so the page never builds
       // against loaded content with an uninitialized counter list.
-      azkarTimes = List<int>.filled(itemsFor(3).length, 0);
+      final prefs = await SharedPreferences.getInstance();
+      for (final entry in _content!.allEntries) {
+        _progress[entry.id] = prefs.getInt(_progressKey(entry.id)) ?? 0;
+      }
+      azkarTimes = entriesFor(5).map(progressFor).toList(growable: false);
       emit(
         AzkarState(
           counters: List.unmodifiable(azkarTimes),
+          entriesByCategory: _entriesByCategory,
           revision: state.revision + 1,
         ),
       );
@@ -57,6 +75,7 @@ class AzkarCubit extends Cubit<AzkarState> {
       emit(
         AzkarState(
           counters: List.unmodifiable(azkarTimes),
+          entriesByCategory: _entriesByCategory,
           revision: state.revision + 1,
           error: 'تعذر تحميل الأذكار',
         ),
@@ -71,14 +90,93 @@ class AzkarCubit extends Cubit<AzkarState> {
       'أذكار الصباح',
       'أذكار المساء',
       'أذكار النوم',
+      'أذكار الاستيقاظ',
+      'أذكار بعد السلام من الصلاة المفروضة',
       'تسابيح',
       'أدعية قرآنية',
+      'أدعية الأنبياء',
+      'أدعية من السنة النبوية',
+      'أدعية للمواقف اليومية',
     ];
     if (category < 0 || category >= names.length) return const [];
-    return _content?.readCategory(names[category]) ??
+    return _repository?.itemsFor(category) ??
+        _content?.readCategory(names[category]) ??
         _getAzkar?.call(category) ??
         const [];
   }
+
+  List<AzkarEntry> entriesFor(int category) {
+    const names = [
+      'أذكار الصباح',
+      'أذكار المساء',
+      'أذكار النوم',
+      'أذكار الاستيقاظ',
+      'أذكار بعد السلام من الصلاة المفروضة',
+      'تسابيح',
+      'أدعية قرآنية',
+      'أدعية الأنبياء',
+      'أدعية من السنة النبوية',
+      'أدعية للمواقف اليومية',
+    ];
+    if (category < 0 || category >= names.length) return const [];
+    final repository = _repository;
+    if (repository != null) return repository.entriesFor(category);
+    final source = _content;
+    if (source != null) return source.readEntries(names[category]);
+    if (_getAzkar != null) return _getAzkar.entriesFor(category);
+    return itemsFor(category)
+        .map((content) => AzkarEntry(
+              category: names[category],
+              countText: '',
+              countStatus: null,
+              description: '',
+              reference: '',
+              instructions: '',
+              verified: false,
+              content: content,
+            ))
+        .toList(growable: false);
+  }
+
+  int progressFor(AzkarEntry entry) => _progress[entry.id] ?? 0;
+
+  Future<void> incrementEntry(AzkarEntry entry) async {
+    if (isClosed) return;
+    _progress[entry.id] = progressFor(entry) + 1;
+    final tasbeehIndex = entry.category == 'تسابيح'
+        ? entriesFor(5).indexWhere((item) => item.id == entry.id)
+        : -1;
+    if (tasbeehIndex >= 0 && tasbeehIndex < azkarTimes.length) {
+      azkarTimes[tasbeehIndex] = _progress[entry.id]!;
+    }
+    _emitProgress();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_progressKey(entry.id), _progress[entry.id]!);
+  }
+
+  Future<void> resetEntry(AzkarEntry entry) async {
+    if (isClosed) return;
+    _progress[entry.id] = 0;
+    final tasbeehIndex = entry.category == 'تسابيح'
+        ? entriesFor(5).indexWhere((item) => item.id == entry.id)
+        : -1;
+    if (tasbeehIndex >= 0 && tasbeehIndex < azkarTimes.length) {
+      azkarTimes[tasbeehIndex] = 0;
+    }
+    _emitProgress();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_progressKey(entry.id));
+  }
+
+  String _progressKey(String id) => 'azkar_progress_$id';
+
+  void _emitProgress() => emit(
+        AzkarState(
+          counters: List.unmodifiable(azkarTimes),
+          entriesByCategory: _entriesByCategory,
+          revision: state.revision + 1,
+        ),
+      );
 
   void initializeCounters(int count) {
     if (isClosed) return;
@@ -87,6 +185,7 @@ class AzkarCubit extends Cubit<AzkarState> {
     emit(
       AzkarState(
         counters: List.unmodifiable(azkarTimes),
+        entriesByCategory: _entriesByCategory,
         revision: state.revision + 1,
       ),
     );
@@ -94,23 +193,11 @@ class AzkarCubit extends Cubit<AzkarState> {
 
   void incrementAzkarTimes(int index) {
     if (isClosed || index < 0 || index >= azkarTimes.length) return;
-    azkarTimes[index]++;
-    emit(
-      AzkarState(
-        counters: List.unmodifiable(azkarTimes),
-        revision: state.revision + 1,
-      ),
-    );
+    unawaited(incrementEntry(entriesFor(5)[index]));
   }
 
   void clearTimes(int index) {
     if (isClosed || index < 0 || index >= azkarTimes.length) return;
-    azkarTimes[index] = 0;
-    emit(
-      AzkarState(
-        counters: List.unmodifiable(azkarTimes),
-        revision: state.revision + 1,
-      ),
-    );
+    unawaited(resetEntry(entriesFor(5)[index]));
   }
 }

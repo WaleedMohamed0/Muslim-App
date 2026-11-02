@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:untitled8/core/theme/app_theme.dart';
 import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
@@ -27,6 +28,7 @@ class AdhanSettingsCardState extends State<AdhanSettingsCard> {
   Future<void> _openSettings() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
+        settings: const RouteSettings(name: '/adhan-settings'),
         builder: (_) => const PrayerAdhanSettingsScreen(),
       ),
     );
@@ -198,7 +200,12 @@ class WirdCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(item.$2, fit: BoxFit.cover),
+            Image.asset(
+              item.$2,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              cacheWidth: 516,
+            ),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -279,35 +286,49 @@ class HomeFeatureTile extends StatelessWidget {
 }
 
 class DailyReminderCard extends StatelessWidget {
-  const DailyReminderCard({super.key});
+  const DailyReminderCard({super.key, required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsetsDirectional.fromSTEB(18, 16, 18, 16),
-      decoration: BoxDecoration(
-        color: colors.tertiaryContainer,
+    return Material(
+      color: colors.tertiaryContainer,
+      borderRadius: BorderRadius.circular(AppRadii.card),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadii.card),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.notifications_active_outlined,
-            color: colors.onTertiaryContainer,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'تذكير اليوم\nلا تنسَ وردك من القرآن والأذكار',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(18, 16, 18, 16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.notifications_active_outlined,
                 color: colors.onTertiaryContainer,
-                height: 1.5,
-                fontWeight: FontWeight.w600,
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'تذكيراتك اليومية\nأذكار الصباح والمساء ووردك اليومي',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colors.onTertiaryContainer,
+                    height: 1.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Directionality(
+                textDirection: TextDirection.ltr,
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: colors.onTertiaryContainer,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

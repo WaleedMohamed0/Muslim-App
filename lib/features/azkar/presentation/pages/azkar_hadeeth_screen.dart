@@ -23,24 +23,29 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     0 => 'أَذْكَارُ الصَّبَاحِ',
     1 => 'أَذْكَارُ المساءِ',
     2 => 'أَذْكَارُ النَوْم',
-    3 => 'التسابيح',
-    4 => 'أدعية',
+    3 => 'أذكار الاستيقاظ',
+    4 => 'أذكار ما بعد الصلاة',
+    5 => 'التسابيح',
+    6 => 'أدعية قرآنية',
+    7 => 'أدعية الأنبياء',
+    8 => 'أدعية من السنة النبوية',
+    9 => 'أدعية للمواقف اليومية',
     _ => 'الأحاديث النبوية',
   };
 
   @override
   void initState() {
     super.initState();
-    if (widget.index != 5) {
+    if (widget.index != 10) {
       context.read<AzkarCubit>().loadContent();
     }
-    if (widget.index == 5) context.read<HadeethCubit>().getHadeeth();
+    if (widget.index == 10) context.read<HadeethCubit>().getHadeeth();
   }
 
   @override
   Widget build(BuildContext context) {
     final category = widget.index;
-    if (category == 5) {
+    if (category == 10) {
       return BlocBuilder<HadeethCubit, HadeethState>(
         builder: (context, state) {
           if (state.isLoading) {
@@ -50,10 +55,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
           }
           return Scaffold(
             appBar: defaultAppBar(context: context, text: title),
-            body:
-                state.entries.isEmpty
-                    ? Center(child: Text(state.error ?? 'لا توجد بيانات للعرض'))
-                    : ListView.builder(
+            body: ListView.builder(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsetsDirectional.fromSTEB(
                         16,
@@ -61,10 +63,28 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                         16,
                         24,
                       ),
-                      itemCount: state.entries.length + 1,
+                      itemCount: state.entries.isEmpty
+                          ? 2
+                          : state.entries.length + 1,
                       itemBuilder: (context, index) {
                         if (index == 0) {
-                          return _buildGuidance(context, category);
+                          return _buildGuidance(
+                            context,
+                            category,
+                            state.entries.length,
+                          );
+                        }
+                        if (state.entries.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: Text(
+                                state.error ?? 'لا توجد بيانات للعرض',
+                                textDirection: TextDirection.rtl,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
                         }
                         final entry = state.entries[index - 1];
                         return _TextCard(
@@ -101,11 +121,11 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
             body: Center(child: Text(state.error!)),
           );
         }
-        final azkar = cubit.itemsFor(category);
+        final entries = state.entriesFor(category);
         return Scaffold(
           appBar: defaultAppBar(context: context, text: title),
           body:
-              azkar.isEmpty
+              entries.isEmpty
                   ? const Center(child: Text('لا توجد بيانات للعرض'))
                   : ListView.builder(
                     physics: const BouncingScrollPhysics(),
@@ -115,29 +135,28 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                       16,
                       24,
                     ),
-                    itemCount: azkar.length + 1,
+                    itemCount: entries.length + 1,
                     itemBuilder: (context, index) {
                       if (index == 0) {
-                        return _buildGuidance(context, category);
+                        return _buildGuidance(
+                          context,
+                          category,
+                          entries.length,
+                        );
                       }
                       final itemIndex = index - 1;
-                      final text = azkar[itemIndex];
+                      final entry = entries[itemIndex];
+                      final text = entry.content;
                       return _TextCard(
                         text: text,
-                        counter:
-                            category == 3
-                                ? state.counters.elementAtOrNull(itemIndex) ?? 0
-                                : null,
+                        repetitionCount: entry.repetitionCount,
+                        counter: cubit.progressFor(entry),
+                        reference: entry.verified ? entry.reference : null,
+                        instructions: entry.verified ? entry.instructions : null,
                         onCopy:
                             () => Clipboard.setData(ClipboardData(text: text)),
-                        onIncrement:
-                            category == 3
-                                ? () => cubit.incrementAzkarTimes(itemIndex)
-                                : null,
-                        onReset:
-                            category == 3
-                                ? () => cubit.clearTimes(itemIndex)
-                                : null,
+                        onIncrement: () => cubit.incrementEntry(entry),
+                        onReset: () => cubit.resetEntry(entry),
                       );
                     },
                   ),
@@ -146,7 +165,11 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     );
   }
 
-  Widget _buildGuidance(BuildContext context, int category) => Padding(
+  Widget _buildGuidance(
+    BuildContext context,
+    int category,
+    int totalCount,
+  ) => Padding(
     padding: const EdgeInsetsDirectional.only(bottom: 14),
     child: Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -155,18 +178,49 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
         borderRadius: BorderRadius.circular(AppRadii.card),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            category == 5 ? Icons.menu_book_rounded : Icons.spa_rounded,
+              category == 10 ? Icons.menu_book_rounded : Icons.spa_rounded,
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              category == 5 ? 'من هدي النبي ﷺ' : 'اذكر الله بقلبٍ حاضر',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  category == 10
+                      ? 'من هدي النبي'
+                      : 'اذكر الله بقلبٍ حاضر',
+                  textDirection: TextDirection.rtl,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        height: 1.45,
+                      ),
+                ),
+                if (category == 10) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    'اضغط على أي حديث لعرض المزيد من التفاصيل والمصدر.',
+                    textDirection: TextDirection.rtl,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          height: 1.45,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+                const SizedBox(height: 4),
+                Text(
+                  category == 10
+                      ? 'عدد الأحاديث المتاحة: ${toArabicIndicDigits(totalCount)}'
+                      : 'المتاح في هذا القسم: ${toArabicIndicDigits(totalCount)}',
+                  textDirection: TextDirection.rtl,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
             ),
           ),
         ],
@@ -179,6 +233,9 @@ class _TextCard extends StatelessWidget {
   const _TextCard({
     required this.text,
     required this.onCopy,
+    this.repetitionCount,
+    this.reference,
+    this.instructions,
     this.counter,
     this.onTap,
     this.onIncrement,
@@ -186,6 +243,9 @@ class _TextCard extends StatelessWidget {
   });
   final String text;
   final int? counter;
+  final int? repetitionCount;
+  final String? reference;
+  final String? instructions;
   final VoidCallback? onTap;
   final VoidCallback onCopy;
   final VoidCallback? onIncrement;
@@ -210,6 +270,53 @@ class _TextCard extends StatelessWidget {
                 context,
               ).textTheme.titleMedium?.copyWith(height: 1.9),
             ),
+            if (instructions != null && instructions!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                instructions!,
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.start,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+              ),
+            ],
+            if (reference != null && reference!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                'المصدر: $reference',
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.start,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+            if (repetitionCount != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Container(
+                  padding: const EdgeInsetsDirectional.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(AppRadii.control),
+                  ),
+                  child: Text(
+                    'عدد التكرار: ${toArabicIndicDigits(repetitionCount!)}',
+                    textDirection: TextDirection.rtl,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             Row(
               textDirection: TextDirection.rtl,
@@ -241,8 +348,9 @@ class _TextCard extends StatelessWidget {
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  toArabicIndicDigits(counter!),
+                                  '${toArabicIndicDigits(counter!)}${repetitionCount == null ? '' : ' / ${toArabicIndicDigits(repetitionCount!)}'}',
                                   textAlign: TextAlign.center,
+                                  textDirection: TextDirection.rtl,
                                   style:
                                       Theme.of(context).textTheme.titleMedium,
                                 ),
@@ -275,7 +383,29 @@ class _TextCard extends StatelessWidget {
                     foregroundColor:
                         Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
-                ] else
+                ] else ...[
+                  if (repetitionCount != null) ...[
+                    Container(
+                      padding: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(AppRadii.control),
+                      ),
+                      child: Text(
+                        'التكرار: ${toArabicIndicDigits(repetitionCount!)}',
+                        textDirection: TextDirection.rtl,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                    const Spacer(),
+                  ] else
+                    const Spacer(),
                   _TasbeehActionButton(
                     onPressed: onCopy,
                     tooltip: 'نسخ الذكر',
@@ -284,8 +414,24 @@ class _TextCard extends StatelessWidget {
                     foregroundColor:
                         Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
+                ],
               ],
             ),
+            if (counter != null && repetitionCount != null) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  counter! >= repetitionCount!
+                      ? 'اكتمل الذكر'
+                      : 'المتبقي: ${toArabicIndicDigits(repetitionCount! - counter!)}',
+                  textDirection: TextDirection.rtl,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

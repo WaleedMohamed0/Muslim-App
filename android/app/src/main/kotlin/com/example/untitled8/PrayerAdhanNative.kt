@@ -13,9 +13,15 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.media.VolumeProvider
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import org.json.JSONArray
@@ -30,6 +36,264 @@ internal object PrayerAdhanStorage {
     const val AUDIO_ID = "audio_id"
     const val CHANNEL_PLAYBACK = "adhan_playback"
     const val CHANNEL_REMINDER = "adhan_reminder"
+    const val CHANNEL_CALL_REMINDER = "adhan_call_reminder"
+}
+
+/** Converts the stable prayer identifiers used by scheduling into Arabic labels. */
+private fun prayerNameArabic(prayer: String): String = when (prayer.lowercase()) {
+    "fajr" -> "الفجر"
+    "dhuhr" -> "الظهر"
+    "asr" -> "العصر"
+    "maghrib" -> "المغرب"
+    "isha" -> "العشاء"
+    else -> prayer
+}
+
+private fun elAzanPendingIntent(context: Context, prayer: String): PendingIntent {
+    val launchIntent = Intent(context, MainActivity::class.java).apply {
+        action = "com.example.untitled8.OPEN_ELAZAN_SCREEN"
+        putExtra("notification_route", "elazan_screen")
+        putExtra("prayer", prayer)
+        addFlags(
+            Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP,
+        )
+    }
+    return PendingIntent.getActivity(
+        context,
+        9100,
+        launchIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+}
+
+/** Daily Azkar and Wird reminders share the existing local AlarmManager setup. */
+internal object DailyAzkarReminderScheduler {
+    private const val PREFS = "daily_azkar_reminders"
+    private const val SETTINGS = "settings_json"
+    private const val ACTION_REMINDER = "com.example.untitled8.DAILY_REMINDER"
+    private const val CHANNEL = "daily_azkar_reminders"
+
+    private data class Reminder(
+        val id: String,
+        val route: String,
+        val title: String,
+        val message: String,
+        val hour: Int,
+        val minute: Int,
+        val enabled: Boolean,
+    )
+
+    fun getSettings(context: Context): List<Map<String, Any>> {
+        restore(context)
+        return readReminders(context).map { reminder ->
+            mapOf(
+                "id" to reminder.id,
+                "route" to reminder.route,
+                "title" to reminder.title,
+                "message" to reminder.message,
+                "hour" to reminder.hour,
+                "minute" to reminder.minute,
+                "enabled" to reminder.enabled,
+                "scheduled" to isScheduled(context, reminder),
+            )
+        }
+    }
+
+    fun save(context: Context, values: List<*>) {
+        cancelAll(context)
+        val array = JSONArray()
+        values.forEach { raw ->
+            val item = raw as? Map<*, *> ?: return@forEach
+            val json = JSONObject()
+            item.forEach { (key, value) ->
+                if (key != null && value != null) json.put(key.toString(), value)
+            }
+            array.put(json)
+        }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(SETTINGS, array.toString())
+            .apply()
+        restore(context)
+    }
+
+    fun restore(context: Context) {
+        readReminders(context).forEach { reminder ->
+            cancel(context, reminder.id)
+            if (reminder.enabled) scheduleNext(context, reminder)
+        }
+    }
+
+    fun deliver(context: Context, id: String) {
+        val reminder = readReminders(context).firstOrNull { it.id == id } ?: return
+        if (!reminder.enabled) return
+        showNotification(context, reminder)
+        scheduleNext(context, reminder)
+    }
+
+    private fun readReminders(context: Context): List<Reminder> {
+        val defaults = JSONArray()
+            .put(reminderJson("morning", "azkar_morning", "أذكار الصباح", "صباح الخير 🌿 حان وقت أذكار الصباح، ابدأ يومك بذكر الله.", 7, 0))
+            .put(reminderJson("evening", "azkar_evening", "أذكار المساء", "لا تنسَ أذكار المساء، حصّن يومك بذكر الله.", 17, 0))
+            .put(reminderJson("daily_wird", "daily_wird", "وردك اليومي", "حان وقت وردك اليومي، اجعل لنفسك نصيبًا من القرآن والذكر.", 21, 0))
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(SETTINGS, defaults.toString()) ?: defaults.toString()
+        return try {
+            val array = JSONArray(raw)
+            (0 until array.length()).mapNotNull { index ->
+                val json = array.optJSONObject(index) ?: return@mapNotNull null
+                val id = json.optString("id")
+                if (id.isBlank()) return@mapNotNull null
+                Reminder(
+                    id = id,
+                    route = json.optString("route", "daily_wird"),
+                    title = json.optString("title", "تذكير يومي"),
+                    message = json.optString("message", "حان وقت وردك اليومي."),
+                    hour = json.optInt("hour", 9).coerceIn(0, 23),
+                    minute = json.optInt("minute", 0).coerceIn(0, 59),
+                    enabled = json.optBoolean("enabled", false),
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun reminderJson(
+        id: String,
+        route: String,
+        title: String,
+        message: String,
+        hour: Int,
+        minute: Int,
+    ) = JSONObject()
+        .put("id", id)
+        .put("route", route)
+        .put("title", title)
+        .put("message", message)
+        .put("hour", hour)
+        .put("minute", minute)
+        .put("enabled", false)
+
+    private fun scheduleNext(context: Context, reminder: Reminder) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
+        val now = Calendar.getInstance()
+        val trigger = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, reminder.hour)
+            set(Calendar.MINUTE, reminder.minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            if (!after(now)) add(Calendar.DAY_OF_YEAR, 1)
+        }
+        val pending = alarmIntent(context, reminder.id, PendingIntent.FLAG_UPDATE_CURRENT)
+            ?: return
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    trigger.timeInMillis,
+                    pending,
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    trigger.timeInMillis,
+                    pending,
+                )
+            }
+        } catch (_: SecurityException) {
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                trigger.timeInMillis,
+                pending,
+            )
+        }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putLong("scheduled_${reminder.id}", trigger.timeInMillis).apply()
+    }
+
+    private fun isScheduled(context: Context, reminder: Reminder): Boolean {
+        if (!reminder.enabled) return false
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val nextAt = prefs.getLong("scheduled_${reminder.id}", 0L)
+        return nextAt > System.currentTimeMillis() &&
+            alarmIntent(context, reminder.id, PendingIntent.FLAG_NO_CREATE) != null
+    }
+
+    private fun cancelAll(context: Context) {
+        readReminders(context).forEach { cancel(context, it.id) }
+    }
+
+    private fun cancel(context: Context, id: String) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
+        val pending = alarmIntent(context, id, PendingIntent.FLAG_NO_CREATE) ?: return
+        alarmManager.cancel(pending)
+        pending.cancel()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().remove("scheduled_$id").apply()
+    }
+
+    private fun alarmIntent(context: Context, id: String, flag: Int): PendingIntent? {
+        val intent = Intent(context, DailyAzkarReminderReceiver::class.java).apply {
+            action = ACTION_REMINDER
+            data = Uri.parse("muslimapp://daily-reminder/$id")
+            putExtra("reminder_id", id)
+        }
+        val flags = if (flag == PendingIntent.FLAG_NO_CREATE) {
+            flag or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            flag or PendingIntent.FLAG_IMMUTABLE
+        }
+        return PendingIntent.getBroadcast(context, id.hashCode(), intent, flags)
+    }
+
+    private fun showNotification(context: Context, reminder: Reminder) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL,
+                    "تذكيرات الأذكار والورد",
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply { description = "تذكيرات محلية يومية للأذكار والورد" },
+            )
+        }
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            action = "com.example.untitled8.OPEN_DAILY_REMINDER"
+            data = Uri.parse("muslimapp://notification/${reminder.id}")
+            putExtra("notification_route", reminder.route)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        val contentIntent = PendingIntent.getActivity(
+            context,
+            ("route_${reminder.id}").hashCode(),
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(R.mipmap.launcher_icon)
+            .setContentTitle(reminder.title)
+            .setContentText(reminder.message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(reminder.message))
+            .setContentIntent(contentIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        try {
+            manager.notify(reminder.id.hashCode(), notification)
+        } catch (_: SecurityException) {
+            // Notifications may be disabled in system settings.
+        }
+    }
+}
+
+class DailyAzkarReminderReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val id = intent.getStringExtra("reminder_id") ?: return
+        DailyAzkarReminderScheduler.deliver(context, id)
+    }
 }
 
 internal object PrayerAlarmScheduler {
@@ -145,6 +409,7 @@ class PrayerAlarmRestoreReceiver : BroadcastReceiver() {
         val reinterpret = intent.action == Intent.ACTION_TIME_CHANGED ||
             intent.action == Intent.ACTION_TIMEZONE_CHANGED
         PrayerAlarmScheduler.restore(context, reinterpretLocalTimes = reinterpret)
+        DailyAzkarReminderScheduler.restore(context)
     }
 }
 
@@ -163,6 +428,11 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             .putString("last_alarm_id", id)
             .putLong("last_alarm_at", System.currentTimeMillis())
             .apply()
+
+        if (isPhoneCallActive(context)) {
+            showCallReminder(context, prayer)
+            return
+        }
 
         if (!intent.getBooleanExtra("exact", false) ||
             !PrayerAlarmScheduler.canScheduleExactAlarms(context)
@@ -199,12 +469,49 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         }
         val notification = NotificationCompat.Builder(context, PrayerAdhanStorage.CHANNEL_REMINDER)
             .setSmallIcon(R.mipmap.launcher_icon)
-            .setContentTitle("حان وقت الصلاة")
-            .setContentText("حان وقت صلاة $prayer")
+            .setContentTitle("أذان صلاة ${prayerNameArabic(prayer)}")
+            .setContentIntent(elAzanPendingIntent(context, prayer))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
         manager.notify(("reminder_$prayer").hashCode(), notification)
+    }
+
+    private fun showCallReminder(context: Context, prayer: String) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    PrayerAdhanStorage.CHANNEL_CALL_REMINDER,
+                    "تنبيهات الصلاة أثناء المكالمات",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    setSound(null, null)
+                    enableVibration(false)
+                    setShowBadge(false)
+                },
+            )
+        }
+        val notification = NotificationCompat.Builder(context, PrayerAdhanStorage.CHANNEL_CALL_REMINDER)
+            .setSmallIcon(R.mipmap.launcher_icon)
+            .setContentTitle("أذان صلاة ${prayerNameArabic(prayer)}")
+            .setContentIntent(elAzanPendingIntent(context, prayer))
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setSilent(true)
+            .setVibrate(null)
+            .setSound(null)
+            .setAutoCancel(true)
+            .build()
+        manager.notify(("call_reminder_$prayer").hashCode(), notification)
+    }
+
+    private fun isPhoneCallActive(context: Context): Boolean {
+        val mode = context.getSystemService(AudioManager::class.java)?.mode
+        // Android exposes telephony and VoIP calls through these audio modes,
+        // so detecting calls does not require READ_PHONE_STATE.
+        return mode == AudioManager.MODE_RINGTONE ||
+            mode == AudioManager.MODE_IN_CALL ||
+            mode == AudioManager.MODE_IN_COMMUNICATION
     }
 }
 
@@ -212,11 +519,14 @@ class PrayerAdhanPlaybackService : Service() {
     private var player: MediaPlayer? = null
     private var focusRequest: AudioFocusRequest? = null
     private var audioManager: AudioManager? = null
+    private var volumeKeySession: MediaSession? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        serviceInstance = this
         createPlaybackChannel()
     }
 
@@ -243,14 +553,23 @@ class PrayerAdhanPlaybackService : Service() {
                 } else {
                     null
                 }
-                playLocalAdhan(prefs.getFloat(PrayerAdhanStorage.VOLUME, .85f), audioId)
+                val scheduledPrayer = prayer.takeIf { intent.action == ACTION_PLAY }
+                playLocalAdhan(
+                    prefs.getFloat(PrayerAdhanStorage.VOLUME, .85f),
+                    audioId,
+                    scheduledPrayer,
+                )
             }
             else -> stopSelf(startId)
         }
         return START_NOT_STICKY
     }
 
-    private fun playLocalAdhan(volume: Float, previewAudioId: String? = null) {
+    private fun playLocalAdhan(
+        volume: Float,
+        previewAudioId: String? = null,
+        scheduledPrayer: String? = null,
+    ) {
         stopPlayer()
         val attributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ALARM)
@@ -259,6 +578,7 @@ class PrayerAdhanPlaybackService : Service() {
         requestAudioFocus(attributes)
         try {
             player = MediaPlayer().apply {
+                setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
                 setAudioAttributes(attributes)
                 setVolume(volume.coerceIn(0f, 1f), volume.coerceIn(0f, 1f))
                 val prefs = getSharedPreferences(PrayerAdhanStorage.PREFS, MODE_PRIVATE)
@@ -274,8 +594,16 @@ class PrayerAdhanPlaybackService : Service() {
                         descriptor.length,
                     )
                 }
-                setOnPreparedListener { it.start() }
+                setOnPreparedListener { preparedPlayer ->
+                    preparedPlayer.start()
+                    val alarmVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 1
+                    activePrayer = scheduledPrayer?.takeIf {
+                        volume > 0f && alarmVolume > 0 && preparedPlayer.isPlaying
+                    }
+                    startVolumeKeyCapture()
+                }
                 setOnCompletionListener {
+                    activePrayer = null
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
@@ -306,6 +634,7 @@ class PrayerAdhanPlaybackService : Service() {
     }
 
     private fun stopPlayer() {
+        activePrayer = null
         try {
             player?.stop()
         } catch (_: Exception) {
@@ -324,7 +653,50 @@ class PrayerAdhanPlaybackService : Service() {
     private fun stopPlayback() {
         stopPlayer()
         stopForeground(STOP_FOREGROUND_REMOVE)
+        releaseVolumeKeySession()
         stopSelf()
+    }
+
+    private fun startVolumeKeyCapture() {
+        releaseVolumeKeySession()
+        volumeKeySession = MediaSession(this, "AdhanPlaybackVolumeKeys").apply {
+            setPlaybackToRemote(
+                object : VolumeProvider(VOLUME_CONTROL_RELATIVE, 100, 100) {
+                    override fun onAdjustVolume(direction: Int) {
+                        if (direction == AudioManager.ADJUST_RAISE ||
+                            direction == AudioManager.ADJUST_LOWER
+                        ) {
+                            mainHandler.post { silenceForVolumeKey() }
+                        }
+                    }
+                },
+            )
+            setPlaybackState(
+                PlaybackState.Builder()
+                    .setActions(PlaybackState.ACTION_STOP)
+                    .setState(PlaybackState.STATE_PLAYING, 0L, 1f)
+                    .build(),
+            )
+            isActive = true
+        }
+    }
+
+    private fun silenceForVolumeKey() {
+        if (player == null) return
+        // The remote media session consumes the key without changing the device
+        // volume. Stop this playback and release capture for the next key press.
+        stopPlayer()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        releaseVolumeKeySession()
+        stopSelf()
+    }
+
+    private fun releaseVolumeKeySession() {
+        volumeKeySession?.let { session ->
+            session.isActive = false
+            session.release()
+        }
+        volumeKeySession = null
     }
 
     private fun createPlaybackChannel() {
@@ -351,16 +723,23 @@ class PrayerAdhanPlaybackService : Service() {
         )
         val builder = NotificationCompat.Builder(this, PrayerAdhanStorage.CHANNEL_PLAYBACK)
             .setSmallIcon(R.mipmap.launcher_icon)
-            .setContentTitle(if (prayer.isBlank()) "اختبار الأذان" else "أذان صلاة $prayer")
-            .setContentText("جارٍ تشغيل الأذان من الملف المحفوظ على الجهاز")
+            .setContentTitle(
+                if (prayer.isBlank()) "اختبار الأذان"
+                else "أذان صلاة ${prayerNameArabic(prayer)}",
+            )
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setContentIntent(
+                if (prayer.isBlank()) null else elAzanPendingIntent(this, prayer),
+            )
             .addAction(0, "إيقاف", stopPendingIntent)
         return builder.build()
     }
 
     override fun onDestroy() {
+        releaseVolumeKeySession()
         stopPlayer()
+        if (serviceInstance === this) serviceInstance = null
         super.onDestroy()
     }
 
@@ -369,5 +748,24 @@ class PrayerAdhanPlaybackService : Service() {
         const val ACTION_TEST = "com.example.untitled8.TEST_ADHAN"
         const val ACTION_STOP = "com.example.untitled8.STOP_ADHAN"
         private const val NOTIFICATION_ID = 7301
+
+        @Volatile
+        private var activePrayer: String? = null
+
+        @Volatile
+        private var serviceInstance: PrayerAdhanPlaybackService? = null
+
+        fun playbackState(): Map<String, Any> {
+            val service = serviceInstance
+            val prayer = activePrayer
+            val playing = prayer != null && service != null && runCatching {
+                service.player?.isPlaying == true &&
+                    (service.audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 1) > 0
+            }.getOrDefault(false)
+            return mapOf(
+                "playing" to playing,
+                "prayer" to if (playing) prayer.orEmpty() else "",
+            )
+        }
     }
 }

@@ -18,6 +18,48 @@ import 'package:untitled8/core/bootstrap/app_bootstrap.dart';
 import 'package:untitled8/core/widgets/app_snackbar.dart';
 import 'core/theme/app_theme.dart';
 import 'features/app/presentation/pages/startup_screen.dart';
+import 'features/prayer_times/presentation/pages/prayer_adhan_settings_screen.dart';
+import 'features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
+import 'features/quran/presentation/pages/home_screen.dart';
+import 'features/prayer_times/presentation/pages/prayer_times_screen.dart';
+import 'features/prayer_times/presentation/pages/elazan_screen.dart';
+
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+const MethodChannel _notificationNavigationChannel =
+    MethodChannel('com.muslim/notification_navigation');
+final _appRouteObserver = _AppRouteObserver();
+
+class _AppRouteObserver extends NavigatorObserver {
+  final List<Route<dynamic>> _stack = [];
+
+  bool containsRoute(String name) =>
+      _stack.any((route) => route.settings.name == name);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _stack.add(route);
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _stack.remove(route);
+    super.didPop(route, previousRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _stack.remove(route);
+    super.didRemove(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (oldRoute != null) _stack.remove(oldRoute);
+    if (newRoute != null) _stack.add(newRoute);
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +99,87 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _notificationNavigationChannel.setMethodCallHandler((call) async {
+      if (call.method == 'openNotificationRoute' && call.arguments is String) {
+        _openNotificationRoute(call.arguments as String);
+      }
+    });
+    _consumeInitialNotificationTap();
+  }
+
+  Future<void> _consumeInitialNotificationTap() async {
+    try {
+      final route = await _notificationNavigationChannel
+          .invokeMethod<String>('initialNotificationRoute');
+      if (route != null) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _openNotificationRoute(route),
+        );
+      }
+    } on PlatformException {
+      // A regular launch has no notification payload to route.
+    } on MissingPluginException {
+      // Non-Android platforms do not provide the native Adhan notification route.
+    }
+  }
+
+  void _openNotificationRoute(String route) {
+    final destination = switch (route) {
+      'adhan_settings' => (
+        '/adhan-settings',
+        const PrayerAdhanSettingsScreen(),
+      ),
+      'prayer_times' => ('/prayer-times', const PrayerTimes()),
+      'elazan_screen:fajr' => (
+        '/elazan-screen/fajr',
+        const ElAzanScreen(prayer: 'الفجر'),
+      ),
+      'elazan_screen:dhuhr' => (
+        '/elazan-screen/dhuhr',
+        const ElAzanScreen(prayer: 'الظهر'),
+      ),
+      'elazan_screen:asr' => (
+        '/elazan-screen/asr',
+        const ElAzanScreen(prayer: 'العصر'),
+      ),
+      'elazan_screen:maghrib' => (
+        '/elazan-screen/maghrib',
+        const ElAzanScreen(prayer: 'المغرب'),
+      ),
+      'elazan_screen:isha' => (
+        '/elazan-screen/isha',
+        const ElAzanScreen(prayer: 'العشاء'),
+      ),
+      'azkar_morning' => (
+        '/azkar-category-0',
+        const AzkarAndHadeethScreen(index: 0),
+      ),
+      'azkar_evening' => (
+        '/azkar-category-1',
+        const AzkarAndHadeethScreen(index: 1),
+      ),
+      'daily_wird' => ('/quran-home', const HomeScreen()),
+      _ => null,
+    };
+    if (destination == null) return;
+    final navigator = appNavigatorKey.currentState;
+    if (navigator == null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _openNotificationRoute(route),
+      );
+      return;
+    }
+    final (routeName, page) = destination;
+    if (_appRouteObserver.containsRoute(routeName)) {
+      navigator.popUntil((route) => route.settings.name == routeName);
+      return;
+    }
+    navigator.push<void>(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(name: routeName),
+        builder: (_) => page,
+      ),
+    );
   }
 
   @override
@@ -93,6 +216,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       builder: (p0, p1, p2) {
         return BlocBuilder<AppCubit, AppState>(
           builder: (context, state) => MaterialApp(
+            navigatorKey: appNavigatorKey,
+            navigatorObservers: [_appRouteObserver],
             builder: (context, child) {
               final theme =
                   state.themeMode == ThemeMode.dark

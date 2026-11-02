@@ -44,6 +44,10 @@
             android:name=".PrayerAlarmReceiver"
             android:exported="false" />
         <receiver
+            android:name=".DailyAzkarReminderReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        <receiver
             android:name=".PrayerAlarmRestoreReceiver"
             android:enabled="true"
             android:exported="true">

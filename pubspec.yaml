@@ -43,8 +43,8 @@ flutter:
   assets:
     - assets/features/app/images/
     - assets/features/asmaa_allah/
-    - assets/features/azkar/data/
-    - assets/features/azkar/images/
+    - assets/features/azkar/data/azkar.json
+    - assets/images/azkar/
     - assets/features/prayer_times/audio/
     - assets/features/prayer_times/images/
     - assets/features/quran/images/

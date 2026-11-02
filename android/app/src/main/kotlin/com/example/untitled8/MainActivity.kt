@@ -6,7 +6,6 @@ import android.app.AlarmManager
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import io.flutter.embedding.engine.FlutterEngine
@@ -18,11 +17,26 @@ import org.json.JSONObject
 class MainActivity: FlutterActivity() {
     private val shareChannel = "com.muslim/quran_share"
     private val adhanChannel = "com.muslim/prayer_adhan"
+    private val notificationNavigationChannel = "com.muslim/notification_navigation"
+    private var notificationNavigation: MethodChannel? = null
+    private var pendingNotificationRoute: String? = null
     private var notificationPermissionResult: MethodChannel.Result? = null
     private val notificationPermissionRequest = 7401
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        notificationNavigation = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            notificationNavigationChannel,
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                if (call.method == "initialNotificationRoute") {
+                    result.success(consumeNotificationRoute())
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, shareChannel)
             .setMethodCallHandler { call, result ->
                 if (call.method != "shareText") {
@@ -51,9 +65,13 @@ class MainActivity: FlutterActivity() {
                     "permissionStatus" -> result.success(permissionStatus())
                     "requestNotificationPermission" -> requestNotificationPermission(result)
                     "requestExactAlarmPermission" -> requestExactAlarmPermission(result)
-                    "openBatterySettings" -> openBatterySettings(result)
+                    "openNotificationSettings" -> openNotificationSettings(result)
+                    "openAppSettings" -> openAppSettings(result)
                     "saveSettings" -> saveSettings(call.arguments as? Map<*, *>, result)
                     "updateSchedule" -> updateSchedule(call.arguments as? Map<*, *>, result)
+                    "getAdhanPlaybackState" -> result.success(PrayerAdhanPlaybackService.playbackState())
+                    "getDailyReminders" -> result.success(DailyAzkarReminderScheduler.getSettings(this))
+                    "saveDailyReminders" -> saveDailyReminders(call.arguments as? List<*>, result)
                     "previewAudio" -> {
                         val audioId = call.argument<String>("audioId")
                         if (audioId.isNullOrBlank() || !isBuiltInAdhan(audioId)) {
@@ -72,6 +90,37 @@ class MainActivity: FlutterActivity() {
             }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val route = notificationRouteFrom(intent)
+        if (route != null) {
+            pendingNotificationRoute = route
+            notificationNavigation?.invokeMethod("openNotificationRoute", route)
+        }
+    }
+
+    private fun notificationRouteFrom(source: Intent?): String? {
+        val rawRoute = source?.getStringExtra("notification_route")
+            ?: if (source?.getBooleanExtra("open_adhan_settings", false) == true) {
+                "elazan_screen"
+            } else {
+                null
+            }
+        val route = if (rawRoute == "adhan_settings") "elazan_screen" else rawRoute
+        if (route != "elazan_screen") return route
+        val prayer = source?.getStringExtra("prayer")?.lowercase()
+        return if (prayer.isNullOrBlank()) route else "$route:$prayer"
+    }
+
+    private fun consumeNotificationRoute(): String? {
+        val route = pendingNotificationRoute ?: notificationRouteFrom(intent)
+        pendingNotificationRoute = null
+        intent?.removeExtra("notification_route")
+        intent?.removeExtra("open_adhan_settings")
+        return route
+    }
+
     private fun permissionStatus(): Map<String, Boolean> {
         val alarmManager = getSystemService(AlarmManager::class.java)
         val exactAlarms = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
@@ -79,28 +128,44 @@ class MainActivity: FlutterActivity() {
         val notifications = NotificationManagerCompat.from(this).areNotificationsEnabled() &&
             (Build.VERSION.SDK_INT < 33 ||
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
-        val powerManager = getSystemService(PowerManager::class.java)
-        val batteryOptimized = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-            powerManager?.isIgnoringBatteryOptimizations(packageName) != true
+        val location = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+            checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         return mapOf(
             "exactAlarms" to exactAlarms,
             "notifications" to notifications,
-            "batteryOptimized" to batteryOptimized,
+            "location" to location,
         )
     }
 
     private fun requestNotificationPermission(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            val preferences = getSharedPreferences("device_permission_requests", MODE_PRIVATE)
+            if (preferences.getBoolean("notifications_asked", false) &&
+                !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+            ) {
+                openNotificationSettings(result)
+                return
+            }
+            preferences.edit().putBoolean("notifications_asked", true).apply()
+            notificationPermissionResult = result
+            requestPermissions(
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                notificationPermissionRequest,
+            )
+            return
+        }
+        if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+            openNotificationSettings(result)
+            return
+        }
         if (Build.VERSION.SDK_INT < 33 ||
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         ) {
             result.success(null)
             return
         }
-        notificationPermissionResult = result
-        requestPermissions(
-            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-            notificationPermissionRequest,
-        )
     }
 
     private fun requestExactAlarmPermission(result: MethodChannel.Result) {
@@ -122,12 +187,35 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private fun openBatterySettings(result: MethodChannel.Result) {
+    private fun openNotificationSettings(result: MethodChannel.Result) {
         try {
-            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(
+                    Settings.EXTRA_APP_PACKAGE,
+                    packageName,
+                )
+            } else {
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(
+                    Uri.parse("package:$packageName"),
+                )
+            }
+            startActivity(intent)
             result.success(null)
         } catch (error: Exception) {
-            result.error("BATTERY_SETTINGS", error.message, null)
+            result.error("NOTIFICATION_SETTINGS", error.message, null)
+        }
+    }
+
+    private fun openAppSettings(result: MethodChannel.Result) {
+        try {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                },
+            )
+            result.success(null)
+        } catch (error: Exception) {
+            result.error("APP_SETTINGS", error.message, null)
         }
     }
 
@@ -161,6 +249,19 @@ class MainActivity: FlutterActivity() {
         }
         PrayerAlarmScheduler.replaceSchedule(this, alarms)
         result.success(null)
+    }
+
+    private fun saveDailyReminders(arguments: List<*>?, result: MethodChannel.Result) {
+        if (arguments == null) {
+            result.error("INVALID_REMINDERS", "Reminder settings are required", null)
+            return
+        }
+        try {
+            DailyAzkarReminderScheduler.save(this, arguments)
+            result.success(DailyAzkarReminderScheduler.getSettings(this))
+        } catch (error: Exception) {
+            result.error("REMINDER_SCHEDULE", error.message, null)
+        }
     }
 
     private fun startAdhanService(

@@ -14,6 +14,15 @@ class PrayerTimesDto {
   final String fajr, dhuhr, asr, maghrib, isha;
   final List<PrayerAlarmTime> alarmTimes;
 
+  factory PrayerTimesDto.fromEntity(PrayerTimes times) => PrayerTimesDto(
+        fajr: '${times.fajr.hour.toString().padLeft(2, '0')}:${times.fajr.minute.toString().padLeft(2, '0')}',
+        dhuhr: '${times.dhuhr.hour.toString().padLeft(2, '0')}:${times.dhuhr.minute.toString().padLeft(2, '0')}',
+        asr: '${times.asr.hour.toString().padLeft(2, '0')}:${times.asr.minute.toString().padLeft(2, '0')}',
+        maghrib: '${times.maghrib.hour.toString().padLeft(2, '0')}:${times.maghrib.minute.toString().padLeft(2, '0')}',
+        isha: '${times.isha.hour.toString().padLeft(2, '0')}:${times.isha.minute.toString().padLeft(2, '0')}',
+        alarmTimes: times.alarmTimes,
+      );
+
   factory PrayerTimesDto.fromCalendar(Map<String, dynamic> json, DateTime date) {
     final entries = json['data'] as List;
     final day = entries.firstWhere((entry) => int.parse(entry['date']['gregorian']['day']) == date.day);

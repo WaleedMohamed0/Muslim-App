@@ -96,12 +96,41 @@ class PrayerAdhanService {
     });
   }
 
+  Future<Map<String, dynamic>> getPlaybackState() async =>
+      await _channel.invokeMapMethod<String, dynamic>(
+        'getAdhanPlaybackState',
+      ) ??
+      const {'playing': false, 'prayer': ''};
+
+  Future<List<Map<String, dynamic>>> getDailyReminders() async {
+    final result = await _channel.invokeListMethod<dynamic>('getDailyReminders') ??
+        const <dynamic>[];
+    return result
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
+
+  Future<List<Map<String, dynamic>>> saveDailyReminders(
+    List<Map<String, dynamic>> reminders,
+  ) async {
+    final result = await _channel.invokeListMethod<dynamic>(
+          'saveDailyReminders',
+          reminders,
+        ) ??
+        const <dynamic>[];
+    return result
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
+
   Future<Map<String, bool>> permissionStatus() async {
     final result = await _channel.invokeMapMethod<String, dynamic>('permissionStatus') ?? {};
     return {
       'exactAlarms': result['exactAlarms'] == true,
       'notifications': result['notifications'] == true,
-      'batteryOptimized': result['batteryOptimized'] == true,
+      'location': result['location'] == true,
     };
   }
 
@@ -111,8 +140,11 @@ class PrayerAdhanService {
   Future<void> requestExactAlarmPermission() =>
       _channel.invokeMethod<void>('requestExactAlarmPermission');
 
-  Future<void> openBatterySettings() =>
-      _channel.invokeMethod<void>('openBatterySettings');
+  Future<void> openNotificationSettings() =>
+      _channel.invokeMethod<void>('openNotificationSettings');
+
+  Future<void> openAppSettings() =>
+      _channel.invokeMethod<void>('openAppSettings');
 
   Future<void> previewAudio(String audioId) =>
       _channel.invokeMethod<void>('previewAudio', {'audioId': audioId});

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:untitled8/core/theme/app_theme.dart';
 import 'package:untitled8/core/widgets/app_widgets.dart';
@@ -19,6 +20,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     with WidgetsBindingObserver {
   final _service = PrayerAdhanService.instance;
   final _previewPlayer = AudioPlayer();
+  late final StreamSubscription<PlayerState> _previewStateSubscription;
   PrayerAdhanSettings _settings = const PrayerAdhanSettings();
   Map<String, bool> _permissions = const {};
   bool _loading = true;
@@ -36,12 +38,19 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _previewStateSubscription = _previewPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed &&
+          _previewingId != null && mounted) {
+        setState(() => _previewingId = null);
+      }
+    });
     unawaited(_load());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_previewStateSubscription.cancel());
     unawaited(_previewPlayer.dispose());
     super.dispose();
   }
@@ -71,6 +80,74 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       final status = await _service.permissionStatus();
       if (mounted) setState(() => _permissions = status);
     } catch (_) {}
+  }
+
+  Future<void> _changePermission(String key, bool enabled) async {
+    try {
+      if (!enabled) {
+        if (key == 'notifications') {
+          await _service.openNotificationSettings();
+        } else {
+          await _service.openAppSettings();
+        }
+      } else {
+        switch (key) {
+          case 'notifications':
+            await _service.requestNotificationPermission();
+          case 'location':
+            var permission = await Geolocator.checkPermission();
+            if (permission == LocationPermission.deniedForever) {
+              await Geolocator.openAppSettings();
+            } else {
+              permission = await Geolocator.requestPermission();
+              if (permission == LocationPermission.deniedForever) {
+                await Geolocator.openAppSettings();
+              }
+            }
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        AppSnackBar.show(message: 'تعذر تحديث صلاحية الجهاز. تحقق من إعدادات النظام.');
+      }
+    }
+    await _refreshPermissions();
+  }
+
+  Future<bool> _explainPermission(String title, String description) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(title, textDirection: TextDirection.rtl),
+          content: Text(
+            description,
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.start,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('ليس الآن'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('متابعة'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  Future<void> _setAdhanEnabled(bool enabled) async {
+    if (enabled && _permissions['exactAlarms'] != true) {
+      final accepted = await _explainPermission(
+        'السماح بالمنبهات الدقيقة',
+        'يساعد هذا الإذن على تشغيل الأذان عند دخول وقت الصلاة. إذا لم تسمح به، قد يتأخر التنبيه بسبب قيود النظام.',
+      );
+      if (accepted) await _service.requestExactAlarmPermission();
+    }
+    await _save(_settings.copyWith(enabled: enabled));
+    await _refreshPermissions();
   }
 
   Future<void> _save(PrayerAdhanSettings settings) async {
@@ -135,15 +212,14 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
               children: [
                 _InfoCard(
                   icon: Icons.alarm_rounded,
-                  title: 'الأذان يعمل من الجهاز',
-                  text:
-                      'بعد تحميل مواقيت الشهر ومنح صلاحية المنبهات، تُشغّل التنبيهات المحلية الملف المحفوظ حتى دون اتصال بالإنترنت.',
+                  title: 'كيف يعمل الأذان؟',
+                  text: 'اختر صوت الأذان المفضل لديك، وتحكم في تنبيهات الصلوات بسهولة.',
                 ),
                 const SizedBox(height: 14),
                 Card(
                   child: SwitchListTile.adaptive(
                     value: _settings.enabled,
-                    onChanged: (value) => _save(_settings.copyWith(enabled: value)),
+                    onChanged: _setAdhanEnabled,
                     title: const Text('تفعيل الأذان تلقائيًا'),
                     subtitle: const Text('تشغيل الأذان عند حلول المواقيت المحددة'),
                     secondary: Icon(Icons.notifications_active_outlined,
@@ -228,12 +304,6 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                           onChanged: _changeVolume,
                           onChangeEnd: _saveVolume,
                         ),
-                        if (_previewingId != null)
-                          TextButton.icon(
-                            onPressed: _stopTest,
-                            icon: const Icon(Icons.stop_rounded),
-                            label: const Text('إيقاف المعاينة'),
-                          ),
                       ],
                     ),
                   ),
@@ -250,37 +320,24 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                   child: Column(
                     children: [
                       _PermissionTile(
-                        title: 'المنبهات الدقيقة',
-                        granted: _permissions['exactAlarms'] ?? false,
-                        actionLabel: 'فتح الإعدادات',
-                        onPressed: () async {
-                          await _service.requestExactAlarmPermission();
-                          await _refreshPermissions();
-                        },
-                      ),
-                      const Divider(height: 1),
-                      _PermissionTile(
                         title: 'الإشعارات',
-                        granted: _permissions['notifications'] ?? false,
-                        actionLabel: 'السماح',
-                        onPressed: () async {
-                          await _service.requestNotificationPermission();
-                          await _refreshPermissions();
-                        },
+                        description: 'لعرض تنبيهات الصلاة والأذان.',
+                        value: _permissions['notifications'] ?? false,
+                        onChanged: (value) => _changePermission('notifications', value),
                       ),
                       const Divider(height: 1),
                       _PermissionTile(
-                        title: 'تحسين البطارية',
-                        granted: !(_permissions['batteryOptimized'] ?? true),
-                        actionLabel: 'عرض الإعدادات',
-                        onPressed: _service.openBatterySettings,
+                        title: 'الموقع',
+                        description: 'لحساب مواقيت الصلاة بحسب موقعك.',
+                        value: _permissions['location'] ?? false,
+                        onChanged: (value) => _changePermission('location', value),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'قد يؤخر وضع توفير البطارية أو قيود الشركة المصنّعة بعض التنبيهات. يلتزم الصوت بمستوى صوت المنبه وإعدادات عدم الإزعاج في الجهاز، وقد يمنعهما الوضع الصامت أو عدم الإزعاج.',
+                  'عند اكتشاف أن الجهاز في وضع مكالمة، لا يُشغّل الأذان ويصل تنبيه الصلاة بصمت. قد تؤثر قيود النظام أو الشركة المصنّعة في توقيت التنبيهات، كما يلتزم الصوت بإعدادات عدم الإزعاج في الجهاز.',
                   textDirection: TextDirection.rtl,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,
@@ -311,7 +368,7 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 18, 16),
       decoration: BoxDecoration(
         color: colors.primaryContainer,
         borderRadius: BorderRadius.circular(AppRadii.card),
@@ -326,13 +383,19 @@ class _InfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
+                    textDirection: TextDirection.rtl,
+                    textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
+                          color: colors.onPrimaryContainer,
                         )),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Text(text,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          height: 1.55,
+                    textDirection: TextDirection.rtl,
+                    textAlign: TextAlign.start,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.onPrimaryContainer,
+                          height: 1.5,
                         )),
               ],
             ),
@@ -529,27 +592,32 @@ class _AdhanVolumeTrackPainter extends CustomPainter {
 class _PermissionTile extends StatelessWidget {
   const _PermissionTile({
     required this.title,
-    required this.granted,
-    required this.actionLabel,
-    required this.onPressed,
+    required this.description,
+    required this.value,
+    required this.onChanged,
   });
 
   final String title;
-  final bool granted;
-  final String actionLabel;
-  final VoidCallback onPressed;
+  final String description;
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: Icon(
-        granted ? Icons.check_circle_rounded : Icons.info_outline_rounded,
-        color: granted ? colors.primary : colors.onSurfaceVariant,
+    return SwitchListTile.adaptive(
+      value: value,
+      onChanged: onChanged,
+      secondary: Icon(
+        value ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+        color: value ? colors.primary : colors.onSurfaceVariant,
       ),
       title: Text(title),
-      subtitle: Text(granted ? 'مفعّلة' : 'غير مفعّلة'),
-      trailing: TextButton(onPressed: onPressed, child: Text(actionLabel)),
+      subtitle: Text(
+        '$description ${value ? 'مفعّلة' : 'غير مفعّلة'}',
+        textDirection: TextDirection.rtl,
+      ),
+      controlAffinity: ListTileControlAffinity.trailing,
     );
   }
 }
