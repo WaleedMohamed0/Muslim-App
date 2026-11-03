@@ -17,6 +17,7 @@ dependencies:
   dio: ^5.11.1
   flutter_bloc: ^9.1.1
   geolocator: ^14.1.2
+  flutter_compass: ^0.8.1
   just_audio: ^0.10.6
   intl: ^0.20.3
   responsive_sizer: ^3.3.1
@@ -44,6 +45,7 @@ flutter:
     - assets/features/app/images/
     - assets/features/asmaa_allah/
     - assets/features/azkar/data/azkar.json
+    - assets/features/stories/stories.json
     - assets/images/azkar/
     - assets/features/prayer_times/audio/
     - assets/features/prayer_times/images/

@@ -3,6 +3,7 @@ package com.example.untitled8
 import android.content.Intent
 import android.Manifest
 import android.app.AlarmManager
+import android.hardware.GeomagneticField
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -18,6 +19,7 @@ class MainActivity: FlutterActivity() {
     private val shareChannel = "com.muslim/quran_share"
     private val adhanChannel = "com.muslim/prayer_adhan"
     private val notificationNavigationChannel = "com.muslim/notification_navigation"
+    private val qiblaCompassChannel = "com.muslim/qibla_compass"
     private var notificationNavigation: MethodChannel? = null
     private var pendingNotificationRoute: String? = null
     private var notificationPermissionResult: MethodChannel.Result? = null
@@ -37,6 +39,32 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, qiblaCompassChannel)
+            .setMethodCallHandler { call, result ->
+                if (call.method != "magneticDeclination") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val latitude = call.argument<Double>("latitude")
+                val longitude = call.argument<Double>("longitude")
+                val altitude = call.argument<Double>("altitude") ?: 0.0
+                if (latitude == null || longitude == null) {
+                    result.error("INVALID_COORDINATES", "Valid coordinates are required", null)
+                    return@setMethodCallHandler
+                }
+                try {
+                    result.success(
+                        GeomagneticField(
+                            latitude.toFloat(),
+                            longitude.toFloat(),
+                            altitude.toFloat(),
+                            System.currentTimeMillis(),
+                        ).declination.toDouble(),
+                    )
+                } catch (error: Exception) {
+                    result.error("DECLINATION_UNAVAILABLE", error.message, null)
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, shareChannel)
             .setMethodCallHandler { call, result ->
                 if (call.method != "shareText") {

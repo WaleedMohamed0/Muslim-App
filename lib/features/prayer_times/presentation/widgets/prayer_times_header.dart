@@ -12,47 +12,78 @@ class PrayerTimesIntroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 20, 18),
+      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsetsDirectional.fromSTEB(18, 14, 18, 16),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: [colors.primaryContainer, colors.surfaceContainerHigh],
+        ),
         borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: .55)),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: .45)),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: colors.primaryContainer,
-              borderRadius: BorderRadius.circular(AppRadii.tile),
+          PositionedDirectional(
+            top: -46,
+            end: -34,
+            child: IgnorePointer(
+              child: Container(
+                width: 112,
+                height: 112,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: .10),
+                    width: 12,
+                  ),
+                ),
+              ),
             ),
-            child: Icon(Icons.mosque_outlined, color: colors.primary),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '﴿إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَوْقُوتًا﴾',
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '﴿إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَوْقُوتًا﴾',
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w800,
+                  height: 1.8,
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '[سورة النساء: 103]',
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
+              ),
+              const SizedBox(height: 7),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 22,
+                    height: 1,
+                    color: colors.primary.withValues(alpha: .35),
                   ),
-                ),
-              ],
-            ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                    child: Text(
+                      '[النساء: 103]',
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 22,
+                    height: 1,
+                    color: colors.primary.withValues(alpha: .35),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -156,12 +187,27 @@ class _PrayerTimesNextCardState extends State<PrayerTimesNextCard> {
                     ),
                     Directionality(
                       textDirection: TextDirection.ltr,
-                      child: Text(
-                        '${widget.prayer.display.time} ${widget.prayer.display.period}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: colors.onPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            widget.prayer.display.period,
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: colors.onPrimary.withValues(alpha: .82),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            widget.prayer.display.time,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: colors.onPrimary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

@@ -22,6 +22,18 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   bool isOnline = false;
   bool _isLoadingPrayerTimes = false;
 
+  Future<void> loadCachedPrayerTimes() async {
+    if (state.prayerTimes != null) return;
+    try {
+      final cached = await _getPrayerTimes.getCached(DateTime.now());
+      if (cached != null && !isClosed && state.prayerTimes == null) {
+        _publishPrayerTimes(cached);
+      }
+    } catch (_) {
+      // The Adhan experience remains available if the optional cache fails.
+    }
+  }
+
   void setConnectivity(bool connected) {
     final justConnected = connected && !isOnline;
     isOnline = connected;

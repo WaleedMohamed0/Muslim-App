@@ -20,14 +20,18 @@ abstract final class AppRadii {
 }
 
 abstract final class AppTheme {
-  static const Color _lightSeed = Color(0xFF176B5B);
+  static const Color _lightSeed = Color(0xFF315C4C);
   static const Color _darkSeed = Color(0xFF6FC6A9);
-  static const Color _lightBackground = Color(0xFFF4EBDD);
+  static const Color _lightBackground = Color(0xFFEBF0EB);
   static const Color _darkBackground = Color(0xFF111B18);
-  static const Color _lightSurface = Color(0xFFFBF6EA);
+  static const Color _lightSurface = Color(0xFFFFFFFF);
   static const Color _darkSurface = Color(0xFF1B2823);
   static const Color _sepia = Color(0xFF80633A);
-  static const Color _lightOutline = Color(0xFFDCCDB1);
+  static const Color _lightPrimary = Color(0xFF315C4C);
+  static const Color _lightSecondary = Color(0xFFDCE9E1);
+  static const Color _lightText = Color(0xFF26372F);
+  static const Color _lightSecondaryText = Color(0xFF77847B);
+  static const Color _lightBorder = Color(0xFFE7EBE7);
 
   static ThemeData get light => _buildTheme(
     brightness: Brightness.light,
@@ -49,16 +53,41 @@ abstract final class AppTheme {
     required Color background,
     required Color surface,
   }) {
-    final scheme = ColorScheme.fromSeed(
+    final baseScheme = ColorScheme.fromSeed(
       seedColor: seed,
       brightness: brightness,
-    ).copyWith(
-      surface: surface,
-      secondary: _sepia,
-      onSecondary: Colors.white,
-      outlineVariant:
-          brightness == Brightness.light ? _lightOutline : null,
     );
+    final scheme =
+        brightness == Brightness.light
+            ? baseScheme.copyWith(
+              primary: _lightPrimary,
+              onPrimary: Colors.white,
+              primaryContainer: _lightSecondary,
+              onPrimaryContainer: _lightText,
+              secondary: _lightSecondary,
+              onSecondary: _lightText,
+              secondaryContainer: _lightSecondary,
+              onSecondaryContainer: _lightText,
+              tertiary: _lightPrimary,
+              onTertiary: Colors.white,
+              tertiaryContainer: _lightSecondary,
+              onTertiaryContainer: _lightText,
+              surface: surface,
+              onSurface: _lightText,
+              onSurfaceVariant: _lightSecondaryText,
+              surfaceContainerLowest: Colors.white,
+              surfaceContainerLow: Colors.white,
+              surfaceContainer: _lightBackground,
+              surfaceContainerHigh: const Color(0xFFF1F4F1),
+              surfaceContainerHighest: _lightSecondary,
+              outline: _lightBorder,
+              outlineVariant: _lightBorder,
+            )
+            : baseScheme.copyWith(
+              surface: surface,
+              secondary: _sepia,
+              onSecondary: Colors.white,
+            );
     final textTheme = Typography.material2021(
       platform: TargetPlatform.android,
     ).black.apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);

@@ -62,7 +62,7 @@ private fun elAzanPendingIntent(context: Context, prayer: String): PendingIntent
     }
     return PendingIntent.getActivity(
         context,
-        9100,
+        "open_elazan_${prayer.lowercase()}".hashCode(),
         launchIntent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )

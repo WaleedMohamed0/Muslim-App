@@ -22,22 +22,47 @@ class ElAzanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    const azanNight = Color(0xFF10231F);
+    final foreground = isDark ? Colors.white : colors.onSurface;
+    final mutedForeground =
+        isDark ? Colors.white.withValues(alpha: .84) : colors.onSurfaceVariant;
+    final subtitleForeground =
+        isDark ? Colors.white.withValues(alpha: .78) : colors.onSurfaceVariant;
+    final surfaceOverlay =
+        isDark ? Colors.white.withValues(alpha: .12) : colors.surface.withValues(alpha: .84);
+    final borderOverlay =
+        isDark ? Colors.white.withValues(alpha: .22) : colors.outlineVariant;
+    final badgeBorder =
+        isDark ? Colors.white.withValues(alpha: .16) : colors.outlineVariant;
     return Scaffold(
-      backgroundColor: const Color(0xFF10231F),
+      backgroundColor: isDark ? azanNight : theme.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(AppAssets.adhanBackground, fit: BoxFit.cover),
+          Image.asset(
+            AppAssets.adhanBackgroundForPrayer(prayer),
+            fit: BoxFit.cover,
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFF10231F).withValues(alpha: .46),
-                  const Color(0xFF10231F).withValues(alpha: .48),
-                  const Color(0xFF10231F).withValues(alpha: .94),
-                ],
+                colors:
+                    isDark
+                        ? [
+                          azanNight.withValues(alpha: .46),
+                          azanNight.withValues(alpha: .48),
+                          azanNight.withValues(alpha: .94),
+                        ]
+                        : [
+                          colors.surface.withValues(alpha: .58),
+                          colors.surface.withValues(alpha: .72),
+                          colors.surface.withValues(alpha: .96),
+                        ],
                 stops: const [0, .42, 1],
               ),
             ),
@@ -52,7 +77,9 @@ class ElAzanScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: .10),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: .10)
+                        : colors.secondary.withValues(alpha: .25),
                     width: 1.2,
                   ),
                 ),
@@ -78,10 +105,11 @@ class ElAzanScreen extends StatelessWidget {
                               tooltip: 'إغلاق وإيقاف الأذان',
                               onPressed: () => _close(context),
                               style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(
-                                  alpha: .14,
-                                ),
-                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    isDark
+                                        ? Colors.white.withValues(alpha: .14)
+                                        : colors.surface,
+                                foregroundColor: foreground,
                               ),
                               icon: const Icon(Icons.close_rounded),
                             ),
@@ -94,18 +122,18 @@ class ElAzanScreen extends StatelessWidget {
                                 8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: .12),
+                                color: surfaceOverlay,
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: .16),
+                                  color: badgeBorder,
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.mosque_rounded,
-                                    color: Colors.white,
+                                    color: foreground,
                                     size: 18,
                                   ),
                                   SizedBox(width: 7),
@@ -113,7 +141,7 @@ class ElAzanScreen extends StatelessWidget {
                                     'تنبيه الصلاة',
                                     textDirection: TextDirection.rtl,
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: foreground,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -128,15 +156,15 @@ class ElAzanScreen extends StatelessWidget {
                           height: 82,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .12),
+                            color: surfaceOverlay,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: .22),
+                              color: borderOverlay,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.notifications_active_rounded,
-                            color: Colors.white,
+                            color: foreground,
                             size: 36,
                           ),
                         ),
@@ -145,8 +173,8 @@ class ElAzanScreen extends StatelessWidget {
                           'حان الآن وقت صلاة',
                           textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white.withValues(alpha: .84),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: mutedForeground,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -155,8 +183,8 @@ class ElAzanScreen extends StatelessWidget {
                           prayer,
                           textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
+                          style: theme.textTheme.displaySmall?.copyWith(
+                            color: foreground,
                             fontWeight: FontWeight.w800,
                             height: 1.2,
                           ),
@@ -166,13 +194,13 @@ class ElAzanScreen extends StatelessWidget {
                           'حيّ على الصلاة',
                           textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white.withValues(alpha: .78),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: subtitleForeground,
                             letterSpacing: .2,
                           ),
                         ),
                         const Spacer(),
-                        const PrayerExperienceCard(onDarkBackground: true),
+                        PrayerExperienceCard(onDarkBackground: isDark),
                       ],
                     ),
                   ),

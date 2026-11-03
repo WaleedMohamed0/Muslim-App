@@ -57,19 +57,19 @@ class PrayerTimeTile extends StatelessWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
+                    period,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
                     time,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: colors.primary,
                       fontWeight: FontWeight.w800,
                       fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    period,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],

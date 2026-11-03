@@ -113,8 +113,8 @@ class WelcomeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadii.dialog),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 194),
-          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(minHeight: 164),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadii.dialog),
             gradient: LinearGradient(
@@ -147,7 +147,7 @@ class WelcomeCard extends StatelessWidget {
                         height: 1.35,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Text(
@@ -174,7 +174,7 @@ class WelcomeCard extends StatelessWidget {
               const SizedBox(width: 12),
               Icon(
                 Icons.menu_book_rounded,
-                size: 76,
+                size: 64,
                 color: foreground.withValues(alpha: .88),
               ),
             ],
@@ -310,7 +310,7 @@ class DailyReminderCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'تذكيراتك اليومية\nأذكار الصباح والمساء ووردك اليومي',
+                  'التذكيرات\nأذكار الصباح والمساء ووردك اليومي',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: colors.onTertiaryContainer,
                     height: 1.5,

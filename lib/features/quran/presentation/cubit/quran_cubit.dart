@@ -32,7 +32,14 @@ class QuranCubit extends Cubit<QuranState> {
        _tafsirRepository = tafsirRepository ?? QuranTafsirRepositoryImpl(),
        _shareRepository =
            shareRepository ?? const PlatformQuranShareRepository(),
-       super(const QuranState());
+       super(const QuranState()) {
+    _playerStateSubscription = _audioPlayer.player.playerStateStream.listen(
+      _handlePlayerState,
+    );
+    _playerErrorSubscription = _audioPlayer.player.errorStream.listen(
+      _handlePlayerError,
+    );
+  }
 
   final contract.QuranAudioRepository _audioRepository;
   final QuranAudioPlayer _audioPlayer;
@@ -44,19 +51,31 @@ class QuranCubit extends Cubit<QuranState> {
   int surahNumber = 0;
   int currentPageNumber = 0;
   bool isPlaying = false;
+  bool isAudioLoading = false;
   bool isCached = false;
   bool isDownloading = false;
   bool quranSoundActive = false;
   String quranSoundUrl = '';
   bool _audioSourcePrepared = false;
+  bool _preparingAudioSource = false;
+  bool _audioErrorReported = false;
+  int _surahSelectionRevision = 0;
+  Future<void> _audioCommandQueue = Future<void>.value();
+  late final StreamSubscription<PlayerState> _playerStateSubscription;
+  late final StreamSubscription<PlayerException> _playerErrorSubscription;
+  Timer? _audioStartTimeout;
   IconData soundIcon = Icons.play_arrow;
   String audioUrlFor(int number) => _audioRepository.urlFor(number);
-  Future<void> playCurrentSurahOnline(int number) async {
-    if (quranSoundUrl != audioUrlFor(number) || !_audioSourcePrepared) {
-      await setUrlQuranSoundSrcOnline(urlSrc: audioUrlFor(number));
-    }
-    await togglePlay();
-  }
+  Future<void> playCurrentSurahOnline(int number) =>
+      _enqueueAudioCommand(() async {
+        if (number < 1) return;
+        if (number != surahNumber) return;
+        _audioErrorReported = false;
+        quranSoundActive = true;
+        quranSoundUrl = audioUrlFor(number);
+        await _prepareAudioSource(preferOffline: false);
+        await _startPlayback();
+      });
 
   QuranBookmark? bookmark;
   int _revision = 0;
@@ -108,31 +127,41 @@ class QuranCubit extends Cubit<QuranState> {
     required bool online,
   }) async {
     if (surahNumber == number) return;
+    final selectionRevision = ++_surahSelectionRevision;
     final url = _audioRepository.urlFor(number);
     isCached = false;
     _audioSourcePrepared = false;
     quranSoundUrl = url;
     setSurahInfo(number, name);
     quranSoundActive = true;
-    emit(_nextState);
-    if (isPlaying) {
-      isPlaying = false;
-      soundIcon = Icons.play_arrow;
-      unawaited(_audioPlayer.pause());
-    }
-    unawaited(_prepareCachedSurah(number));
-  }
-
-  Future<void> _prepareCachedSurah(int number) async {
-    try {
-      final cachedPath = await _audioRepository.cachedPath(number);
-      if (surahNumber != number || cachedPath == null || _audioSourcePrepared)
-        return;
-      isCached = true;
-      await setUrlQuranSoundSrcOffline(urlSrc: cachedPath);
-    } catch (_) {
-      // Cache lookup is optional; Quran text remains available without it.
-    }
+    _preparingAudioSource = true;
+    _setAudioLoading(true);
+    await _enqueueAudioCommand(() async {
+      try {
+        await _audioPlayer.stop();
+        if (selectionRevision != _surahSelectionRevision) return;
+        final cachedPath = await _audioRepository.cachedPath(number);
+        if (selectionRevision != _surahSelectionRevision) return;
+        if (cachedPath == null) return;
+        isCached = true;
+        _preparingAudioSource = true;
+        await _audioPlayer.setFile(cachedPath);
+        if (selectionRevision == _surahSelectionRevision) {
+          _audioSourcePrepared = true;
+        }
+      } catch (_) {
+        // Cache lookup and offline preparation are optional.
+        if (selectionRevision == _surahSelectionRevision) {
+          isCached = false;
+          _audioSourcePrepared = false;
+        }
+      } finally {
+        if (selectionRevision == _surahSelectionRevision) {
+          _preparingAudioSource = false;
+          _setAudioLoading(false);
+        }
+      }
+    });
   }
 
   void setCurrentPageNumber(int pageNumber) {
@@ -146,29 +175,45 @@ class QuranCubit extends Cubit<QuranState> {
     emit(_nextState);
   }
 
-  Future<void> setUrlQuranSoundSrcOnline({required String urlSrc}) async {
-    quranSoundActive = true;
-    quranSoundUrl = urlSrc;
-    await _audioPlayer.setUrl(urlSrc);
-    _audioSourcePrepared = true;
-    emit(_nextState);
-  }
+  Future<void> setUrlQuranSoundSrcOnline({required String urlSrc}) =>
+      _enqueueAudioCommand(() async {
+        quranSoundActive = true;
+        quranSoundUrl = urlSrc;
+        _audioSourcePrepared = false;
+        _preparingAudioSource = true;
+        _setAudioLoading(true);
+        try {
+          await _audioPlayer.setUrl(urlSrc);
+          _audioSourcePrepared = true;
+        } finally {
+          _preparingAudioSource = false;
+          _setAudioLoading(false);
+        }
+      });
 
-  Future<void> setUrlQuranSoundSrcOffline({required String urlSrc}) async {
-    quranSoundActive = true;
-    await _audioPlayer.setFile(urlSrc);
-    _audioSourcePrepared = true;
-    emit(_nextState);
-  }
+  Future<void> setUrlQuranSoundSrcOffline({required String urlSrc}) =>
+      _enqueueAudioCommand(() async {
+        quranSoundActive = true;
+        _preparingAudioSource = true;
+        _setAudioLoading(true);
+        try {
+          await _audioPlayer.setFile(urlSrc);
+          _audioSourcePrepared = true;
+        } finally {
+          _preparingAudioSource = false;
+          _setAudioLoading(false);
+        }
+      });
 
-  Future<void> changeQuranSoundActive() async {
-    soundIcon = Icons.play_arrow;
-    quranSoundActive = false;
-    isPlaying = false;
-    await _audioPlayer.stop();
-    await _audioPlayer.seekToStart();
-    emit(_nextState);
-  }
+  Future<void> changeQuranSoundActive() => _enqueueAudioCommand(() async {
+        quranSoundActive = false;
+        _audioStartTimeout?.cancel();
+        await _audioPlayer.stop();
+        await _audioPlayer.seekToStart();
+        isAudioLoading = false;
+        soundIcon = Icons.play_arrow;
+        emit(_nextState);
+      });
 
   Future<void> playAzan() async {
     await azanSound.setAsset(AppAssets.azan);
@@ -177,16 +222,132 @@ class QuranCubit extends Cubit<QuranState> {
 
   Future<void> stopAzan() => azanSound.stop();
 
-  Future<void> togglePlay() async {
-    if (isPlaying) {
-      await _audioPlayer.pause();
-      soundIcon = Icons.play_arrow;
-    } else {
-      await _audioPlayer.play();
-      soundIcon = Icons.pause;
+  Future<void> togglePlay() => _enqueueAudioCommand(() async {
+        try {
+          if (_audioPlayer.player.playing) {
+            await _audioPlayer.pause();
+            return;
+          }
+          if (surahNumber < 1) return;
+          _audioErrorReported = false;
+          quranSoundActive = true;
+          await _prepareAudioSource(preferOffline: true);
+          await _startPlayback();
+        } catch (_) {
+          _handleAudioFailure(force: true);
+        }
+      });
+
+  Future<void> _prepareAudioSource({required bool preferOffline}) async {
+    if (_audioSourcePrepared) return;
+    if (surahNumber < 1) throw StateError('No Surah selected');
+
+    _preparingAudioSource = true;
+    _setAudioLoading(true);
+    try {
+      if (preferOffline) {
+        final cachedPath = await _audioRepository.cachedPath(surahNumber);
+        if (cachedPath != null) {
+          try {
+            await _audioPlayer.setFile(cachedPath);
+            isCached = true;
+            _audioSourcePrepared = true;
+            return;
+          } catch (_) {
+            isCached = false;
+            _audioSourcePrepared = false;
+          }
+        }
+        if (!isOnline) {
+          throw StateError('Offline Quran audio is unavailable');
+        }
+      }
+
+      quranSoundUrl = audioUrlFor(surahNumber);
+      await _audioPlayer.setUrl(quranSoundUrl);
+      _audioSourcePrepared = true;
+    } finally {
+      _preparingAudioSource = false;
+      _setAudioLoading(false);
     }
-    isPlaying = !isPlaying;
+  }
+
+  Future<void> _startPlayback() async {
+    if (!_audioSourcePrepared) {
+      throw StateError('Quran audio source is not ready');
+    }
+    if (_audioPlayer.player.playing) return;
+    if (_audioPlayer.player.processingState == ProcessingState.completed) {
+      await _audioPlayer.seekToStart();
+    }
+    _audioStartTimeout?.cancel();
+    isAudioLoading = true;
     emit(_nextState);
+    final playback = _audioPlayer.play();
+    unawaited(
+      playback.catchError((Object error, StackTrace stackTrace) {
+        _handleAudioFailure(force: true);
+      }),
+    );
+    _audioStartTimeout = Timer(const Duration(seconds: 15), () {
+      if (isAudioLoading) _handleAudioFailure();
+    });
+  }
+
+  void _handlePlayerState(PlayerState state) {
+    if (isClosed) return;
+    final completed = state.processingState == ProcessingState.completed;
+    isPlaying = state.playing && !completed;
+    soundIcon = isPlaying ? Icons.pause : Icons.play_arrow;
+
+    final buffering =
+        state.processingState == ProcessingState.loading ||
+        (state.processingState == ProcessingState.buffering && state.playing);
+    if (buffering) {
+      isAudioLoading = true;
+    } else if (state.processingState == ProcessingState.ready ||
+        completed ||
+        (!state.playing && !_preparingAudioSource)) {
+      isAudioLoading = false;
+      _audioStartTimeout?.cancel();
+    }
+    emit(_nextState);
+  }
+
+  void _handlePlayerError(PlayerException _) =>
+      _handleAudioFailure(force: true);
+
+  void _handleAudioFailure({bool force = false}) {
+    if (isClosed ||
+        _audioErrorReported ||
+        (!force &&
+            !isAudioLoading &&
+            !isPlaying &&
+            !_audioPlayer.player.playing)) {
+      return;
+    }
+    _audioErrorReported = true;
+    _audioStartTimeout?.cancel();
+    isPlaying = false;
+    isAudioLoading = false;
+    soundIcon = Icons.play_arrow;
+    _audioSourcePrepared = false;
+    emit(_nextState);
+    AppSnackBar.show(message: 'تعذر تشغيل التلاوة، حاول مجددًا');
+    unawaited(_enqueueAudioCommand(() => _audioPlayer.stop()));
+  }
+
+  void _setAudioLoading(bool value) {
+    if (isClosed) return;
+    if (isAudioLoading == value) return;
+    isAudioLoading = value;
+    emit(_nextState);
+  }
+
+  Future<void> _enqueueAudioCommand(Future<void> Function() command) {
+    final operation = _audioCommandQueue.then((_) => command());
+    _audioCommandQueue = operation.catchError((Object _) {});
+    return operation;
   }
 
   Future<void> downloadSurahSound() async {
@@ -201,7 +362,7 @@ class QuranCubit extends Cubit<QuranState> {
       isCached = true;
       AppSnackBar.show(
         message: 'تم تحميل السورة بنجاح',
-        backgroundColor: Colors.green,
+        success: true,
       );
     } catch (_) {
       AppSnackBar.show(
@@ -209,13 +370,17 @@ class QuranCubit extends Cubit<QuranState> {
       );
     } finally {
       isDownloading = false;
-      soundIcon = Icons.play_arrow;
+      _audioSourcePrepared = false;
+      soundIcon = isPlaying ? Icons.pause : Icons.play_arrow;
       emit(_nextState);
     }
   }
 
   @override
   Future<void> close() async {
+    _audioStartTimeout?.cancel();
+    await _playerStateSubscription.cancel();
+    await _playerErrorSubscription.cancel();
     await _audioPlayer.dispose();
     await azanSound.dispose();
     return super.close();

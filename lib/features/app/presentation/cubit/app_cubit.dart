@@ -24,7 +24,17 @@ class AppCubit extends Cubit<AppState> {
        super(const AppState()) {
     _subscription = _connectivity.changes.listen(_onConnectivityChanged);
     _themeLoad = _restoreThemeMode();
-    refreshConnectivity();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      _initialFrameCompleted = true;
+      final queuedConnectivity = _queuedConnectivity;
+      _queuedConnectivity = null;
+      if (queuedConnectivity != null) {
+        _emitConnectivity(queuedConnectivity);
+      } else {
+        unawaited(refreshConnectivity());
+      }
+    });
   }
   final ConnectivityService _connectivity;
   final HadeethCubit _hadeeth;
@@ -36,6 +46,8 @@ class AppCubit extends Cubit<AppState> {
   Future<void> _themeWrite = Future<void>.value();
   ThemeMode _requestedThemeMode = ThemeMode.light;
   bool _hasRequestedThemeMode = false;
+  bool _initialFrameCompleted = false;
+  bool? _queuedConnectivity;
 
   Future<void> refreshConnectivity() async {
     try {
@@ -109,7 +121,13 @@ class AppCubit extends Cubit<AppState> {
     }
   }
 
-  void _onConnectivityChanged(bool connected) => _emitConnectivity(connected);
+  void _onConnectivityChanged(bool connected) {
+    if (!_initialFrameCompleted) {
+      _queuedConnectivity = connected;
+      return;
+    }
+    _emitConnectivity(connected);
+  }
 
   @override
   Future<void> close() async {

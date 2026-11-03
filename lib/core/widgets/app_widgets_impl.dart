@@ -120,6 +120,8 @@ Future<T?> showAppModalBottomSheet<T>({
   bool isScrollControlled = false,
   bool showDragHandle = false,
   Color? backgroundColor,
+  ShapeBorder? shape,
+  Clip? clipBehavior,
 }) =>
     showModalBottomSheet<T>(
       context: context,
@@ -127,6 +129,8 @@ Future<T?> showAppModalBottomSheet<T>({
       useSafeArea: true,
       showDragHandle: showDragHandle,
       backgroundColor: backgroundColor,
+      shape: shape,
+      clipBehavior: clipBehavior,
       builder: (sheetContext) => Padding(
         // Use viewPadding because the app-level SafeArea removes `padding`
         // from descendants of the Navigator.
@@ -190,62 +194,77 @@ Widget myPanel({
   required BuildContext context,
   required QuranCubit cubit,
 }) {
+  final playerContentHeight = 10.h > 17.w + 1.2.h ? 10.h : 17.w + 1.2.h;
+  final panelHeight =
+      playerContentHeight + MediaQuery.paddingOf(context).bottom;
   return WeSlide(
     panel:
         cubit.quranSoundActive
-            ? InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  PageTransition(
-                    child: SurahScreen(surahNumber: cubit.surahNumber),
-                    type: PageTransitionType.bottomToTop,
-                  ),
-                );
-              },
-              child: Container(
-                padding: EdgeInsetsDirectional.fromSTEB(2.w, .2.h, 0.3.w, 1.w),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/features/quran/images/alafasy.jpg',
-                      width: 17.w,
-                      height: 17.w,
+            ? SafeArea(
+              top: false,
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    PageTransition(
+                      child: SurahScreen(surahNumber: cubit.surahNumber),
+                      type: PageTransitionType.bottomToTop,
                     ),
-                    SizedBox(width: 3.w),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        defaultText(
-                          textColor: Colors.white,
-                          text: "سورة  ${cubit.surahName}",
-                          fontsize: 17,
-                          txtDirection: TextDirection.rtl,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        defaultText(
-                          text: "الشيخ مشاري العفاسي",
-                          textColor: Colors.white,
-                          fontsize: 13,
-                          textOverflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                    Spacer(),
-                    Align(
-                      widthFactor: .6,
-                      alignment: Alignment.center,
-                      child: playIconButton(
-                        cubit: cubit,
-                        context: context,
-                        surahNumber: cubit.surahNumber,
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsetsDirectional.fromSTEB(2.w, .2.h, 0.3.w, 1.w),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/features/quran/images/alafasy.jpg',
+                        width: 17.w,
+                        height: 17.w,
+                        fit: BoxFit.cover,
                       ),
-                    ),
-                    Align(
-                      alignment: AlignmentDirectional.topEnd,
-                      widthFactor: 1,
-                      child: IconButton(
+                      SizedBox(width: 3.w),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            defaultText(
+                              textColor:
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurface,
+                              text: "سورة  ${cubit.surahName}",
+                              fontsize: 17,
+                              txtDirection: TextDirection.rtl,
+                              fontWeight: FontWeight.bold,
+                              linesMax: 1,
+                              textOverflow: TextOverflow.ellipsis,
+                            ),
+                            defaultText(
+                              text: "الشيخ مشاري العفاسي",
+                              textColor:
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontsize: 13,
+                              textOverflow: TextOverflow.ellipsis,
+                              linesMax: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Align(
+                        widthFactor: .6,
+                        alignment: Alignment.center,
+                        child: playIconButton(
+                          cubit: cubit,
+                          context: context,
+                          surahNumber: cubit.surahNumber,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'إيقاف التلاوة',
                         icon: CircleAvatar(
                           radius: 13,
                           backgroundColor:
@@ -256,18 +275,16 @@ Widget myPanel({
                             size: 20,
                           ),
                         ),
-                        onPressed: () {
-                          cubit.changeQuranSoundActive();
-                        },
+                        onPressed: cubit.changeQuranSoundActive,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             )
             : Container(),
-    panelMinSize: 10.h,
-    panelMaxSize: 10.h,
+    panelMaxSize: panelHeight,
+    panelMinSize: panelHeight,
     body: ColoredBox(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: screen,
@@ -289,6 +306,10 @@ Widget playIconButton({
         backgroundColor ?? Theme.of(context).colorScheme.primaryContainer,
     onPressed: () async {
       if (!cubit.isDownloading) {
+        if (cubit.isAudioLoading) {
+          await cubit.togglePlay();
+          return;
+        }
         if (cubit.isCached) {
           try {
             await cubit.togglePlay();
@@ -330,10 +351,23 @@ Widget playIconButton({
         }
       }
     },
-    child: Icon(
-      cubit.soundIcon,
-      color:
-          foregroundColor ?? Theme.of(context).colorScheme.onPrimaryContainer,
-    ),
+    child:
+        cubit.isDownloading || cubit.isAudioLoading
+            ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color:
+                    foregroundColor ??
+                    Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            )
+            : Icon(
+              cubit.soundIcon,
+              color:
+                  foregroundColor ??
+                  Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
   ),
 );

@@ -5,6 +5,7 @@ import '../../domain/repositories/quran_bookmark_repository.dart';
 class QuranBookmarkRepositoryImpl implements QuranBookmarkRepository {
   @override
   Future<QuranBookmark?> read() async {
+    await CacheHelper.ensureInitialized();
     final name = CacheHelper.getData(key: 'surahName') as String?;
     final surah = CacheHelper.getData(key: 'surahNumber') as int?;
     final page = CacheHelper.getData(key: 'pageNumber') as int?;

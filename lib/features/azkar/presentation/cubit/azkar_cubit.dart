@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/data_sources/local_azkar_data_source.dart';
 import '../../domain/entities/azkar_entry.dart';
@@ -10,21 +11,32 @@ import 'package:flutter/services.dart';
 import 'azkar_state.dart';
 import '../../../../core/assets/app_assets.dart';
 
-class AzkarCubit extends Cubit<AzkarState> {
+class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
   AzkarCubit({GetAzkar? getAzkar, LocalAzkarDataSource? dataSource})
     : _getAzkar = getAzkar,
       _dataSource = dataSource,
-      super(const AzkarState());
+      super(const AzkarState()) {
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleDayRollover();
+  }
 
   final GetAzkar? _getAzkar;
   final LocalAzkarDataSource? _dataSource;
 
   List<int> azkarTimes = [];
   final Map<String, int> _progress = {};
+  final Set<String> _favoriteEntryIds = {};
   Map<int, List<AzkarEntry>> _entriesByCategory = const {};
   LocalAzkarDataSource? _content;
   LocalAzkarRepository? _repository;
   Future<void>? _loadFuture;
+  Future<void>? _dateSync;
+  Timer? _dayRolloverTimer;
+  String? _activeLocalDate;
+  static const _progressDateKey = 'azkar_progress_local_date';
+  static const _progressKeyPrefix = 'azkar_progress_';
+  static const _favoriteEntryIdsKey = 'azkar_favorite_entry_ids';
+  static const MethodChannel _shareChannel = MethodChannel('com.muslim/quran_share');
   bool isOnline = false;
   void setConnectivity(bool connected) => isOnline = connected;
 
@@ -38,6 +50,7 @@ class AzkarCubit extends Cubit<AzkarState> {
     emit(
       AzkarState(
         counters: List.unmodifiable(azkarTimes),
+        favoriteEntryIds: Set.unmodifiable(_favoriteEntryIds),
         revision: state.revision + 1,
         isLoading: true,
       ),
@@ -60,14 +73,19 @@ class AzkarCubit extends Cubit<AzkarState> {
       // Initialize Tasbeeh counters as part of loading so the page never builds
       // against loaded content with an uninitialized counter list.
       final prefs = await SharedPreferences.getInstance();
+      await _ensureCurrentLocalDate(prefs: prefs);
       for (final entry in _content!.allEntries) {
         _progress[entry.id] = prefs.getInt(_progressKey(entry.id)) ?? 0;
       }
+      _favoriteEntryIds
+        ..clear()
+        ..addAll(prefs.getStringList(_favoriteEntryIdsKey) ?? const []);
       azkarTimes = entriesFor(5).map(progressFor).toList(growable: false);
       emit(
         AzkarState(
           counters: List.unmodifiable(azkarTimes),
           entriesByCategory: _entriesByCategory,
+          favoriteEntryIds: Set.unmodifiable(_favoriteEntryIds),
           revision: state.revision + 1,
         ),
       );
@@ -76,6 +94,7 @@ class AzkarCubit extends Cubit<AzkarState> {
         AzkarState(
           counters: List.unmodifiable(azkarTimes),
           entriesByCategory: _entriesByCategory,
+          favoriteEntryIds: Set.unmodifiable(_favoriteEntryIds),
           revision: state.revision + 1,
           error: 'تعذر تحميل الأذكار',
         ),
@@ -138,9 +157,39 @@ class AzkarCubit extends Cubit<AzkarState> {
         .toList(growable: false);
   }
 
-  int progressFor(AzkarEntry entry) => _progress[entry.id] ?? 0;
+  int progressFor(AzkarEntry entry) {
+    if (_activeLocalDate != _localDateKey()) {
+      unawaited(_ensureCurrentLocalDate().catchError((Object _) {}));
+      return 0;
+    }
+    return _progress[entry.id] ?? 0;
+  }
+
+  bool isFavorite(AzkarEntry entry) => _favoriteEntryIds.contains(entry.id);
+
+  Future<void> toggleFavorite(AzkarEntry entry) async {
+    if (isClosed) return;
+    if (!_favoriteEntryIds.add(entry.id)) _favoriteEntryIds.remove(entry.id);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setStringList(
+      _favoriteEntryIdsKey,
+      _favoriteEntryIds.toList(growable: false),
+    );
+    if (!isClosed) _emitProgress();
+  }
+
+  Future<void> shareEntry(AzkarEntry entry) => _shareChannel.invokeMethod<void>(
+        'shareText',
+        {
+          'text': [entry.content, if (entry.reference.isNotEmpty) entry.reference]
+              .join('\n\n'),
+          'title': entry.subCategory.isEmpty ? 'مشاركة ذكر' : entry.subCategory,
+        },
+      );
 
   Future<void> incrementEntry(AzkarEntry entry) async {
+    if (isClosed) return;
+    await _ensureCurrentLocalDate();
     if (isClosed) return;
     _progress[entry.id] = progressFor(entry) + 1;
     final tasbeehIndex = entry.category == 'تسابيح'
@@ -156,6 +205,8 @@ class AzkarCubit extends Cubit<AzkarState> {
 
   Future<void> resetEntry(AzkarEntry entry) async {
     if (isClosed) return;
+    await _ensureCurrentLocalDate();
+    if (isClosed) return;
     _progress[entry.id] = 0;
     final tasbeehIndex = entry.category == 'تسابيح'
         ? entriesFor(5).indexWhere((item) => item.id == entry.id)
@@ -168,12 +219,86 @@ class AzkarCubit extends Cubit<AzkarState> {
     await prefs.remove(_progressKey(entry.id));
   }
 
-  String _progressKey(String id) => 'azkar_progress_$id';
+  String _progressKey(String id) => '$_progressKeyPrefix$id';
+
+  String _localDateKey([DateTime? date]) {
+    final localDate = date ?? DateTime.now();
+    final month = localDate.month.toString().padLeft(2, '0');
+    final day = localDate.day.toString().padLeft(2, '0');
+    return '${localDate.year}-$month-$day';
+  }
+
+  Future<void> _ensureCurrentLocalDate({SharedPreferences? prefs}) {
+    final today = _localDateKey();
+    if (_activeLocalDate == today) return Future.value();
+    final pendingSync = _dateSync;
+    if (pendingSync != null) return pendingSync;
+
+    final sync = _synchronizeLocalDate(today, prefs: prefs);
+    _dateSync = sync;
+    return sync.whenComplete(() => _dateSync = null);
+  }
+
+  Future<void> _synchronizeLocalDate(
+    String today, {
+    SharedPreferences? prefs,
+  }) async {
+    final preferences = prefs ?? await SharedPreferences.getInstance();
+    final savedDate = preferences.getString(_progressDateKey);
+
+    if (savedDate != null && savedDate != today) {
+      final oldProgressKeys = preferences
+          .getKeys()
+          .where(
+            (key) =>
+                key.startsWith(_progressKeyPrefix) &&
+                key != _progressDateKey,
+          )
+          .toList(growable: false);
+      for (final key in oldProgressKeys) {
+        await preferences.remove(key);
+      }
+      _progress.clear();
+      if (_content != null) {
+        azkarTimes = List.filled(entriesFor(5).length, 0);
+        _emitProgress();
+      }
+    }
+
+    if (savedDate != today) {
+      await preferences.setString(_progressDateKey, today);
+    }
+    _activeLocalDate = today;
+  }
+
+  void _scheduleDayRollover() {
+    _dayRolloverTimer?.cancel();
+    final now = DateTime.now();
+    final nextLocalMidnight = DateTime(now.year, now.month, now.day + 1);
+    _dayRolloverTimer = Timer(
+      nextLocalMidnight.difference(now),
+      () {
+        unawaited(
+          _ensureCurrentLocalDate()
+              .catchError((Object _) {})
+              .whenComplete(_scheduleDayRollover),
+        );
+      },
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    _scheduleDayRollover();
+    unawaited(_ensureCurrentLocalDate().catchError((Object _) {}));
+  }
 
   void _emitProgress() => emit(
         AzkarState(
           counters: List.unmodifiable(azkarTimes),
           entriesByCategory: _entriesByCategory,
+          favoriteEntryIds: Set.unmodifiable(_favoriteEntryIds),
           revision: state.revision + 1,
         ),
       );
@@ -186,6 +311,7 @@ class AzkarCubit extends Cubit<AzkarState> {
       AzkarState(
         counters: List.unmodifiable(azkarTimes),
         entriesByCategory: _entriesByCategory,
+        favoriteEntryIds: Set.unmodifiable(_favoriteEntryIds),
         revision: state.revision + 1,
       ),
     );
@@ -199,5 +325,12 @@ class AzkarCubit extends Cubit<AzkarState> {
   void clearTimes(int index) {
     if (isClosed || index < 0 || index >= azkarTimes.length) return;
     unawaited(resetEntry(entriesFor(5)[index]));
+  }
+
+  @override
+  Future<void> close() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dayRolloverTimer?.cancel();
+    return super.close();
   }
 }

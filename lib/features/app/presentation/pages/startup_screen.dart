@@ -13,11 +13,13 @@ import 'package:untitled8/features/azkar/presentation/pages/azkar_hadeeth_screen
 import 'package:untitled8/features/prayer_times/presentation/pages/prayer_times_screen.dart';
 import 'package:untitled8/features/prayer_times/presentation/pages/elazan_screen.dart';
 import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_experience_card.dart';
+import 'package:untitled8/features/qibla/presentation/pages/qibla_compass_screen.dart';
 import 'package:untitled8/features/quran/presentation/pages/home_screen.dart';
 import 'package:untitled8/features/app/presentation/widgets/startup_home_widgets.dart';
 import 'package:untitled8/features/app/presentation/pages/daily_reminder_settings_screen.dart';
 import 'package:untitled8/core/assets/app_assets.dart';
 import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:untitled8/features/stories/presentation/pages/story_collection_screen.dart';
 
 class StartUpScreen extends StatefulWidget {
   const StartUpScreen({super.key});
@@ -29,6 +31,9 @@ class StartUpScreen extends StatefulWidget {
 class _StartUpScreenState extends State<StartUpScreen> {
   static const _notificationDecisionKey = 'first_launch_notifications_decided';
   static const _locationDecisionKey = 'first_launch_location_decided';
+  // Keep category indices tied to their existing routes/data while putting
+  // the most frequently used Azkar shortcuts first in the carousel.
+  static const _azkarDisplayOrder = [0, 1, 5, 2, 3, 4, 6, 7, 8, 9, 10];
 
   @override
   void initState() {
@@ -203,7 +208,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 14),
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 18),
               sliver: SliverToBoxAdapter(
                 child: PrayerExperienceCard(
                   onTap: _openPrayerTimes,
@@ -212,7 +217,16 @@ class _StartUpScreenState extends State<StartUpScreen> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 18),
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 8),
+              sliver: SliverToBoxAdapter(
+                child: _HomeSectionHeader(
+                  title: 'التذكيرات',
+                  subtitle: 'حافظ على صلاتك وأذكارك يوميًا.',
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
               sliver: SliverToBoxAdapter(
                 child: DailyReminderCard(
                   onTap: () => navigateTo(
@@ -227,22 +241,11 @@ class _StartUpScreenState extends State<StartUpScreen> {
               sliver: const SliverToBoxAdapter(child: AdhanSettingsCard()),
             ),
             SliverPadding(
-              padding: const EdgeInsetsDirectional.symmetric(horizontal: 20),
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 0),
               sliver: SliverToBoxAdapter(
-                child: Row(
-                  children: [
-                    Text(
-                      'أذكارك وأدعيتك اليومية',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'اختر ما يطمئن قلبك',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+                child: _HomeSectionHeader(
+                  title: 'أذكارك وأدعيتك اليومية',
+                  subtitle: 'اختر ما يطمئن قلبك',
                 ),
               ),
             ),
@@ -252,22 +255,67 @@ class _StartUpScreenState extends State<StartUpScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 14, 20, 12),
                   scrollDirection: Axis.horizontal,
-                  itemCount: AppColors.azkarCategories.length,
+                  itemCount: _azkarDisplayOrder.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder:
-                      (context, index) => WirdCard(
-                        item: AppColors.azkarCategories[index],
-                        onTap:
-                            () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                settings: RouteSettings(
-                                  name: '/azkar-category-$index',
-                                ),
-                                builder: (_) =>
-                                    AzkarAndHadeethScreen(index: index),
-                              ),
-                            ),
+                  itemBuilder: (context, displayIndex) {
+                    final index = _azkarDisplayOrder[displayIndex];
+                    return WirdCard(
+                      item: AppColors.azkarCategories[index],
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: RouteSettings(
+                            name: '/azkar-category-$index',
+                          ),
+                          builder: (_) => AzkarAndHadeethScreen(index: index),
+                        ),
                       ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 6),
+              sliver: SliverToBoxAdapter(
+                child: const _HomeSectionHeader(
+                  title: 'قصص وهدي',
+                  subtitle: 'رحلة قراءة في قصص الأنبياء والسيرة',
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 158,
+                child: ListView(
+                  padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 12),
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _StoryHomeCard(
+                      title: 'قصص الأنبياء',
+                      subtitle: 'عبر ودروس من القرآن',
+                      image: AppAssets.prophetsCardBackground,
+                      icon: Icons.auto_stories_rounded,
+                      onTap: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(name: '/stories/prophets'),
+                          builder: (_) => const StoryCollectionScreen(isSeerah: false),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    _StoryHomeCard(
+                      title: 'السيرة النبوية',
+                      subtitle: 'مراحل من حياة النبي ﷺ',
+                      image: AppAssets.seerahCardBackground,
+                      icon: Icons.mosque_rounded,
+                      onTap: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(name: '/stories/seerah'),
+                          builder: (_) => const StoryCollectionScreen(isSeerah: true),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -277,11 +325,9 @@ class _StartUpScreenState extends State<StartUpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'عباداتك اليومية',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    _HomeSectionHeader(
+                      title: 'زادك الإيماني',
+                      subtitle: 'تعرّف إلى أسماء الله واستقبل قبلتك',
                     ),
                     const SizedBox(height: 12),
                     GridView.count(
@@ -293,16 +339,21 @@ class _StartUpScreenState extends State<StartUpScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
                         HomeFeatureTile(
-                          icon: Icons.schedule_rounded,
-                          title: 'مواقيت الصلاة',
-                          onTap: _openPrayerTimes,
-                        ),
-                        HomeFeatureTile(
                           icon: Icons.auto_awesome_rounded,
                           title: 'أسماء الله الحسنى',
                           onTap:
                               () =>
                                   navigateTo(context, const AsmaaAllahScreen()),
+                        ),
+                        HomeFeatureTile(
+                          icon: Icons.explore_rounded,
+                          title: 'بوصلة القبلة',
+                          onTap: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: '/qibla'),
+                              builder: (_) => const QiblaCompassScreen(),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -317,3 +368,106 @@ class _StartUpScreenState extends State<StartUpScreen> {
   }
 }
 
+class _HomeSectionHeader extends StatelessWidget {
+  const _HomeSectionHeader({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          textDirection: TextDirection.rtl,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          textDirection: TextDirection.rtl,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StoryHomeCard extends StatelessWidget {
+  const _StoryHomeCard({
+    required this.title,
+    required this.subtitle,
+    required this.image,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final String image;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 224,
+    child: Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(image, fit: BoxFit.cover),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: .12),
+                    Colors.black.withValues(alpha: .76),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(icon, color: Colors.white, size: 24),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    textDirection: TextDirection.rtl,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    textDirection: TextDirection.rtl,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: .9),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

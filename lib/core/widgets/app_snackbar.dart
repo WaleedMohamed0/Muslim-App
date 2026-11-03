@@ -9,16 +9,25 @@ class AppSnackBar {
   static void show({
     required String message,
     Color? backgroundColor,
+    bool success = false,
     Duration duration = const Duration(seconds: 4),
   }) {
     final messenger = messengerKey.currentState;
     if (messenger == null || !messenger.mounted) return;
 
-    final colorScheme = Theme.of(messenger.context).colorScheme;
-    final background = backgroundColor ?? colorScheme.inverseSurface;
-    final foreground = backgroundColor == null
-        ? colorScheme.onInverseSurface
-        : Colors.white;
+    final theme = Theme.of(messenger.context);
+    final colorScheme = theme.colorScheme;
+    final background =
+        backgroundColor ??
+        (success
+            ? theme.brightness == Brightness.dark
+                ? Colors.green
+                : colorScheme.primary
+            : colorScheme.inverseSurface);
+    final foreground =
+        success || backgroundColor != null
+            ? Colors.white
+            : colorScheme.onInverseSurface;
 
     // Treat messages as replacements so quick events never queue duplicate notices.
     messenger.removeCurrentSnackBar();
