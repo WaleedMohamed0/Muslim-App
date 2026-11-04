@@ -6,8 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled8/core/theme/app_colors.dart';
 import 'package:untitled8/core/widgets/app_widgets.dart';
-import 'package:untitled8/features/app/presentation/cubit/app_cubit.dart';
-import 'package:untitled8/features/app/presentation/cubit/app_state.dart';
 import 'package:untitled8/features/asmaa_allah/presentation/pages/asmaa_allah_screen.dart';
 import 'package:untitled8/features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
 import 'package:untitled8/features/prayer_times/presentation/pages/prayer_times_screen.dart';
@@ -15,8 +13,12 @@ import 'package:untitled8/features/prayer_times/presentation/pages/elazan_screen
 import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_experience_card.dart';
 import 'package:untitled8/features/qibla/presentation/pages/qibla_compass_screen.dart';
 import 'package:untitled8/features/quran/presentation/pages/home_screen.dart';
+import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
+import 'package:untitled8/features/quran/presentation/widgets/quran_audio_mini_player.dart';
 import 'package:untitled8/features/app/presentation/widgets/startup_home_widgets.dart';
 import 'package:untitled8/features/app/presentation/pages/daily_reminder_settings_screen.dart';
+import 'package:untitled8/features/app/presentation/pages/app_settings_screen.dart';
 import 'package:untitled8/core/assets/app_assets.dart';
 import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
 import 'package:untitled8/features/stories/presentation/pages/story_collection_screen.dart';
@@ -34,6 +36,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
   // Keep category indices tied to their existing routes/data while putting
   // the most frequently used Azkar shortcuts first in the carousel.
   static const _azkarDisplayOrder = [0, 1, 5, 2, 3, 4, 6, 7, 8, 9, 10];
+  final ValueNotifier<double> _miniPlayerHeight = ValueNotifier(0);
 
   @override
   void initState() {
@@ -41,6 +44,12 @@ class _StartUpScreenState extends State<StartUpScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_requestFirstLaunchPermissions());
     });
+  }
+
+  @override
+  void dispose() {
+    _miniPlayerHeight.dispose();
+    super.dispose();
   }
 
   Future<void> _requestFirstLaunchPermissions() async {
@@ -84,23 +93,27 @@ class _StartUpScreenState extends State<StartUpScreen> {
   Future<bool> _explainPermission(String title, String description) async =>
       await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(title, textDirection: TextDirection.rtl),
-          content: Text(
-            description,
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.start,
+        builder: (dialogContext) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            actionsAlignment: MainAxisAlignment.spaceBetween,
+            title: Text(title, textDirection: TextDirection.rtl),
+            content: Text(
+              description,
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.start,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('ليس الآن'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('متابعة'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('ليس الآن'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('متابعة'),
-            ),
-          ],
         ),
       ) ??
       false;
@@ -145,11 +158,22 @@ class _StartUpScreenState extends State<StartUpScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
+  Widget build(BuildContext context) => BlocBuilder<QuranCubit, QuranState>(
+    builder: (context, _) {
+      final theme = Theme.of(context);
+      final quranCubit = context.read<QuranCubit>();
+      return Scaffold(
+        body: myPanel(
+          context: context,
+          cubit: quranCubit,
+          onMiniPlayerHeightChanged: (height) {
+            if (!mounted || (_miniPlayerHeight.value - height).abs() < .5) {
+              return;
+            }
+            _miniPlayerHeight.value = height;
+          },
+          screen: SafeArea(
+            child: CustomScrollView(
           slivers: [
             SliverPadding(
               padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 8),
@@ -163,6 +187,11 @@ class _StartUpScreenState extends State<StartUpScreen> {
                         AppAssets.quranLogo,
                         width: 28,
                         height: 28,
+                        color:
+                            theme.brightness == Brightness.light
+                                ? theme.colorScheme.primary
+                                : null,
+                        colorBlendMode: BlendMode.srcIn,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -175,20 +204,15 @@ class _StartUpScreenState extends State<StartUpScreen> {
                       ),
                     ),
                     const Spacer(),
-                    BlocBuilder<AppCubit, AppState>(
-                      builder:
-                          (context, state) => IconButton.filledTonal(
-                            tooltip:
-                                state.themeMode == ThemeMode.dark
-                                    ? 'الوضع النهاري'
-                                    : 'الوضع الليلي',
-                            onPressed: context.read<AppCubit>().toggleThemeMode,
-                            icon: Icon(
-                              state.themeMode == ThemeMode.dark
-                                  ? Icons.light_mode_rounded
-                                  : Icons.dark_mode_rounded,
-                            ),
-                          ),
+                    IconButton.filledTonal(
+                      tooltip: 'الإعدادات',
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(name: '/settings'),
+                          builder: (_) => const AppSettingsScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.settings_rounded),
                     ),
                   ],
                 ),
@@ -219,7 +243,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
             SliverPadding(
               padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 8),
               sliver: SliverToBoxAdapter(
-                child: _HomeSectionHeader(
+                child: HomeSectionHeader(
                   title: 'التذكيرات',
                   subtitle: 'حافظ على صلاتك وأذكارك يوميًا.',
                 ),
@@ -243,7 +267,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
             SliverPadding(
               padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 0),
               sliver: SliverToBoxAdapter(
-                child: _HomeSectionHeader(
+                child: HomeSectionHeader(
                   title: 'أذكارك وأدعيتك اليومية',
                   subtitle: 'اختر ما يطمئن قلبك',
                 ),
@@ -277,7 +301,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
             SliverPadding(
               padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 6),
               sliver: SliverToBoxAdapter(
-                child: const _HomeSectionHeader(
+                child: const HomeSectionHeader(
                   title: 'قصص وهدي',
                   subtitle: 'رحلة قراءة في قصص الأنبياء والسيرة',
                 ),
@@ -290,7 +314,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 12),
                   scrollDirection: Axis.horizontal,
                   children: [
-                    _StoryHomeCard(
+                    StoryHomeCard(
                       title: 'قصص الأنبياء',
                       subtitle: 'عبر ودروس من القرآن',
                       image: AppAssets.prophetsCardBackground,
@@ -303,7 +327,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    _StoryHomeCard(
+                    StoryHomeCard(
                       title: 'السيرة النبوية',
                       subtitle: 'مراحل من حياة النبي ﷺ',
                       image: AppAssets.seerahCardBackground,
@@ -325,7 +349,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _HomeSectionHeader(
+                    HomeSectionHeader(
                       title: 'زادك الإيماني',
                       subtitle: 'تعرّف إلى أسماء الله واستقبل قبلتك',
                     ),
@@ -361,113 +385,24 @@ class _StartUpScreenState extends State<StartUpScreen> {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeSectionHeader extends StatelessWidget {
-  const _HomeSectionHeader({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          textDirection: TextDirection.rtl,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          textDirection: TextDirection.rtl,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StoryHomeCard extends StatelessWidget {
-  const _StoryHomeCard({
-    required this.title,
-    required this.subtitle,
-    required this.image,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final String image;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 224,
-    child: Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(image, fit: BoxFit.cover),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: .12),
-                    Colors.black.withValues(alpha: .76),
-                  ],
+            SliverToBoxAdapter(
+              child: ValueListenableBuilder<double>(
+                valueListenable: _miniPlayerHeight,
+                builder: (context, playerHeight, _) => SizedBox(
+                  height: quranMiniPlayerBottomInset(
+                    context,
+                    visible: quranCubit.quranSoundActive,
+                    measuredHeight: playerHeight,
+                  ),
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(icon, color: Colors.white, size: 24),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    textDirection: TextDirection.rtl,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    textDirection: TextDirection.rtl,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: .9),
-                        ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
+        ),
       ),
-    ),
+    );
+    },
   );
 }
+

@@ -10,16 +10,17 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
 import org.json.JSONObject
 
-class MainActivity: FlutterActivity() {
+class MainActivity: AudioServiceActivity() {
     private val shareChannel = "com.muslim/quran_share"
     private val adhanChannel = "com.muslim/prayer_adhan"
     private val notificationNavigationChannel = "com.muslim/notification_navigation"
     private val qiblaCompassChannel = "com.muslim/qibla_compass"
+    private val quranAudioWidgetChannel = "com.muslim/quran_audio_widget"
     private var notificationNavigation: MethodChannel? = null
     private var pendingNotificationRoute: String? = null
     private var notificationPermissionResult: MethodChannel.Result? = null
@@ -39,6 +40,21 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, quranAudioWidgetChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "updateState" -> {
+                        val arguments = call.arguments as? Map<*, *>
+                        if (arguments == null) {
+                            result.error("INVALID_WIDGET_STATE", "Widget state is required", null)
+                        } else {
+                            QuranAudioWidgetProvider.update(this, arguments)
+                            result.success(null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, qiblaCompassChannel)
             .setMethodCallHandler { call, result ->
                 if (call.method != "magneticDeclination") {

@@ -224,6 +224,31 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                     subtitle: const Text('تشغيل الأذان عند حلول المواقيت المحددة'),
                     secondary: Icon(Icons.notifications_active_outlined,
                         color: colors.primary),
+                    thumbColor: WidgetStateProperty.resolveWith((states) {
+                      if (Theme.of(context).brightness == Brightness.dark) {
+                        return null;
+                      }
+                      return states.contains(WidgetState.selected)
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.surface;
+                    }),
+                    trackColor: WidgetStateProperty.resolveWith((states) {
+                      if (Theme.of(context).brightness == Brightness.dark) {
+                        return null;
+                      }
+                      return states.contains(WidgetState.selected)
+                          ? colors.primary
+                          : colors.onSurfaceVariant;
+                    }),
+                    trackOutlineColor:
+                        WidgetStateProperty.resolveWith((states) {
+                      if (Theme.of(context).brightness == Brightness.dark) {
+                        return null;
+                      }
+                      return states.contains(WidgetState.selected)
+                          ? colors.primary
+                          : colors.onSurfaceVariant;
+                    }),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -243,6 +268,34 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                           title: Text(prayer.value),
                           secondary: Icon(_prayerIcon(prayer.key),
                               color: colors.primary),
+                          thumbColor: WidgetStateProperty.resolveWith((states) {
+                            if (Theme.of(context).brightness ==
+                                Brightness.dark) {
+                              return null;
+                            }
+                            return states.contains(WidgetState.selected)
+                                ? Theme.of(context).colorScheme.onPrimary
+                                : Theme.of(context).colorScheme.surface;
+                          }),
+                          trackColor: WidgetStateProperty.resolveWith((states) {
+                            if (Theme.of(context).brightness ==
+                                Brightness.dark) {
+                              return null;
+                            }
+                            return states.contains(WidgetState.selected)
+                                ? colors.primary
+                                : colors.onSurfaceVariant;
+                          }),
+                          trackOutlineColor:
+                              WidgetStateProperty.resolveWith((states) {
+                            if (Theme.of(context).brightness ==
+                                Brightness.dark) {
+                              return null;
+                            }
+                            return states.contains(WidgetState.selected)
+                                ? colors.primary
+                                : colors.onSurfaceVariant;
+                          }),
                           onChanged: (value) {
                             final prayers = Map<String, bool>.from(_settings.prayers)
                               ..[prayer.key] = value;

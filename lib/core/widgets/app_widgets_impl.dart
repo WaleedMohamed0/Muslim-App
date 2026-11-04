@@ -1,12 +1,12 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/core/theme/app_theme.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:untitled8/features/quran/presentation/pages/surah_screen.dart';
-import 'package:we_slide/we_slide.dart';
-import 'package:untitled8/core/widgets/app_snackbar.dart';
+import 'package:untitled8/features/quran/presentation/widgets/quran_audio_mini_player.dart';
 
 void navigateTo(context, nextPage) =>
     Navigator.push(context, MaterialPageRoute(builder: (context) => nextPage));
@@ -94,20 +94,32 @@ AppBar defaultAppBar({
       context,
     ).appBarTheme.titleTextStyle?.copyWith(fontSize: fontSize),
   ),
-  leading:
-      Navigator.of(context).canPop()
-          ? IconButton(
-            tooltip: 'رجوع',
-            icon: const Directionality(
-              textDirection: TextDirection.ltr,
-              child: Icon(Icons.arrow_forward_rounded),
-            ),
-            onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-          )
-          : null,
+  leading: Navigator.of(context).canPop() || onBack != null
+      ? AppBarBackButton(onPressed: onBack)
+      : null,
   actions: actions,
   centerTitle: true,
 );
+
+/// Shared back control for app bars, with the app's established RTL arrow,
+/// hit target, inherited AppBar color, and normal Navigator behavior.
+class AppBarBackButton extends StatelessWidget {
+  const AppBarBackButton({super.key, this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'رجوع',
+      icon: const Directionality(
+        textDirection: TextDirection.ltr,
+        child: Icon(Icons.arrow_forward_rounded),
+      ),
+      onPressed: onPressed ?? () => Navigator.of(context).maybePop(),
+    );
+  }
+}
 
 /// Opens a modal sheet above system navigation and gesture insets.
 ///
@@ -122,16 +134,16 @@ Future<T?> showAppModalBottomSheet<T>({
   Color? backgroundColor,
   ShapeBorder? shape,
   Clip? clipBehavior,
-}) =>
-    showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: isScrollControlled,
-      useSafeArea: true,
-      showDragHandle: showDragHandle,
-      backgroundColor: backgroundColor,
-      shape: shape,
-      clipBehavior: clipBehavior,
-      builder: (sheetContext) => Padding(
+}) => showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: isScrollControlled,
+  useSafeArea: true,
+  showDragHandle: showDragHandle,
+  backgroundColor: backgroundColor,
+  shape: shape,
+  clipBehavior: clipBehavior,
+  builder:
+      (sheetContext) => Padding(
         // Use viewPadding because the app-level SafeArea removes `padding`
         // from descendants of the Navigator.
         padding: EdgeInsets.only(
@@ -139,7 +151,7 @@ Future<T?> showAppModalBottomSheet<T>({
         ),
         child: builder(sheetContext),
       ),
-    );
+);
 
 Future awesomeDialog(
   context,
@@ -193,109 +205,71 @@ Widget myPanel({
   required Widget screen,
   required BuildContext context,
   required QuranCubit cubit,
+  required ValueChanged<double> onMiniPlayerHeightChanged,
 }) {
-  final playerContentHeight = 10.h > 17.w + 1.2.h ? 10.h : 17.w + 1.2.h;
-  final panelHeight =
-      playerContentHeight + MediaQuery.paddingOf(context).bottom;
-  return WeSlide(
-    panel:
-        cubit.quranSoundActive
-            ? SafeArea(
-              top: false,
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    PageTransition(
-                      child: SurahScreen(surahNumber: cubit.surahNumber),
-                      type: PageTransitionType.bottomToTop,
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: EdgeInsetsDirectional.fromSTEB(2.w, .2.h, 0.3.w, 1.w),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/features/quran/images/alafasy.jpg',
-                        width: 17.w,
-                        height: 17.w,
-                        fit: BoxFit.cover,
-                      ),
-                      SizedBox(width: 3.w),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            defaultText(
-                              textColor:
-                                  Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white
-                                      : Theme.of(context).colorScheme.onSurface,
-                              text: "سورة  ${cubit.surahName}",
-                              fontsize: 17,
-                              txtDirection: TextDirection.rtl,
-                              fontWeight: FontWeight.bold,
-                              linesMax: 1,
-                              textOverflow: TextOverflow.ellipsis,
-                            ),
-                            defaultText(
-                              text: "الشيخ مشاري العفاسي",
-                              textColor:
-                                  Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white
-                                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontsize: 13,
-                              textOverflow: TextOverflow.ellipsis,
-                              linesMax: 1,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        widthFactor: .6,
-                        alignment: Alignment.center,
-                        child: playIconButton(
-                          cubit: cubit,
-                          context: context,
+  final playerVisible = cubit.quranSoundActive;
+  return Stack(
+    fit: StackFit.expand,
+    children: [
+      ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: screen,
+      ),
+      PositionedDirectional(
+        start: 0,
+        end: 0,
+        bottom: 0,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          reverseDuration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, .12),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          ),
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          ),
+          child: playerVisible
+              ? QuranAudioMiniPlayer(
+                  key: const ValueKey('quran-mini-player-visible'),
+                  onHeightChanged: onMiniPlayerHeightChanged,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageTransition(
+                        child: SurahScreen(
                           surahNumber: cubit.surahNumber,
+                          initialAyah: cubit.currentAyahNumber,
                         ),
+                        type: PageTransitionType.bottomToTop,
                       ),
-                      IconButton(
-                        tooltip: 'إيقاف التلاوة',
-                        icon: CircleAvatar(
-                          radius: 13,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.surface,
-                          child: Icon(
-                            Icons.close,
-                            color: Theme.of(context).colorScheme.onSurface,
-                            size: 20,
-                          ),
-                        ),
-                        onPressed: cubit.changeQuranSoundActive,
-                      ),
-                    ],
-                  ),
+                    );
+                  },
+                )
+              : const SizedBox.shrink(
+                  key: ValueKey('quran-mini-player-hidden'),
                 ),
-              ),
-            )
-            : Container(),
-    panelMaxSize: panelHeight,
-    panelMinSize: panelHeight,
-    body: ColoredBox(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: screen,
-    ),
+        ),
+      ),
+    ],
   );
 }
 
 Widget playIconButton({
   required QuranCubit cubit,
   context,
-  surahNumber,
   Color? backgroundColor,
   Color? foregroundColor,
 }) => Padding(
@@ -304,55 +278,9 @@ Widget playIconButton({
     mini: true,
     backgroundColor:
         backgroundColor ?? Theme.of(context).colorScheme.primaryContainer,
-    onPressed: () async {
-      if (!cubit.isDownloading) {
-        if (cubit.isAudioLoading) {
-          await cubit.togglePlay();
-          return;
-        }
-        if (cubit.isCached) {
-          try {
-            await cubit.togglePlay();
-          } catch (_) {
-            AppSnackBar.show(message: 'تعذر تشغيل التلاوة المحفوظة');
-          }
-        } else {
-          if (!cubit.isPlaying) {
-            AwesomeDialog(
-              context: context,
-              dialogType: DialogType.noHeader,
-              animType: AnimType.scale,
-              title: 'هل تود تحميل السورة ؟',
-              desc: "عند تحميل السورة سيمكنك لاحقا الاستماع لها بدون انترنت",
-              btnOkOnPress: () {
-                cubit.downloadSurahSound();
-              },
-              btnOkText: 'نعم',
-              btnOkColor: Theme.of(context).colorScheme.primary,
-              btnCancelOnPress: () async {
-                try {
-                  await cubit.playCurrentSurahOnline(surahNumber);
-                } catch (_) {
-                  AppSnackBar.show(
-                    message: 'تعذر تشغيل التلاوة، تحقق من الاتصال وحاول مجددًا',
-                  );
-                }
-              },
-              btnCancelText: 'لا',
-              btnCancelColor: Theme.of(context).colorScheme.error,
-            ).show();
-          } else {
-            try {
-              await cubit.togglePlay();
-            } catch (_) {
-              AppSnackBar.show(message: 'تعذر إيقاف التلاوة');
-            }
-          }
-        }
-      }
-    },
+    onPressed: cubit.isAudioLoading ? null : cubit.togglePlay,
     child:
-        cubit.isDownloading || cubit.isAudioLoading
+        cubit.isAudioLoading
             ? SizedBox(
               width: 20,
               height: 20,

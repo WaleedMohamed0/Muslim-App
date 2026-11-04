@@ -6,6 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:untitled8/features/quran/data/data_sources/quran_audio_handler.dart';
+import 'package:audio_service/audio_service.dart';
+import 'package:quran/quran.dart' as quran;
 import 'package:untitled8/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 import 'package:untitled8/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:untitled8/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
@@ -24,6 +27,7 @@ import 'features/app/presentation/pages/startup_screen.dart';
 import 'features/prayer_times/presentation/pages/prayer_adhan_settings_screen.dart';
 import 'features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
 import 'features/quran/presentation/pages/home_screen.dart';
+import 'features/quran/presentation/pages/surah_screen.dart';
 import 'features/prayer_times/presentation/pages/prayer_times_screen.dart';
 import 'features/prayer_times/presentation/pages/elazan_screen.dart';
 import 'features/qibla/presentation/pages/qibla_compass_screen.dart';
@@ -31,6 +35,9 @@ import 'features/qibla/presentation/pages/qibla_compass_screen.dart';
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 const MethodChannel _notificationNavigationChannel = MethodChannel(
   'com.muslim/notification_navigation',
+);
+const MethodChannel _quranAudioWidgetChannel = MethodChannel(
+  'com.muslim/quran_audio_widget',
 );
 final _appRouteObserver = _AppRouteObserver();
 
@@ -79,6 +86,7 @@ class _AppRouteObserver extends NavigatorObserver {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final quranAudioHandler = await initializeQuranAudioService();
   DioHelper.init();
   DioHelper.initHadeeth();
   final initialNotificationRoute = await _readInitialNotificationRoute();
@@ -86,7 +94,11 @@ Future<void> main() async {
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => QuranCubit()),
+        BlocProvider(
+          create: (_) => QuranCubit(
+            audioHandler: quranAudioHandler as QuranAudioHandler,
+          ),
+        ),
         BlocProvider(create: (_) => PrayerTimesCubit()),
         BlocProvider(create: (_) => AzkarCubit()..loadContent()),
         BlocProvider(create: (_) => HadeethCubit()),
@@ -121,8 +133,37 @@ Future<String?> _readInitialNotificationRoute() async {
   }
 }
 
-({String routeName, Widget page})? _notificationDestination(String route) =>
-    switch (route) {
+({String routeName, Widget page})? _notificationDestination(String route) {
+  final widgetPlayMatch = RegExp(
+    r'^quran_widget_play:(\d+):(\d+)$',
+  ).firstMatch(route);
+  if (widgetPlayMatch != null) {
+    final surahNumber = int.parse(widgetPlayMatch.group(1)!).clamp(1, 114);
+    final ayahNumber = int.parse(widgetPlayMatch.group(2)!).clamp(
+      1,
+      quran.getVerseCount(surahNumber),
+    );
+    return (
+      routeName: '/quran-reader/$surahNumber',
+      page: _QuranWidgetPlaybackScreen(
+        surahNumber: surahNumber,
+        ayahNumber: ayahNumber,
+      ),
+    );
+  }
+  final widgetMatch = RegExp(r'^quran_reader:(\d+):(\d+)$').firstMatch(route);
+  if (widgetMatch != null) {
+    final surahNumber = int.parse(widgetMatch.group(1)!).clamp(1, 114);
+    final ayahNumber = int.parse(widgetMatch.group(2)!).clamp(
+      1,
+      quran.getVerseCount(surahNumber),
+    );
+    return (
+      routeName: '/quran-reader/$surahNumber',
+      page: SurahScreen(surahNumber: surahNumber, initialAyah: ayahNumber),
+    );
+  }
+  return switch (route) {
       'adhan_settings' => (
         routeName: '/adhan-settings',
         page: const PrayerAdhanSettingsScreen(),
@@ -157,8 +198,9 @@ Future<String?> _readInitialNotificationRoute() async {
         page: const AzkarAndHadeethScreen(index: 1),
       ),
       'daily_wird' => (routeName: '/quran-home', page: const HomeScreen()),
-      _ => null,
-    };
+    _ => null,
+  };
+}
 
 Widget? _pageForRouteName(String routeName) {
   if (routeName == '/') return const AppEntryScreen();
@@ -217,11 +259,33 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   DateTime _lastLocalDate = DateTime.now();
   String _lastTimeZone = DateTime.now().timeZoneName;
   Duration _lastUtcOffset = DateTime.now().timeZoneOffset;
+  StreamSubscription<bool>? _mediaNotificationClickSubscription;
+  StreamSubscription? _quranWidgetStateSubscription;
+  String? _lastQuranWidgetState;
+  Timer? _quranWidgetProgressTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final quranCubit = context.read<QuranCubit>();
+    _quranWidgetStateSubscription = quranCubit.stream.listen(
+      (_) => _syncQuranAudioWidget(quranCubit),
+    );
+    _quranWidgetProgressTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        if (quranCubit.quranSoundActive) _syncQuranAudioWidget(quranCubit);
+      },
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _syncQuranAudioWidget(quranCubit),
+    );
+    _mediaNotificationClickSubscription = AudioService.notificationClicked.listen(
+      (clicked) {
+        if (clicked) _openQuranFromMediaNotification();
+      },
+    );
     _notificationNavigationChannel.setMethodCallHandler((call) async {
       if (call.method == 'openNotificationRoute' && call.arguments is String) {
         _openNotificationRoute(call.arguments as String);
@@ -229,7 +293,98 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
+  void _syncQuranAudioWidget(QuranCubit cubit) {
+    final active =
+        cubit.quranSoundActive && cubit.surahNumber >= 1 && cubit.surahNumber <= 114;
+    final hasTrack = cubit.surahNumber >= 1 && cubit.surahNumber <= 114;
+    final stateKey = <Object>[
+      active,
+      active ? cubit.isPlaying : false,
+      active ? cubit.isAudioLoading : false,
+      hasTrack ? cubit.surahNumber : 0,
+      hasTrack ? cubit.currentAyahNumber : 0,
+      hasTrack ? cubit.surahName : '',
+      hasTrack ? cubit.displayReciter.nameArabic : '',
+      active ? cubit.audioPosition.inSeconds : 0,
+      active ? cubit.audioDuration?.inSeconds ?? 0 : 0,
+    ].join('|');
+    if (stateKey == _lastQuranWidgetState) return;
+    _lastQuranWidgetState = stateKey;
+    final state = <String, Object>{
+      'active': active,
+      'playing': active && cubit.isPlaying,
+      'loading': active && cubit.isAudioLoading,
+      'surahNumber': hasTrack ? cubit.surahNumber : 0,
+      'ayahNumber': hasTrack ? cubit.currentAyahNumber : 0,
+      'surah': hasTrack ? cubit.surahName : '',
+      'reciter': hasTrack ? cubit.displayReciter.nameArabic : '',
+      'reciterAvatarAsset': hasTrack
+          ? cubit.displayReciter.avatarAsset ?? ''
+          : '',
+      'positionMs': active ? cubit.audioPosition.inMilliseconds : 0,
+      'durationMs': active ? cubit.audioDuration?.inMilliseconds ?? 0 : 0,
+    };
+    unawaited(_writeQuranWidgetState(state, stateKey));
+  }
+
+  Future<void> _writeQuranWidgetState(
+    Map<String, Object> state,
+    String stateKey,
+  ) async {
+    try {
+      await _quranAudioWidgetChannel.invokeMethod<void>('updateState', state);
+    } on PlatformException {
+      if (_lastQuranWidgetState == stateKey) _lastQuranWidgetState = null;
+    } on MissingPluginException {
+      if (_lastQuranWidgetState == stateKey) _lastQuranWidgetState = null;
+    }
+  }
+
+  void _openQuranFromMediaNotification() {
+    if (!mounted) return;
+    final cubit = context.read<QuranCubit>();
+    final savedSurah = CacheHelper.getData(key: 'quran_last_played_surah');
+    final surahNumber = cubit.surahNumber > 0
+        ? cubit.surahNumber
+        : (savedSurah is int ? savedSurah : 1).clamp(1, 114);
+    final savedAyah = CacheHelper.getData(
+      key: 'quran_last_played_ayah_$surahNumber',
+    );
+    final ayahNumber = cubit.surahNumber == surahNumber
+        ? cubit.currentAyahNumber
+        : savedAyah is int
+            ? savedAyah
+            : 1;
+    _openQuranReaderFromWidget(surahNumber, ayahNumber);
+  }
+
   void _openNotificationRoute(String route) {
+    final widgetPlayMatch = RegExp(
+      r'^quran_widget_play:(\d+):(\d+)$',
+    ).firstMatch(route);
+    if (widgetPlayMatch != null) {
+      final surahNumber = int.tryParse(widgetPlayMatch.group(1) ?? '');
+      final ayahNumber = int.tryParse(widgetPlayMatch.group(2) ?? '');
+      if (surahNumber != null && ayahNumber != null) {
+        unawaited(
+          context.read<QuranCubit>().playFromAyahBookmark(
+            surahNumber,
+            ayahNumber,
+          ),
+        );
+        _openQuranReaderFromWidget(surahNumber, ayahNumber);
+      }
+      return;
+    }
+    final widgetMatch = RegExp(r'^quran_reader:(\d+):(\d+)$').firstMatch(route);
+    if (widgetMatch != null) {
+      final surahNumber = int.tryParse(widgetMatch.group(1) ?? '');
+      final ayahNumber = int.tryParse(widgetMatch.group(2) ?? '');
+      if (surahNumber != null && ayahNumber != null) {
+        _openQuranReaderFromWidget(surahNumber, ayahNumber);
+      }
+      return;
+    }
     final destination = _notificationDestination(route);
     if (destination == null) return;
     final navigator = appNavigatorKey.currentState;
@@ -289,14 +444,48 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
   }
 
+  void _openQuranReaderFromWidget(int requestedSurah, int requestedAyah) {
+    if (!mounted) return;
+    final navigator = appNavigatorKey.currentState;
+    if (navigator == null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _openQuranReaderFromWidget(requestedSurah, requestedAyah),
+      );
+      return;
+    }
+    final surahNumber = requestedSurah.clamp(1, 114);
+    final ayahNumber = requestedAyah.clamp(
+      1,
+      quran.getVerseCount(surahNumber),
+    );
+    final routeName = '/quran-reader/$surahNumber';
+    // Return to the existing app root, then open one reader at the latest
+    // audio position. This avoids stacking duplicate reader routes and does
+    // not touch the shared audio handler or its current position.
+    navigator.popUntil((route) => route.isFirst);
+    navigator.push<void>(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(name: routeName),
+        builder: (_) => SurahScreen(
+          surahNumber: surahNumber,
+          initialAyah: ayahNumber,
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _quranWidgetProgressTimer?.cancel();
+    _mediaNotificationClickSubscription?.cancel();
+    _quranWidgetStateSubscription?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    context.read<QuranCubit>().handleAppLifecycleState(state);
     if (state != AppLifecycleState.resumed) return;
     final now = DateTime.now();
     final dayChanged =
@@ -389,4 +578,48 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
     );
   }
+}
+
+/// Cold-start fallback for a widget Play tap when Android has recreated the
+/// media service without its prepared audio source. It uses the app's existing
+/// QuranCubit and its single shared player.
+class _QuranWidgetPlaybackScreen extends StatefulWidget {
+  const _QuranWidgetPlaybackScreen({
+    required this.surahNumber,
+    required this.ayahNumber,
+  });
+
+  final int surahNumber;
+  final int ayahNumber;
+
+  @override
+  State<_QuranWidgetPlaybackScreen> createState() =>
+      _QuranWidgetPlaybackScreenState();
+}
+
+class _QuranWidgetPlaybackScreenState
+    extends State<_QuranWidgetPlaybackScreen> {
+  bool _playRequested = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_playRequested) return;
+    _playRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        context.read<QuranCubit>().playFromAyahBookmark(
+          widget.surahNumber,
+          widget.ayahNumber,
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => SurahScreen(
+    surahNumber: widget.surahNumber,
+    initialAyah: widget.ayahNumber,
+  );
 }

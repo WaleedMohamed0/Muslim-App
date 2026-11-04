@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart';
 import 'package:untitled8/core/theme/app_theme.dart';
@@ -5,6 +6,7 @@ import 'package:untitled8/core/theme/app_theme.dart';
 import '../pages/surah_screen.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../cubit/quran_cubit.dart';
+import 'quran_audio_mini_player.dart';
 import 'surah_list_tile.dart';
 
 class SurahList extends StatelessWidget {
@@ -12,10 +14,12 @@ class SurahList extends StatelessWidget {
     super.key,
     required this.cubit,
     required this.online,
+    required this.miniPlayerHeight,
     this.searchQuery = '',
   });
   final QuranCubit cubit;
   final bool online;
+  final ValueListenable<double> miniPlayerHeight;
   final String searchQuery;
 
   String _normalize(String value) => value
@@ -52,33 +56,44 @@ class SurahList extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-    padding: const EdgeInsetsDirectional.fromSTEB(
-      AppSpacing.xl,
-      AppSpacing.xs,
-      AppSpacing.xl,
-      AppSpacing.md,
-    ),
-    itemCount: numbers.length,
-    itemBuilder: (context, index) {
-      final number = numbers[index];
-      final rawName = getSurahNameArabic(number);
-      return SurahListTile(
-        number: number,
-        name: rawName == 'اللهب' ? 'المسد' : rawName,
-        verses: getVerseCount(number),
-        place: getPlaceOfRevelation(number) == 'Makkah' ? 'مكية' : 'مدنية',
-        onTap: () async {
-          if (cubit.surahNumber != number) {
-            await cubit.selectSurah(number, rawName, online: online);
-          }
-          if (context.mounted) {
-            navigateTo(context, SurahScreen(surahNumber: number));
-          }
-        },
-      );
-    },
-    separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+    return ValueListenableBuilder<double>(
+      valueListenable: miniPlayerHeight,
+      builder: (context, playerHeight, _) {
+        final playerInset = quranMiniPlayerBottomInset(
+          context,
+          visible: cubit.quranSoundActive,
+          measuredHeight: playerHeight,
+        );
+        return ListView.separated(
+          padding: EdgeInsetsDirectional.fromSTEB(
+            AppSpacing.xl,
+            AppSpacing.xs,
+            AppSpacing.xl,
+            AppSpacing.md + playerInset,
+          ),
+          itemCount: numbers.length,
+          itemBuilder: (context, index) {
+            final number = numbers[index];
+            final rawName = getSurahNameArabic(number);
+            return SurahListTile(
+              number: number,
+              name: rawName == 'اللهب' ? 'المسد' : rawName,
+              verses: getVerseCount(number),
+              place: getPlaceOfRevelation(number) == 'Makkah' ? 'مكية' : 'مدنية',
+              onTap: () async {
+                if (cubit.surahNumber != number) {
+                  await cubit.selectSurah(number, rawName, online: online);
+                }
+                if (context.mounted) {
+                  navigateTo(context, SurahScreen(surahNumber: number));
+                }
+              },
+            );
+          },
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSpacing.sm),
+        );
+      },
     );
   }
 

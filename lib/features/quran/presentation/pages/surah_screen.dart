@@ -11,13 +11,19 @@ import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
 import 'package:untitled8/features/quran/presentation/widgets/mushaf_text_page.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_audio_mini_player.dart';
+import 'package:untitled8/features/quran/presentation/widgets/quran_reader_audio_controls.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_reader_palette.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_reader_sheets.dart';
 import 'package:untitled8/features/quran/presentation/widgets/reader_controls_overlay.dart';
 
 class SurahScreen extends StatefulWidget {
-  const SurahScreen({super.key, required this.surahNumber});
+  const SurahScreen({
+    super.key,
+    required this.surahNumber,
+    this.initialAyah,
+  });
   final int surahNumber;
+  final int? initialAyah;
 
   @override
   State<SurahScreen> createState() => _SurahScreenState();
@@ -33,10 +39,13 @@ class _SurahScreenState extends State<SurahScreen> {
   late int _visibleSurahNumber;
   late final PageController _pageController;
   late final TransformationController _zoomController;
+  StreamSubscription<QuranState>? _audioStateSubscription;
   double _zoomScale = 1;
   double _fontSize = 19;
   bool _fontSizeChangedBeforeRestore = false;
+  bool _readerOnlyDuringOtherPlayback = false;
   int _pageIndex = 0;
+  int _readerCurrentAyah = 1;
   bool _controlsVisible = true;
   Timer? _controlsTimer;
 
@@ -46,21 +55,122 @@ class _SurahScreenState extends State<SurahScreen> {
     unawaited(_restoreFontSizePreference());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _cubit = context.read<QuranCubit>();
-    final bookmarkedVerse =
-        _cubit.bookmark?.surahNumber == widget.surahNumber
-            ? _cubit.bookmark!.pageNumber
-                .clamp(1, quran.getVerseCount(widget.surahNumber))
-                .toInt()
-            : 1;
+    _readerOnlyDuringOtherPlayback =
+        _cubit.hasActivePlaybackSession &&
+        _cubit.surahNumber != widget.surahNumber;
+    final savedReaderPosition = _cubit.lastReaderAyahForSurah(
+      widget.surahNumber,
+    );
+    final savedPlaybackPosition = _cubit.lastAyahForSurah(widget.surahNumber);
+    final pageBookmarkAyah = _bookmarkAyahForSurah(
+      _cubit.bookmark?.pageNumber,
+      widget.surahNumber,
+    );
+    final bookmarkedVerse = (widget.initialAyah ??
+            savedReaderPosition ??
+            savedPlaybackPosition ??
+            pageBookmarkAyah ??
+            1)
+        .clamp(1, quran.getVerseCount(widget.surahNumber))
+        .toInt();
     _visibleSurahNumber = widget.surahNumber;
     final rawName = quran.getSurahNameArabic(_visibleSurahNumber);
     _surahName = rawName == 'اللهب' ? 'المسد' : rawName;
     _pageIndex = quran.getPageNumber(widget.surahNumber, bookmarkedVerse) - 1;
+    _readerCurrentAyah = bookmarkedVerse;
     _pageController = PageController(initialPage: _pageIndex);
     _zoomController = TransformationController();
-    _cubit.setSurahInfo(widget.surahNumber, _surahName);
-    _cubit.setCurrentPageNumber(bookmarkedVerse);
+    if (!_readerOnlyDuringOtherPlayback) {
+      _cubit.setSurahInfo(widget.surahNumber, _surahName);
+      if (!_cubit.hasActivePlaybackSession) {
+        _cubit.setCurrentPageNumber(bookmarkedVerse);
+      }
+    }
+    _audioStateSubscription = _cubit.stream.listen(
+      (_) => _handlePlaybackSessionEnded(),
+    );
     _scheduleControlsHide();
+  }
+
+  int? _bookmarkAyahForSurah(int? mushafPage, int surahNumber) {
+    if (mushafPage == null) return null;
+    for (final entry in quran.getPageData(mushafPage)) {
+      final section = entry as Map;
+      if ((section['surah'] as num).toInt() == surahNumber) {
+        return (section['start'] as num).toInt();
+      }
+    }
+    return null;
+  }
+
+  String _surahNameForConfirmation(int surahNumber) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    if (!isArabic) return quran.getSurahNameEnglish(surahNumber);
+    final rawName = quran.getSurahNameArabic(surahNumber);
+    return rawName == 'اللهب' ? 'المسد' : rawName;
+  }
+
+  Future<void> _toggleCurrentPageBookmark() async {
+    final pageNumber = _pageIndex + 1;
+    final isRemoving = _cubit.pageBookmarks.contains(pageNumber);
+    await _cubit.togglePageBookmark(pageNumber);
+    if (isRemoving || !mounted) return;
+    final pageEntries = quran.getPageData(pageNumber).cast<Map>();
+    final surahNumber = (pageEntries.first['surah'] as num).toInt();
+    final surahName = _surahNameForConfirmation(surahNumber);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    AppSnackBar.show(
+      message: isArabic
+          ? 'تم حفظ سورة $surahName في العلامات المرجعية'
+          : 'Surah $surahName has been saved to bookmarks.',
+      success: true,
+    );
+  }
+
+  Future<void> _toggleAyahBookmark(int surahNumber, int verseNumber) async {
+    final key = '$surahNumber:$verseNumber';
+    final isRemoving = _cubit.ayahBookmarks.contains(key);
+    await _cubit.toggleAyahBookmark(surahNumber, verseNumber);
+    if (isRemoving || !mounted) return;
+    final surahName = _surahNameForConfirmation(surahNumber);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    AppSnackBar.show(
+      message: isArabic
+          ? 'تم حفظ سورة $surahName في العلامات المرجعية'
+          : 'Surah $surahName has been saved to bookmarks.',
+      success: true,
+    );
+  }
+
+  int? _savedPlaybackAyahForCurrentPage() {
+    final mushafPage = _pageIndex + 1;
+    if (_cubit.pageBookmarks.contains(mushafPage)) {
+      final pageData = quran.getPageData(mushafPage).cast<Map>();
+      final firstSection = pageData.first;
+      return (firstSection['start'] as num).toInt();
+    }
+    final selectedAyah = _readerCurrentAyah;
+    if (_cubit.ayahBookmarks.contains(
+      '$_visibleSurahNumber:$selectedAyah',
+    )) {
+      return selectedAyah;
+    }
+    return null;
+  }
+
+  void _handlePlaybackSessionEnded() {
+    if (!mounted ||
+        !_readerOnlyDuringOtherPlayback ||
+        _cubit.hasActivePlaybackSession) {
+      return;
+    }
+
+    // This reader was opened for a different Surah while another audio
+    // session was active. Once that session ends, restore the reader context
+    // to the Cubit without changing the page the user has manually selected.
+    _readerOnlyDuringOtherPlayback = false;
+    _cubit.setSurahInfo(_visibleSurahNumber, _surahName);
+    _cubit.setCurrentPageNumber(_readerCurrentAyah);
   }
 
   void _changeZoom(double value) {
@@ -142,22 +252,28 @@ class _SurahScreenState extends State<SurahScreen> {
       _pageIndex = index;
       _visibleSurahNumber = surahNumber;
       _surahName = rawName == 'اللهب' ? 'المسد' : rawName;
+      _readerCurrentAyah = verseNumber;
       _zoomScale = 1;
       _zoomController.value = Matrix4.identity();
     });
-    unawaited(
-      _cubit.selectSurah(
-        surahNumber,
-        _surahName,
-        online: _cubit.isOnline,
-      ),
-    );
-    _cubit.setCurrentPageNumber(verseNumber);
+    _cubit.saveReaderPosition(surahNumber, verseNumber);
+    if (!_cubit.hasActivePlaybackSession) {
+      unawaited(
+        _cubit.selectSurah(
+          surahNumber,
+          _surahName,
+          online: _cubit.isOnline,
+        ),
+      );
+      _cubit.setCurrentPageNumber(verseNumber);
+    }
     _scheduleControlsHide();
   }
 
   void _openTafsir(int surahNumber, int verse) {
-    _cubit.setCurrentPageNumber(verse);
+    if (!_cubit.hasActivePlaybackSession) {
+      _cubit.setCurrentPageNumber(verse);
+    }
     var globalAyahNumber = verse;
     for (var surah = 1; surah < surahNumber; surah++) {
       globalAyahNumber += quran.getVerseCount(surah);
@@ -204,12 +320,13 @@ class _SurahScreenState extends State<SurahScreen> {
     setState(() {
       _visibleSurahNumber = surahNumber;
       _surahName = surahName;
+      _readerCurrentAyah = verse;
     });
-    _cubit.setSurahInfo(surahNumber, surahName);
-    _cubit.setCurrentPageNumber(verse);
-    final isBookmarked =
-        _cubit.bookmark?.surahNumber == surahNumber &&
-        _cubit.bookmark?.pageNumber == verse;
+    if (!_cubit.hasActivePlaybackSession) {
+      _cubit.setSurahInfo(surahNumber, surahName);
+      _cubit.setCurrentPageNumber(verse);
+    }
+    final isBookmarked = _cubit.ayahBookmarks.contains('$surahNumber:$verse');
     final palette = QuranReaderPalette.fromTheme(context);
     showAppModalBottomSheet<void>(
       context: context,
@@ -239,6 +356,16 @@ class _SurahScreenState extends State<SurahScreen> {
                   verseText: verseText,
                   palette: palette,
                   isBookmarked: isBookmarked,
+                  onPlayAyahOnly: () {
+                    Navigator.pop(sheetContext);
+                    unawaited(_cubit.playAyahOnly(surahNumber, verse));
+                  },
+                  onPlayFromAyah: () {
+                    Navigator.pop(sheetContext);
+                    unawaited(
+                      _cubit.playFromAyahBookmark(surahNumber, verse),
+                    );
+                  },
                   onTafsir: () {
                     Navigator.pop(sheetContext);
                     _openTafsir(surahNumber, verse);
@@ -255,7 +382,7 @@ class _SurahScreenState extends State<SurahScreen> {
                   },
                   onBookmark: () {
                     Navigator.pop(sheetContext);
-                    _cubit.toggleBookmark(surahName);
+                    unawaited(_toggleAyahBookmark(surahNumber, verse));
                   },
                   onShare: () {
                     Navigator.pop(sheetContext);
@@ -281,6 +408,7 @@ class _SurahScreenState extends State<SurahScreen> {
   @override
   void dispose() {
     _controlsTimer?.cancel();
+    _audioStateSubscription?.cancel();
     _pageController.dispose();
     _zoomController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -292,8 +420,8 @@ class _SurahScreenState extends State<SurahScreen> {
     builder: (context, state) {
       final palette = QuranReaderPalette.fromTheme(context);
       final bookmarked =
-          _cubit.bookmark?.surahNumber == _visibleSurahNumber &&
-          _cubit.bookmark?.pageNumber == _cubit.currentPageNumber;
+          _cubit.pageBookmarks.contains(_pageIndex + 1);
+      final bookmarkPlaybackAyah = _savedPlaybackAyahForCurrentPage();
       final isDark = Theme.of(context).brightness == Brightness.dark;
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle(
@@ -327,6 +455,17 @@ class _SurahScreenState extends State<SurahScreen> {
                         zoomScale: _zoomScale,
                         fontSize: _fontSize,
                         palette: palette,
+                        highlightedSurahNumber:
+                            _cubit.hasActivePlaybackSession &&
+                                    _cubit.hasReliableCurrentAyah
+                                ? _cubit.surahNumber
+                                : null,
+                        highlightedAyahNumber:
+                            _cubit.hasActivePlaybackSession &&
+                                    _cubit.hasReliableCurrentAyah
+                                ? _cubit.currentAyahNumber
+                                : null,
+                        bookmarkedAyahKeys: _cubit.ayahBookmarks,
                         onInteractionEnd: _syncZoomScale,
                         onAyahLongPress: _showAyahMenu,
                         onSwipeLeft: () => _turnPage(next: false),
@@ -340,20 +479,13 @@ class _SurahScreenState extends State<SurahScreen> {
                   opacity: _controlsVisible ? 1 : 0,
                   duration: const Duration(milliseconds: 220),
                   child: ReaderControlsOverlay(
-                    surahName: _surahName,
-                    surahNumber: _visibleSurahNumber,
-                    juzNumber: quran.getJuzNumber(
-                      _visibleSurahNumber,
-                      _cubit.currentPageNumber,
-                    ),
                     pageNumber: _pageIndex + 1,
                     pageCount: quran.totalPagesCount,
                     zoomScale: _zoomScale,
                     fontSize: _fontSize,
                     palette: palette,
                     bookmarked: bookmarked,
-                    onBack: () => Navigator.of(context).maybePop(),
-                    onBookmark: () => _cubit.toggleBookmark(_surahName),
+                    onBookmark: () => unawaited(_toggleCurrentPageBookmark()),
                     onDecrease: () => _changeZoom(_zoomScale - .25),
                     onIncrease: () => _changeZoom(_zoomScale + .25),
                     onFontDecrease: () => _changeFontSize(_fontSize - 1),
@@ -366,12 +498,23 @@ class _SurahScreenState extends State<SurahScreen> {
                         _pageIndex < quran.totalPagesCount - 1
                             ? () => _turnPage(next: true)
                             : null,
-                    audioButton: playIconButton(
+                    onBack: () => Navigator.of(context).maybePop(),
+                    audioControls: QuranReaderAudioControls(
                       cubit: _cubit,
+                      palette: palette,
+                      surahName: _surahName,
                       surahNumber: _visibleSurahNumber,
-                      context: context,
-                      backgroundColor: palette.surface,
-                      foregroundColor: palette.text,
+                      juzNumber: quran.getJuzNumber(
+                        _visibleSurahNumber,
+                        _readerCurrentAyah,
+                      ),
+                      bookmarkAyah: bookmarkPlaybackAyah,
+                      primaryAction: playIconButton(
+                        cubit: _cubit,
+                        context: context,
+                        backgroundColor: palette.accent,
+                        foregroundColor: palette.surface,
+                      ),
                     ),
                   ),
                 ),

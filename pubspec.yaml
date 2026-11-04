@@ -19,6 +19,8 @@ dependencies:
   geolocator: ^14.1.2
   flutter_compass: ^0.8.1
   just_audio: ^0.10.6
+  audio_service: ^0.18.19
+  audio_session: ^0.2.4
   intl: ^0.20.3
   responsive_sizer: ^3.3.1
   awesome_dialog: ^3.3.0
@@ -27,6 +29,7 @@ dependencies:
   shared_preferences: ^2.5.6
   internet_connection_checker: ^3.0.1
   flutter_cache_manager: ^3.4.6
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -42,7 +45,7 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
-    - assets/features/app/images/
+    - assets/features/app/images/quran_logo.png
     - assets/features/asmaa_allah/
     - assets/features/azkar/data/azkar.json
     - assets/features/stories/stories.json
@@ -50,6 +53,7 @@ flutter:
     - assets/features/prayer_times/audio/
     - assets/features/prayer_times/images/
     - assets/features/quran/images/
+    - assets/images/reciters/
   fonts:
     - family: QuranFont
       fonts:

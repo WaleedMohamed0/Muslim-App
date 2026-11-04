@@ -28,6 +28,7 @@ abstract final class AppTheme {
   static const Color _darkSurface = Color(0xFF1B2823);
   static const Color _sepia = Color(0xFF80633A);
   static const Color _lightPrimary = Color(0xFF315C4C);
+  static const Color settingsIconLight = Color(0xFF254638);
   static const Color _lightSecondary = Color(0xFFDCE9E1);
   static const Color _lightText = Color(0xFF26372F);
   static const Color _lightSecondaryText = Color(0xFF77847B);

@@ -9,12 +9,16 @@ class SurahListTile extends StatelessWidget {
     required this.verses,
     required this.place,
     required this.onTap,
+    this.subtitle,
+    this.numberLabel,
   });
   final int number;
   final String name;
   final int verses;
   final String place;
   final VoidCallback onTap;
+  final String? subtitle;
+  final String? numberLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +42,7 @@ class SurahListTile extends StatelessWidget {
                 child: Directionality(
                   textDirection: TextDirection.ltr,
                   child: Text(
-                    toArabicIndicDigits(number),
+                    numberLabel ?? toArabicIndicDigits(number),
                     style: TextStyle(
                       color: colors.onPrimaryContainer,
                       fontWeight: FontWeight.w700,
@@ -60,7 +64,7 @@ class SurahListTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$place  •  ${toArabicIndicDigits(verses)} آيات',
+                      subtitle ?? '$place  •  ${toArabicIndicDigits(verses)} آيات',
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

@@ -23,7 +23,6 @@ class AppAssets {
         'العشاء' => adhanIshaBackground,
         _ => adhanIshaBackground,
       };
-  static const savedPageMarker = 'assets/features/quran/images/bookmark.png';
   static const azkarData = 'assets/features/azkar/data/azkar.json';
   static const storiesData = 'assets/features/stories/stories.json';
   static const prophetsCardBackground =

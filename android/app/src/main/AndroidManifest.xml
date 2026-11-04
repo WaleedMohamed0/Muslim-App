@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.untitled8">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -40,6 +41,46 @@
             android:name=".PrayerAdhanPlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+        <service
+            android:name="com.ryanheise.audioservice.AudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true"
+            tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".QuranWidgetSessionSyncService"
+            android:exported="false" />
+        <receiver
+            android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+            android:exported="true"
+            tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".QuranAudioWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quran_audio_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".QuranAudioWidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.untitled8.QURAN_WIDGET_PLAY" />
+                <action android:name="com.example.untitled8.QURAN_WIDGET_PAUSE" />
+                <action android:name="com.example.untitled8.QURAN_WIDGET_STOP" />
+                <action android:name="com.example.untitled8.QURAN_WIDGET_PREVIOUS" />
+            </intent-filter>
+        </receiver>
         <receiver
             android:name=".PrayerAlarmReceiver"
             android:exported="false" />

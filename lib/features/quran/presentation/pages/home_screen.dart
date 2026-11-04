@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:untitled8/core/utils/arabic_digits.dart';
 import 'package:untitled8/core/widgets/app_widgets.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
 import 'package:untitled8/features/quran/presentation/widgets/surah_list.dart';
-import 'package:untitled8/features/quran/presentation/pages/surah_screen.dart';
-import 'package:untitled8/features/quran/domain/entities/quran_bookmark.dart';
+import 'package:untitled8/features/quran/presentation/widgets/juz_list.dart';
+import 'package:untitled8/features/quran/presentation/widgets/saved_bookmarks_dialog.dart';
+import 'package:untitled8/features/quran/presentation/widgets/quran_browse_mode_switcher.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -20,81 +20,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _bookmarkPromptShownForEntry = false;
-  bool _bookmarkLoadStarted = false;
   final TextEditingController _surahSearchController = TextEditingController();
+  final ValueNotifier<double> _miniPlayerHeight = ValueNotifier(0);
   String _surahSearchQuery = '';
+  bool _showJuzView = false;
 
   @override
   void dispose() {
     _surahSearchController.dispose();
+    _miniPlayerHeight.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBookmarkAndPrompt();
-  }
-
-  Future<void> _loadBookmarkAndPrompt() async {
-    final cubit = context.read<QuranCubit>();
-    try {
-      if (cubit.bookmark == null && !_bookmarkLoadStarted) {
-        _bookmarkLoadStarted = true;
-        await cubit.initialize();
-      }
-    } catch (_) {
-      return;
-    }
-    if (!mounted || _bookmarkPromptShownForEntry) return;
-    _bookmarkPromptShownForEntry = true;
-    final bookmark = cubit.bookmark;
-    if (bookmark == null) return;
-
-    await showDialog<void>(
-      context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            icon: Icon(
-              Icons.bookmark_rounded,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            title: const Text('متابعة القراءة؟'),
-            content: Text(
-              'آخر موضع قراءة: سورة ${bookmark.surahName}، الآية ${toArabicIndicDigits(bookmark.pageNumber)}',
-              textAlign: TextAlign.center,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('البدء من جديد'),
-              ),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  unawaited(_continueReading(cubit, bookmark));
-                },
-                icon: const Icon(Icons.menu_book_rounded),
-                label: const Text('متابعة القراءة'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Future<void> _continueReading(
-    QuranCubit cubit,
-    QuranBookmark bookmark,
-  ) async {
-    await cubit.selectSurah(
-      bookmark.surahNumber,
-      bookmark.surahName,
-      online: cubit.isOnline,
-    );
-    cubit.setCurrentPageNumber(bookmark.pageNumber);
-    if (!mounted) return;
-    navigateTo(context, SurahScreen(surahNumber: bookmark.surahNumber));
   }
 
   @override
@@ -102,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     var cubit = context.read<QuranCubit>();
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final bannerForeground =
         isDark ? scheme.onPrimaryContainer : scheme.onPrimary;
     final bannerColors =
@@ -114,20 +50,18 @@ class _HomeScreenState extends State<HomeScreen> {
           appBar: defaultAppBar(
             context: context,
             text: "القراّن الكريم",
-            onBack: () {
-              if (cubit.isPlaying) cubit.togglePlay();
-              Navigator.pop(context);
-            },
+            actions: [
+              IconButton(
+                tooltip: isArabic ? 'العلامات المرجعية' : 'Saved bookmarks',
+                onPressed: () => unawaited(
+                  SavedBookmarksDialog.show(context, cubit),
+                ),
+                icon: const Icon(Icons.bookmarks_outlined),
+              ),
+            ],
           ),
           body: myPanel(
-            screen: WillPopScope(
-              onWillPop: () async {
-                if (cubit.isPlaying) {
-                  cubit.togglePlay();
-                }
-                return true;
-              },
-              child: Column(
+            screen: Column(
                 children: [
                   Padding(
                     padding: const EdgeInsetsDirectional.fromSTEB(
@@ -174,17 +108,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 10),
+                    child: QuranBrowseModeSwitcher(
+                      showJuzView: _showJuzView,
+                      isArabic: isArabic,
+                      onChanged: (showJuzView) => setState(() {
+                        _showJuzView = showJuzView;
+                        _surahSearchController.clear();
+                        _surahSearchQuery = '';
+                      }),
+                    ),
+                  ),
+                  Padding(
                     padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 8),
                     child: Row(
                       children: [
                         Text(
-                          'السور',
+                          _showJuzView
+                              ? (isArabic ? 'الأجزاء' : 'Juz')
+                              : (isArabic ? 'السور' : 'Surahs'),
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const Spacer(),
                         Text(
-                          '١١٤ سورة',
+                          _showJuzView
+                              ? (isArabic ? '٣٠ جزءًا' : '30 Juz')
+                              : (isArabic ? '١١٤ سورة' : '114 Surahs'),
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                       ],
@@ -194,16 +144,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
                     child: TextField(
                       controller: _surahSearchController,
-                      textDirection: TextDirection.rtl,
+                      textDirection: isArabic
+                          ? TextDirection.rtl
+                          : TextDirection.ltr,
                       textInputAction: TextInputAction.search,
                       onChanged: (value) => setState(() => _surahSearchQuery = value),
                       decoration: InputDecoration(
-                        hintText: 'ابحث عن سورة',
+                        hintText: _showJuzView
+                            ? (isArabic ? 'ابحث عن جزء أو سورة' : 'Search Juz or Surah')
+                            : (isArabic ? 'ابحث عن سورة' : 'Search Surah'),
                         prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: _surahSearchQuery.isEmpty
                             ? null
                             : IconButton(
-                                tooltip: 'مسح البحث',
+                                tooltip: isArabic ? 'مسح البحث' : 'Clear search',
                                 onPressed: () {
                                   _surahSearchController.clear();
                                   setState(() => _surahSearchQuery = '');
@@ -220,17 +174,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Expanded(
-                    child: SurahList(
-                      cubit: cubit,
-                      online: cubit.isOnline,
-                      searchQuery: _surahSearchQuery,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: _showJuzView
+                          ? JuzList(
+                              key: const ValueKey('juz-list'),
+                              cubit: cubit,
+                              online: cubit.isOnline,
+                              searchQuery: _surahSearchQuery,
+                              miniPlayerHeight: _miniPlayerHeight,
+                            )
+                          : SurahList(
+                              key: const ValueKey('surah-list'),
+                              cubit: cubit,
+                              online: cubit.isOnline,
+                              searchQuery: _surahSearchQuery,
+                              miniPlayerHeight: _miniPlayerHeight,
+                            ),
                     ),
                   ),
                 ],
-              ),
             ),
             context: context,
             cubit: cubit,
+            onMiniPlayerHeightChanged: (height) {
+              if (!mounted || (_miniPlayerHeight.value - height).abs() < .5) {
+                return;
+              }
+              _miniPlayerHeight.value = height;
+            },
           ),
         );
       },
