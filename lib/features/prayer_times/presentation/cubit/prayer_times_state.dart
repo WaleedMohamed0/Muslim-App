@@ -9,9 +9,25 @@ class PrayerDisplayTime {
 
 enum PrayerTimesStatus { initial, loading, loaded, failure }
 
+enum PrayerTimesErrorType {
+  network,
+  locationServicesDisabled,
+  locationPermissionDenied,
+  locationPermissionPermanentlyDenied,
+  locationUnavailable,
+  general,
+}
+
 class PrayerTimesState {
-  const PrayerTimesState({this.error, this.prayerTimes, this.status = PrayerTimesStatus.initial, this.displayTimes = const []});
+  const PrayerTimesState({
+    this.error,
+    this.errorType,
+    this.prayerTimes,
+    this.status = PrayerTimesStatus.initial,
+    this.displayTimes = const [],
+  });
   final String? error;
+  final PrayerTimesErrorType? errorType;
   final PrayerTimes? prayerTimes;
   final PrayerTimesStatus status;
   final List<PrayerDisplayTime> displayTimes;

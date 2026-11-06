@@ -35,7 +35,7 @@ internal object PrayerAdhanStorage {
     const val VOLUME = "volume"
     const val AUDIO_ID = "audio_id"
     const val CHANNEL_PLAYBACK = "adhan_playback"
-    const val CHANNEL_REMINDER = "adhan_reminder"
+    const val CHANNEL_ALERT = "adhan_prayer_alert"
     const val CHANNEL_CALL_REMINDER = "adhan_call_reminder"
 }
 
@@ -263,8 +263,21 @@ internal object DailyAzkarReminderScheduler {
         val openIntent = Intent(context, MainActivity::class.java).apply {
             action = "com.example.untitled8.OPEN_DAILY_REMINDER"
             data = Uri.parse("muslimapp://notification/${reminder.id}")
-            putExtra("notification_route", reminder.route)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            // Older saved reminder settings may contain a stale/missing route.
+            // The reminder id is stable and unambiguously identifies the page.
+            putExtra(
+                "notification_route",
+                when (reminder.id) {
+                    "morning" -> "azkar_morning"
+                    "evening" -> "azkar_evening"
+                    "daily_wird" -> "daily_wird"
+                    else -> reminder.route
+                },
+            )
+            // Start the reminder destination with a fresh Activity task so a
+            // previously visible Home route cannot remain above it in the
+            // restored Flutter navigation stack.
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         }
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -350,27 +363,44 @@ internal object PrayerAlarmScheduler {
     private fun scheduleOne(context: Context, item: JSONObject, at: Long, exact: Boolean) {
         val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
         val id = item.optString("id")
-        val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
-            action = ACTION_ALARM
-            data = Uri.parse("muslimadhan://prayer/$id")
-            putExtra("id", id)
-            putExtra("prayer", item.optString("prayer"))
-            putExtra("exact", exact)
+        fun alarmPendingIntent(isExact: Boolean): PendingIntent {
+            val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
+                action = ACTION_ALARM
+                data = Uri.parse("muslimadhan://prayer/$id")
+                putExtra("id", id)
+                putExtra("prayer", item.optString("prayer"))
+                putExtra("exact", isExact)
+            }
+            return PendingIntent.getBroadcast(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
         }
-        val pending = PendingIntent.getBroadcast(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
         try {
             if (exact) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    at,
+                    alarmPendingIntent(isExact = true),
+                )
             } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    at,
+                    alarmPendingIntent(isExact = false),
+                )
             }
         } catch (_: SecurityException) {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending)
+            // A rejected exact alarm must carry the inexact marker too. Otherwise
+            // the receiver attempts a background playback service that Android
+            // will reject because only exact alarms qualify for that exemption.
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                at,
+                alarmPendingIntent(isExact = false),
+            )
         }
     }
 
@@ -434,10 +464,8 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             return
         }
 
-        if (!intent.getBooleanExtra("exact", false) ||
-            !PrayerAlarmScheduler.canScheduleExactAlarms(context)
-        ) {
-            showInexactReminder(context, prayer)
+        if (!intent.getBooleanExtra("exact", false)) {
+            showPrayerAlert(context, prayer, exact = false)
             return
         }
 
@@ -452,29 +480,47 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 context.startService(serviceIntent)
             }
         } catch (_: Exception) {
-            showInexactReminder(context, prayer)
+            showPrayerAlert(context, prayer, exact = false)
         }
     }
 
-    private fun showInexactReminder(context: Context, prayer: String) {
+    private fun showPrayerAlert(context: Context, prayer: String, exact: Boolean) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
                 NotificationChannel(
-                    PrayerAdhanStorage.CHANNEL_REMINDER,
-                    "تنبيهات مواقيت الصلاة",
+                    PrayerAdhanStorage.CHANNEL_ALERT,
+                    "تنبيهات الأذان",
                     NotificationManager.IMPORTANCE_HIGH,
-                ),
+                ).apply {
+                    description = "تنبيه بارز عند دخول وقت الصلاة"
+                    setSound(null, null)
+                    enableVibration(false)
+                    setShowBadge(false)
+                },
             )
         }
-        val notification = NotificationCompat.Builder(context, PrayerAdhanStorage.CHANNEL_REMINDER)
+        val message = if (exact) {
+            "بدأ الأذان الآن"
+        } else {
+            "حان وقت الصلاة. يلزم السماح بالمنبهات الدقيقة لتشغيل الأذان صوتيًا."
+        }
+        val notification = NotificationCompat.Builder(context, PrayerAdhanStorage.CHANNEL_ALERT)
             .setSmallIcon(R.mipmap.launcher_icon)
             .setContentTitle("أذان صلاة ${prayerNameArabic(prayer)}")
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setContentIntent(elAzanPendingIntent(context, prayer))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setSilent(true)
             .setAutoCancel(true)
             .build()
-        manager.notify(("reminder_$prayer").hashCode(), notification)
+        try {
+            manager.notify(("prayer_alert_$prayer").hashCode(), notification)
+        } catch (_: SecurityException) {
+            // Notification permission can be denied independently of alarm access.
+        }
     }
 
     private fun showCallReminder(context: Context, prayer: String) {
@@ -547,7 +593,10 @@ class PrayerAdhanPlaybackService : Service() {
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
-                startForeground(NOTIFICATION_ID, buildPlaybackNotification(prayer))
+                startForeground(
+                    notificationId(prayer),
+                    buildPlaybackNotification(prayer),
+                )
                 val audioId = if (intent.action == ACTION_TEST) {
                     intent.getStringExtra("audio_id")
                 } else {
@@ -709,6 +758,18 @@ class PrayerAdhanPlaybackService : Service() {
                 NotificationManager.IMPORTANCE_LOW,
             ).apply { setSound(null, null) },
         )
+        manager.createNotificationChannel(
+            NotificationChannel(
+                PrayerAdhanStorage.CHANNEL_ALERT,
+                "تنبيهات الأذان",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "تنبيه بارز عند دخول وقت الصلاة"
+                setSound(null, null)
+                enableVibration(false)
+                setShowBadge(false)
+            },
+        )
     }
 
     private fun buildPlaybackNotification(prayer: String): Notification {
@@ -721,14 +782,22 @@ class PrayerAdhanPlaybackService : Service() {
             stopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val builder = NotificationCompat.Builder(this, PrayerAdhanStorage.CHANNEL_PLAYBACK)
+        val channel = if (prayer.isBlank()) {
+            PrayerAdhanStorage.CHANNEL_PLAYBACK
+        } else {
+            PrayerAdhanStorage.CHANNEL_ALERT
+        }
+        val message = if (prayer.isBlank()) null else "بدأ الأذان الآن"
+        val builder = NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.mipmap.launcher_icon)
             .setContentTitle(
                 if (prayer.isBlank()) "اختبار الأذان"
                 else "أذان صلاة ${prayerNameArabic(prayer)}",
             )
+            .setContentText(message)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setContentIntent(
                 if (prayer.isBlank()) null else elAzanPendingIntent(this, prayer),
             )
@@ -748,6 +817,9 @@ class PrayerAdhanPlaybackService : Service() {
         const val ACTION_TEST = "com.example.untitled8.TEST_ADHAN"
         const val ACTION_STOP = "com.example.untitled8.STOP_ADHAN"
         private const val NOTIFICATION_ID = 7301
+
+        private fun notificationId(prayer: String): Int =
+            if (prayer.isBlank()) NOTIFICATION_ID else "prayer_alert_$prayer".hashCode()
 
         @Volatile
         private var activePrayer: String? = null

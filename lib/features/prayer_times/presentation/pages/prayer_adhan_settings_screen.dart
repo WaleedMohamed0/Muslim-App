@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:untitled8/core/widgets/app_widgets.dart';
 import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
@@ -24,6 +23,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
   PrayerAdhanSettings _settings = const PrayerAdhanSettings();
   Map<String, bool> _permissions = const {};
   bool _loading = true;
+  bool _enablingAdhan = false;
   String? _previewingId;
 
   static const _prayerNames = {
@@ -82,38 +82,6 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     } catch (_) {}
   }
 
-  Future<void> _changePermission(String key, bool enabled) async {
-    try {
-      if (!enabled) {
-        if (key == 'notifications') {
-          await _service.openNotificationSettings();
-        } else {
-          await _service.openAppSettings();
-        }
-      } else {
-        switch (key) {
-          case 'notifications':
-            await _service.requestNotificationPermission();
-          case 'location':
-            var permission = await Geolocator.checkPermission();
-            if (permission == LocationPermission.deniedForever) {
-              await Geolocator.openAppSettings();
-            } else {
-              permission = await Geolocator.requestPermission();
-              if (permission == LocationPermission.deniedForever) {
-                await Geolocator.openAppSettings();
-              }
-            }
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        AppSnackBar.show(message: 'تعذر تحديث صلاحية الجهاز. تحقق من إعدادات النظام.');
-      }
-    }
-    await _refreshPermissions();
-  }
-
   Future<bool> _explainPermission(String title, String description) async =>
       await showDialog<bool>(
         context: context,
@@ -124,6 +92,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.start,
           ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -139,15 +108,53 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       false;
 
   Future<void> _setAdhanEnabled(bool enabled) async {
-    if (enabled && _permissions['exactAlarms'] != true) {
-      final accepted = await _explainPermission(
-        'السماح بالمنبهات الدقيقة',
-        'يساعد هذا الإذن على تشغيل الأذان عند دخول وقت الصلاة. إذا لم تسمح به، قد يتأخر التنبيه بسبب قيود النظام.',
-      );
-      if (accepted) await _service.requestExactAlarmPermission();
+    if (!enabled) {
+      await _save(_settings.copyWith(enabled: false));
+      return;
     }
-    await _save(_settings.copyWith(enabled: enabled));
-    await _refreshPermissions();
+    if (_enablingAdhan) return;
+    setState(() => _enablingAdhan = true);
+    try {
+      final currentPermissions = await _service.permissionStatus();
+      if (mounted) setState(() => _permissions = currentPermissions);
+      if (!currentPermissions.containsKey('notifications')) return;
+      if (currentPermissions['notifications'] != true) {
+        final accepted = await _explainPermission(
+          'السماح بالإشعارات',
+          'يلزم السماح بالإشعارات لتلقي تنبيهات الأذان عند دخول وقت الصلاة.',
+        );
+        if (!accepted) return;
+        await _service.requestNotificationPermission();
+        final status = await _service.permissionStatus();
+        if (mounted) setState(() => _permissions = status);
+        if (status['notifications'] != true) {
+          if (mounted) {
+            AppSnackBar.show(
+              message: 'إذن الإشعارات مطلوب لتفعيل الأذان. فعّله من إعدادات التطبيق ثم حاول مرة أخرى.',
+            );
+          }
+          return;
+        }
+      }
+
+      if (_permissions['exactAlarms'] != true) {
+        final accepted = await _explainPermission(
+          'السماح بالمنبهات الدقيقة',
+          'هذا الإذن مطلوب لتشغيل صوت الأذان تلقائيًا في الخلفية عند دخول وقت الصلاة. إذا لم تسمح به، سيصلك إشعار الصلاة من دون تشغيل الصوت.',
+        );
+        if (accepted) await _service.requestExactAlarmPermission();
+      }
+      await _save(_settings.copyWith(enabled: true));
+      await _refreshPermissions();
+    } catch (_) {
+      if (mounted) {
+        AppSnackBar.show(
+          message: 'الوصول إلى الموقع مطلوب لحساب مواقيت صلاة دقيقة. يمكنك المحاولة مرة أخرى.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _enablingAdhan = false);
+    }
   }
 
   Future<void> _save(PrayerAdhanSettings settings) async {
@@ -219,9 +226,13 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                 Card(
                   child: SwitchListTile.adaptive(
                     value: _settings.enabled,
-                    onChanged: _setAdhanEnabled,
+                    onChanged: _enablingAdhan ? null : _setAdhanEnabled,
                     title: const Text('تفعيل الأذان تلقائيًا'),
-                    subtitle: const Text('تشغيل الأذان عند حلول المواقيت المحددة'),
+                    subtitle: Text(
+                      _settings.enabled && _permissions['exactAlarms'] != true
+                          ? 'يلزم السماح بالمنبهات الدقيقة لتشغيل الصوت تلقائيًا'
+                          : 'تشغيل الأذان عند حلول المواقيت المحددة',
+                    ),
                     secondary: Icon(Icons.notifications_active_outlined,
                         color: colors.primary),
                     thumbColor: WidgetStateProperty.resolveWith((states) {
@@ -359,33 +370,6 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'صلاحيات الجهاز',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Card(
-                  child: Column(
-                    children: [
-                      PermissionStatusTile(
-                        title: 'الإشعارات',
-                        description: 'لعرض تنبيهات الصلاة والأذان.',
-                        value: _permissions['notifications'] ?? false,
-                        onChanged: (value) => _changePermission('notifications', value),
-                      ),
-                      const Divider(height: 1),
-                      PermissionStatusTile(
-                        title: 'الموقع',
-                        description: 'لحساب مواقيت الصلاة بحسب موقعك.',
-                        value: _permissions['location'] ?? false,
-                        onChanged: (value) => _changePermission('location', value),
-                      ),
-                    ],
                   ),
                 ),
                 const SizedBox(height: 12),

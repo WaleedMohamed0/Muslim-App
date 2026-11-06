@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
@@ -62,24 +63,23 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".QuranAudioWidgetProvider"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/quran_audio_widget_info" />
-        </receiver>
-        <receiver
-            android:name=".QuranAudioWidgetActionReceiver"
+            android:name=".QuranWidgetPlayReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.example.untitled8.QURAN_WIDGET_PLAY" />
                 <action android:name="com.example.untitled8.QURAN_WIDGET_PAUSE" />
-                <action android:name="com.example.untitled8.QURAN_WIDGET_STOP" />
-                <action android:name="com.example.untitled8.QURAN_WIDGET_PREVIOUS" />
             </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".QuranAudioWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quran_audio_widget_info" />
         </receiver>
         <receiver
             android:name=".PrayerAlarmReceiver"

@@ -52,11 +52,11 @@ class QuranCubit extends Cubit<QuranState> {
       _handlePlayerError,
     );
     _positionSubscription = _audioPlayer.player.positionStream.listen(
-      _updateAyahFromPosition,
+      _handleAudioPosition,
     );
     _audioPlayer.handler
-      ..onPrevious = previousAyah
-      ..onNext = nextAyah
+      ..onPrevious = previousSurah
+      ..onNext = nextSurah
       ..onPlayAction = resumePlaybackFromMediaSession
       ..onPauseAction = pausePlaybackFromMediaSession
       ..onStopAction = changeQuranSoundActive;
@@ -71,6 +71,10 @@ class QuranCubit extends Cubit<QuranState> {
   final Map<String, Uri?> _reciterArtworkUris = {};
   final Set<String> _artworkRequests = {};
   static const _reciterPreferenceKey = 'quran_audio_reciter_id';
+  static String _savedAudioPositionKey(String reciterId, int number) =>
+      'quran_audio_position_${reciterId}_$number';
+  static String _savedAudioSourceKey(String reciterId, int number) =>
+      'quran_audio_source_${reciterId}_$number';
   static const _lightReaderBackgroundKey = 'quran_reader_background_light';
   static const _darkReaderBackgroundKey = 'quran_reader_background_dark';
   late final Future<void> _reciterReady;
@@ -83,12 +87,21 @@ class QuranCubit extends Cubit<QuranState> {
   String surahName = '';
   int surahNumber = 0;
   int currentPageNumber = 0;
-  bool isPlaying = false;
+  int surahPlaybackNavigationRevision = 0;
+  int surahPlaybackNavigationTarget = 0;
+  int surahPlaybackNavigationAyah = 1;
+  bool get isPlaying => _audioPlayer.player.playing;
+  IconData get soundIcon =>
+      isPlaying ? Icons.pause : Icons.play_arrow;
   bool _playbackSessionActive = false;
   bool isAudioLoading = false;
   bool isCached = false;
   bool quranSoundActive = false;
   String quranSoundUrl = '';
+  int? _pendingRestoredAudioPositionMs;
+  int _lastSavedAudioPositionMs = 0;
+  int _lastPositionWriteSurah = 0;
+  String _lastPositionWriteReciter = '';
   final Set<String> _downloadingAudioUrls = <String>{};
   final Set<String> _failedDownloadUrls = <String>{};
   final Set<String> _knownDownloadedAudioUrls = <String>{};
@@ -114,12 +127,29 @@ class QuranCubit extends Cubit<QuranState> {
   Stream<Duration?> get audioDurationStream =>
       _audioPlayer.player.durationStream;
   Duration get audioPosition => _audioPlayer.player.position;
+  int get lastKnownAudioPositionMs =>
+      quranSoundActive && _audioSourcePrepared
+          ? _audioPlayer.player.position.inMilliseconds
+          : _pendingRestoredAudioPositionMs ?? _lastSavedAudioPositionMs;
   Duration? get audioDuration => _audioPlayer.player.duration;
+  int get currentMushafPageNumber =>
+      surahNumber >= 1 && surahNumber <= 114
+      ? quran.getPageNumber(
+          surahNumber,
+          currentAyahNumber
+              .clamp(1, quran.getVerseCount(surahNumber))
+              .toInt(),
+        )
+      : 0;
   bool _audioSourcePrepared = false;
   bool _singleAyahPlayback = false;
   QuranPlaybackMode playbackMode = QuranPlaybackMode.fullSurah;
   bool _preparingAudioSource = false;
   bool _audioErrorReported = false;
+  bool _seekingToAyah = false;
+  bool _playCommandPending = false;
+  bool _pauseCommandPending = false;
+  bool _stopCommandPending = false;
   int _surahSelectionRevision = 0;
   int _seekRevision = 0;
   Future<void> _audioCommandQueue = Future<void>.value();
@@ -197,7 +227,6 @@ class QuranCubit extends Cubit<QuranState> {
 
   int get currentSurahVerseCount =>
       surahNumber > 0 ? quran.getVerseCount(surahNumber) : 0;
-  IconData soundIcon = Icons.play_arrow;
   String audioUrlFor(int number) =>
       _audioRepository.urlFor(number, reciterId: selectedReciter.id);
   Future<void> playCurrentSurahOnline(int number) =>
@@ -209,6 +238,7 @@ class QuranCubit extends Cubit<QuranState> {
         _singleAyahPlayback = false;
         quranSoundActive = true;
         quranSoundUrl = audioUrlFor(number);
+        _persistCurrentAudioSource();
         _publishMediaItem();
         await _prepareAudioSource(preferOffline: false);
         await _startPlayback();
@@ -229,29 +259,52 @@ class QuranCubit extends Cubit<QuranState> {
   void _publishMediaItem() {
     if (!quranSoundActive || surahNumber < 1 || surahName.isEmpty) return;
     final reciter = displayReciter;
-    _audioPlayer.handler.updateQuranMediaItem(
-      surahName: surahName,
-      reciterName: reciter.nameArabic,
-      artworkUri: _reciterArtworkUris[reciter.id],
-      ayahNumber: currentAyahNumber > 0 ? currentAyahNumber : null,
-    );
-    if (_artworkRequests.add(reciter.id)) {
+    final artwork = _reciterArtworkUris[reciter.id];
+    // Keep the current notification artwork in place while a newly selected
+    // reciter's local portrait is being prepared. Publishing a null artUri
+    // here clears album art from Android's MediaSession immediately.
+    if (artwork != null) {
+      _audioPlayer.handler.updateQuranMediaItem(
+        surahName: surahName,
+        surahNumber: surahNumber,
+        mushafPageNumber: currentMushafPageNumber,
+        reciterName: reciter.nameArabic,
+        reciterId: reciter.id,
+        sourceUrl: quranSoundUrl,
+        artworkUri: artwork,
+        ayahNumber: currentAyahNumber > 0 ? currentAyahNumber : null,
+      );
+    }
+    if (artwork == null && _artworkRequests.add(reciter.id)) {
       unawaited(_loadReciterArtwork(reciter));
     }
   }
 
   Future<void> _loadReciterArtwork(QuranReciter reciter) async {
-    final artwork = await QuranReciterArtworkCache.fileUriFor(reciter);
-    if (isClosed || !quranSoundActive || displayReciter.id != reciter.id) {
-      return;
+    try {
+      final artwork = await QuranReciterArtworkCache.fileUriFor(reciter);
+      if (isClosed || !quranSoundActive || displayReciter.id != reciter.id) {
+        return;
+      }
+      if (artwork != null) _reciterArtworkUris[reciter.id] = artwork;
+      // Publish again after the file is ready. A null URI here is only used
+      // when even the bundled fallback could not be read.
+      _audioPlayer.handler.updateQuranMediaItem(
+        surahName: surahName,
+        surahNumber: surahNumber,
+        mushafPageNumber: currentMushafPageNumber,
+        reciterName: reciter.nameArabic,
+        reciterId: reciter.id,
+        sourceUrl: quranSoundUrl,
+        artworkUri: artwork,
+        ayahNumber: currentAyahNumber > 0 ? currentAyahNumber : null,
+      );
+    } catch (_) {
+      // A later metadata update may retry the local artwork lookup.
+    } finally {
+      // Do not permanently suppress retries after an asset/cache failure.
+      _artworkRequests.remove(reciter.id);
     }
-    _reciterArtworkUris[reciter.id] = artwork;
-    _audioPlayer.handler.updateQuranMediaItem(
-      surahName: surahName,
-      reciterName: reciter.nameArabic,
-      artworkUri: artwork,
-      ayahNumber: currentAyahNumber > 0 ? currentAyahNumber : null,
-    );
   }
 
   Future<void> _loadAyahTimings(int number, {int? preserveAyah}) async {
@@ -271,7 +324,8 @@ class QuranCubit extends Cubit<QuranState> {
       _ayahTimings = [...timings]
         ..sort((left, right) => left.start.compareTo(right.start));
       final previousAyah = currentAyahNumber;
-      if (preserveAyah != null && currentAyahNumber == preserveAyah) {
+      if (preserveAyah != null) {
+        currentAyahNumber = preserveAyah;
         currentPageNumber = preserveAyah;
         final start = _startForAyah(preserveAyah);
         if (start != null && _audioSourcePrepared && !_audioPlayer.player.playing) {
@@ -295,6 +349,71 @@ class QuranCubit extends Cubit<QuranState> {
     }
   }
 
+  void _handleAudioPosition(Duration position) {
+    if (_seekingToAyah) return;
+    final actualPosition = _audioPlayer.player.position;
+    if ((actualPosition - position).inMilliseconds.abs() > 1000) return;
+    _persistCurrentAudioPosition(position);
+    _updateAyahFromPosition(position);
+  }
+
+  void _persistCurrentAudioPosition(Duration position, {bool force = false}) {
+    if (!quranSoundActive || !_audioSourcePrepared || surahNumber < 1) return;
+    final reciter = displayReciter;
+    final positionMs = position.inMilliseconds.clamp(0, 0x7fffffff);
+    final sameTrack =
+        _lastPositionWriteSurah == surahNumber &&
+        _lastPositionWriteReciter == reciter.id;
+    if (!force &&
+        sameTrack &&
+        (positionMs - _lastSavedAudioPositionMs).abs() < 900) {
+      return;
+    }
+    _lastPositionWriteSurah = surahNumber;
+    _lastPositionWriteReciter = reciter.id;
+    _lastSavedAudioPositionMs = positionMs;
+    unawaited(
+      CacheHelper.saveData(
+        key: _savedAudioPositionKey(reciter.id, surahNumber),
+        value: positionMs,
+      ),
+    );
+    _persistCurrentAudioSource();
+  }
+
+  void _persistCurrentAudioSource() {
+    if (surahNumber < 1 || quranSoundUrl.isEmpty) return;
+    unawaited(
+      CacheHelper.saveData(
+        key: _savedAudioSourceKey(selectedReciter.id, surahNumber),
+        value: quranSoundUrl,
+      ),
+    );
+  }
+
+  void _resetSavedAudioPositionForCurrentTrack() {
+    if (surahNumber < 1 || surahNumber > 114) return;
+    _pendingRestoredAudioPositionMs = null;
+    _lastSavedAudioPositionMs = 0;
+    _lastPositionWriteSurah = surahNumber;
+    _lastPositionWriteReciter = selectedReciter.id;
+    unawaited(
+      CacheHelper.saveData(
+        key: _savedAudioPositionKey(selectedReciter.id, surahNumber),
+        value: 0,
+      ),
+    );
+  }
+
+  void _requestReaderPlaybackNavigation(int number, int ayah) {
+    if (number < 1 || number > 114) return;
+    surahPlaybackNavigationTarget = number;
+    surahPlaybackNavigationAyah = ayah
+        .clamp(1, quran.getVerseCount(number))
+        .toInt();
+    surahPlaybackNavigationRevision++;
+  }
+
   void _updateAyahFromPosition(Duration position, {bool force = false}) {
     if (_ayahTimings.isEmpty || surahNumber < 1 || isClosed) return;
     QuranAyahTiming? current;
@@ -309,6 +428,7 @@ class QuranCubit extends Cubit<QuranState> {
     currentAyahNumber = current.ayah;
     currentPageNumber = current.ayah;
     unawaited(_saveAyahPosition(current.ayah));
+    _requestReaderPlaybackNavigation(surahNumber, current.ayah);
     _publishMediaItem();
     emit(_nextState);
   }
@@ -323,6 +443,24 @@ class QuranCubit extends Cubit<QuranState> {
 
   Future<void> previousAyah() => _navigateAyah(previous: true);
   Future<void> nextAyah() => _navigateAyah(previous: false);
+
+  Future<void> previousSurah() => _navigateSurah(previous: true);
+  Future<void> nextSurah() => _navigateSurah(previous: false);
+
+  Future<void> _navigateSurah({required bool previous}) =>
+      _enqueueAudioCommand(() async {
+        final targetSurah = surahNumber + (previous ? -1 : 1);
+        if (targetSurah < 1 || targetSurah > 114) return;
+
+        _audioErrorReported = false;
+        _audioStartTimeout?.cancel();
+        await _switchSurahForPlayback(
+          targetSurah,
+          targetAyah: 1,
+          resume: true,
+          mode: QuranPlaybackMode.fullSurah,
+        );
+      });
 
   Future<void> seekToAyahProgress(double progress) {
     final seekRevision = ++_seekRevision;
@@ -364,14 +502,20 @@ class QuranCubit extends Cubit<QuranState> {
 
       currentAyahNumber = timing.ayah;
       currentPageNumber = timing.ayah;
+      _requestReaderPlaybackNavigation(surahNumber, timing.ayah);
       _publishMediaItem();
       emit(_nextState);
       unawaited(_saveAyahPosition(timing.ayah));
+      _seekingToAyah = true;
       try {
         await _audioPlayer.player.seek(timing.start);
+        if (seekRevision == _seekRevision) {
+          _updateAyahFromPosition(_audioPlayer.player.position, force: true);
+        }
       } catch (_) {
-        _updateAyahFromPosition(_audioPlayer.player.position, force: true);
         AppSnackBar.show(message: 'تعذر الانتقال إلى موضع التلاوة');
+      } finally {
+        _seekingToAyah = false;
       }
     });
   }
@@ -394,13 +538,20 @@ class QuranCubit extends Cubit<QuranState> {
       if (timing != null) {
         currentAyahNumber = targetAyah;
         currentPageNumber = targetAyah;
+        _requestReaderPlaybackNavigation(surahNumber, targetAyah);
         _publishMediaItem();
         emit(_nextState);
         unawaited(_saveAyahPosition(targetAyah));
+        _seekingToAyah = true;
         try {
           await _audioPlayer.player.seek(timing.start);
+          if (seekRevision == _seekRevision) {
+            _updateAyahFromPosition(_audioPlayer.player.position, force: true);
+          }
         } catch (_) {
           AppSnackBar.show(message: 'تعذر الانتقال إلى الآية');
+        } finally {
+          _seekingToAyah = false;
         }
         return;
       }
@@ -409,23 +560,131 @@ class QuranCubit extends Cubit<QuranState> {
     });
   }
 
+  /// Moves the active audio session to the first Ayah on a page selected in
+  /// the reader. Paused playback stays paused; active playback keeps running.
+  Future<void> navigatePlaybackToAyah(int number, int ayah) =>
+      _enqueueAudioCommand(() async {
+        if ((!hasActivePlaybackSession && !quranSoundActive) ||
+            number < 1 ||
+            number > 114) {
+          return;
+        }
+        final targetAyah = ayah.clamp(1, quran.getVerseCount(number)).toInt();
+        final shouldResume = _audioPlayer.player.playing;
+        if (number != surahNumber) {
+          await _switchSurahForPlayback(
+            number,
+            targetAyah: targetAyah,
+            resume: shouldResume,
+            mode: playbackMode,
+          );
+          return;
+        }
+
+        if (_singleAyahPlayback) {
+          if (targetAyah != currentAyahNumber) {
+            await _playSingleAyah(
+              number,
+              targetAyah,
+              resume: shouldResume,
+              mode: playbackMode,
+            );
+          }
+          return;
+        }
+        final ayahWasAlreadyCurrent = targetAyah == currentAyahNumber;
+        if (_ayahTimings.isEmpty) {
+          currentAyahNumber = targetAyah;
+          currentPageNumber = targetAyah;
+          _requestReaderPlaybackNavigation(number, targetAyah);
+          unawaited(_saveAyahPosition(targetAyah));
+          _publishMediaItem();
+          emit(_nextState);
+          await _loadAyahTimings(number, preserveAyah: targetAyah);
+        }
+        QuranAyahTiming? timing;
+        for (final candidate in _ayahTimings) {
+          if (candidate.ayah == targetAyah) {
+            timing = candidate;
+            break;
+          }
+        }
+        if (ayahWasAlreadyCurrent) return;
+        if (timing == null) {
+          await _playSingleAyah(
+            number,
+            targetAyah,
+            resume: shouldResume,
+            mode: playbackMode,
+          );
+          return;
+        }
+
+        currentAyahNumber = targetAyah;
+        currentPageNumber = targetAyah;
+        _requestReaderPlaybackNavigation(number, targetAyah);
+        unawaited(_saveAyahPosition(targetAyah));
+        _publishMediaItem();
+        emit(_nextState);
+        _seekingToAyah = true;
+        try {
+          await _audioPlayer.player.seek(timing.start);
+          _updateAyahFromPosition(_audioPlayer.player.position, force: true);
+        } catch (_) {
+          // Keep the selected Quran position if seeking is unavailable.
+        } finally {
+          _seekingToAyah = false;
+        }
+      });
+
   Future<void> _navigateAyah({required bool previous}) =>
       _enqueueAudioCommand(() async {
         if (surahNumber < 1) return;
+        // Read the source player's state at command execution time. Cubit/UI
+        // snapshots can lag while MediaSession commands are being processed.
+        final shouldResume = _audioPlayer.player.playing;
         playbackMode = QuranPlaybackMode.fromAyah;
-        if (_ayahTimings.isEmpty) await _loadAyahTimings(surahNumber);
-        if (_ayahTimings.isEmpty) {
+        // A single-Ayah source has no Surah-wide timing positions. Navigate
+        // through the reciter's Ayah tracks instead of seeking a short track
+        // using timestamps from a different, full-Surah recording.
+        if (_singleAyahPlayback) {
           final targetAyah = currentAyahNumber + (previous ? -1 : 1);
           final verseCount = quran.getVerseCount(surahNumber);
           if (targetAyah >= 1 && targetAyah <= verseCount) {
-            await _playSingleAyah(surahNumber, targetAyah, resume: isPlaying);
+            await _playSingleAyah(
+              surahNumber,
+              targetAyah,
+              resume: shouldResume,
+              mode: QuranPlaybackMode.fromAyah,
+            );
           } else {
             final adjacentSurah = surahNumber + (previous ? -1 : 1);
             if (adjacentSurah < 1 || adjacentSurah > 114) return;
             await _switchSurahForPlayback(
               adjacentSurah,
               targetAyah: previous ? quran.getVerseCount(adjacentSurah) : 1,
-              resume: isPlaying,
+              resume: shouldResume,
+            );
+          }
+          return;
+        }
+        if (_ayahTimings.isEmpty) await _loadAyahTimings(surahNumber);
+        if (_ayahTimings.isEmpty) {
+          final targetAyah = currentAyahNumber + (previous ? -1 : 1);
+          final verseCount = quran.getVerseCount(surahNumber);
+          if (targetAyah >= 1 && targetAyah <= verseCount) {
+            await _playSingleAyah(
+              surahNumber,
+              targetAyah,
+              resume: shouldResume,
+            );
+          } else {
+            final adjacentSurah = surahNumber + (previous ? -1 : 1);
+            if (adjacentSurah < 1 || adjacentSurah > 114) return;
+            await _switchSurahForPlayback(
+              adjacentSurah,
+              targetAyah: previous ? quran.getVerseCount(adjacentSurah) : 1,
+              resume: shouldResume,
             );
           }
           return;
@@ -440,7 +699,15 @@ class QuranCubit extends Cubit<QuranState> {
             await _playSingleAyah(
               surahNumber,
               fallbackAyah,
-              resume: isPlaying,
+              resume: shouldResume,
+            );
+          } else {
+            final adjacentSurah = surahNumber + (previous ? -1 : 1);
+            if (adjacentSurah < 1 || adjacentSurah > 114) return;
+            await _switchSurahForPlayback(
+              adjacentSurah,
+              targetAyah: previous ? quran.getVerseCount(adjacentSurah) : 1,
+              resume: shouldResume,
             );
           }
           return;
@@ -451,26 +718,29 @@ class QuranCubit extends Cubit<QuranState> {
           final timing = _ayahTimings[targetIndex];
           currentAyahNumber = timing.ayah;
           currentPageNumber = timing.ayah;
+          _requestReaderPlaybackNavigation(surahNumber, timing.ayah);
           _publishMediaItem();
           emit(_nextState);
           unawaited(_saveAyahPosition(timing.ayah));
+          _seekingToAyah = true;
           try {
             await _audioPlayer.player.seek(timing.start);
           } catch (_) {
             AppSnackBar.show(message: 'تعذر الانتقال إلى الآية');
             return;
+          } finally {
+            _seekingToAyah = false;
           }
-          if (isPlaying) await _startPlayback();
+          if (shouldResume) await _startPlayback();
           return;
         }
         final adjacentSurah = surahNumber + (previous ? -1 : 1);
         if (adjacentSurah < 1 || adjacentSurah > 114) return;
-        final resume = isPlaying;
         final targetAyah = previous ? quran.getVerseCount(adjacentSurah) : 1;
         await _switchSurahForPlayback(
           adjacentSurah,
           targetAyah: targetAyah,
-          resume: resume,
+          resume: shouldResume,
         );
       });
 
@@ -479,6 +749,8 @@ class QuranCubit extends Cubit<QuranState> {
     required int targetAyah,
     required bool resume,
     QuranPlaybackMode mode = QuranPlaybackMode.fromAyah,
+    bool allowNetworkWhenOffline = false,
+    int? restorePositionMs,
   }) async {
     playbackMode = mode;
     final rawName = quran.getSurahNameArabic(number);
@@ -492,9 +764,11 @@ class QuranCubit extends Cubit<QuranState> {
     setSurahInfo(number, nextName);
     currentAyahNumber = targetAyah;
     currentPageNumber = targetAyah;
+    if (restorePositionMs == null) _resetSavedAudioPositionForCurrentTrack();
+    _requestReaderPlaybackNavigation(number, targetAyah);
     unawaited(_saveAyahPosition(targetAyah));
-    isPlaying = false;
     quranSoundUrl = audioUrlFor(number);
+    _persistCurrentAudioSource();
     _setAudioLoading(true);
     try {
       final cachedPath = await _audioRepository.cachedPath(
@@ -504,26 +778,37 @@ class QuranCubit extends Cubit<QuranState> {
       if (cachedPath != null) {
         await _audioPlayer.setFile(cachedPath);
         isCached = true;
-      } else if (isOnline) {
+      } else if (isOnline || allowNetworkWhenOffline) {
         await _audioPlayer.setUrl(quranSoundUrl);
       } else {
         throw StateError('Surah is not available offline');
       }
       _audioSourcePrepared = true;
       _sourceReciter = selectedReciter;
-      await _loadAyahTimings(number);
+      await _loadAyahTimings(number, preserveAyah: targetAyah);
       // Timing initialization may inspect the player's old zero position;
       // restore the requested bookmark position before publishing/seeking.
       currentAyahNumber = targetAyah;
       currentPageNumber = targetAyah;
       _publishMediaItem();
       emit(_nextState);
-      final start = _startForAyah(targetAyah);
-      if (start != null) {
-        await _audioPlayer.player.seek(Duration(milliseconds: start));
-      } else if (targetAyah > 1) {
-        await _playSingleAyah(number, targetAyah, resume: resume);
-        return;
+      if (restorePositionMs != null) {
+        final durationMs = _audioPlayer.player.duration?.inMilliseconds;
+        final safePositionMs = durationMs != null && durationMs > 0
+            ? restorePositionMs.clamp(0, durationMs)
+            : restorePositionMs;
+        final restoredPosition = Duration(milliseconds: safePositionMs);
+        await _audioPlayer.player.seek(restoredPosition);
+        _updateAyahFromPosition(restoredPosition, force: true);
+      } else {
+        final start = _startForAyah(targetAyah);
+        if (start != null) {
+          await _audioPlayer.player.seek(Duration(milliseconds: start));
+        } else if (targetAyah > 1) {
+          await _playSingleAyah(number, targetAyah, resume: resume);
+          return;
+        }
+        _persistCurrentAudioPosition(_audioPlayer.player.position, force: true);
       }
       _publishMediaItem();
       if (resume) await _startPlayback();
@@ -546,23 +831,24 @@ class QuranCubit extends Cubit<QuranState> {
     final rawName = quran.getSurahNameArabic(number);
     currentAyahNumber = ayah;
     currentPageNumber = ayah;
+    _requestReaderPlaybackNavigation(number, ayah);
     quranSoundActive = true;
     _playbackSessionActive = false;
     surahNumber = number;
     surahName = rawName == 'اللهب' ? 'المسد' : rawName;
     quranSoundUrl = url;
+    _persistCurrentAudioSource();
+    _resetSavedAudioPositionForCurrentTrack();
     _sourceReciter = selectedReciter;
     playbackMode = mode;
     _singleAyahPlayback = true;
     _ayahTimings = const [];
     _audioSourcePrepared = false;
     isCached = false;
-    isPlaying = false;
     _publishMediaItem();
     emit(_nextState);
     unawaited(_saveAyahPosition(ayah));
     await _audioPlayer.stop();
-    isPlaying = false;
     _setAudioLoading(true);
     try {
       await _audioPlayer.setUrl(url);
@@ -655,6 +941,15 @@ class QuranCubit extends Cubit<QuranState> {
             currentAyahNumber = savedAyah;
             currentPageNumber = savedAyah;
           }
+          final savedPosition = CacheHelper.getData(
+            key: _savedAudioPositionKey(selectedReciter.id, savedSurah),
+          );
+          if (savedPosition is int && savedPosition >= 0) {
+            _lastSavedAudioPositionMs = savedPosition;
+            _pendingRestoredAudioPositionMs = savedPosition;
+            _lastPositionWriteSurah = savedSurah;
+            _lastPositionWriteReciter = selectedReciter.id;
+          }
         }
       }
       emit(_nextState);
@@ -675,6 +970,10 @@ class QuranCubit extends Cubit<QuranState> {
       await _audioPlayer.stop();
       final previousPlaybackMode = playbackMode;
       selectedReciter = reciter;
+      _pendingRestoredAudioPositionMs = null;
+      _lastSavedAudioPositionMs = 0;
+      _lastPositionWriteSurah = surahNumber;
+      _lastPositionWriteReciter = reciter.id;
       _sourceReciter = null;
       _ayahTimings = const [];
       _singleAyahPlayback = false;
@@ -682,7 +981,6 @@ class QuranCubit extends Cubit<QuranState> {
       isCached = false;
       quranSoundUrl = surahNumber > 0 ? audioUrlFor(surahNumber) : '';
       unawaited(refreshCurrentSurahDownloadStatus());
-      isPlaying = false;
       _audioErrorReported = false;
       emit(_nextState);
 
@@ -800,7 +1098,6 @@ class QuranCubit extends Cubit<QuranState> {
         quranSoundActive = false;
         await _audioPlayer.stop();
         _audioSourcePrepared = false;
-        isPlaying = false;
         emit(_nextState);
       });
     }
@@ -880,8 +1177,6 @@ class QuranCubit extends Cubit<QuranState> {
     currentPageNumber = initialAyah;
     quranSoundUrl = '';
     quranSoundActive = false;
-    isPlaying = false;
-    soundIcon = Icons.play_arrow;
     setSurahInfo(number, name);
     await _enqueueAudioCommand(() async {
       try {
@@ -981,6 +1276,12 @@ class QuranCubit extends Cubit<QuranState> {
 
   void setSurahInfo(int number, String name) {
     final surahChanged = surahNumber != number;
+    if (surahChanged) {
+      _pendingRestoredAudioPositionMs = null;
+      _lastSavedAudioPositionMs = 0;
+      _lastPositionWriteSurah = number;
+      _lastPositionWriteReciter = selectedReciter.id;
+    }
     surahNumber = number;
     surahName = name == 'اللهب' ? 'المسد' : name;
     if (number > 0) {
@@ -997,6 +1298,7 @@ class QuranCubit extends Cubit<QuranState> {
       _enqueueAudioCommand(() async {
         quranSoundActive = true;
         quranSoundUrl = urlSrc;
+        _persistCurrentAudioSource();
         _audioSourcePrepared = false;
         _preparingAudioSource = true;
         _setAudioLoading(true);
@@ -1025,19 +1327,63 @@ class QuranCubit extends Cubit<QuranState> {
         }
       });
 
-  Future<void> changeQuranSoundActive() => _enqueueAudioCommand(() async {
+  Future<void> changeQuranSoundActive() {
+    debugPrint(
+      'QuranWidgetPlay: Cubit received Stop surah=$surahNumber '
+      'playing=${_audioPlayer.player.playing} active=$quranSoundActive '
+      'position=${_audioPlayer.player.position}',
+    );
+    if (_stopCommandPending) return Future<void>.value();
+    if (!quranSoundActive &&
+        !_audioPlayer.player.playing &&
+        !isAudioLoading &&
+        _audioPlayer.player.processingState == ProcessingState.idle &&
+        _audioPlayer.handler.mediaItem.value == null) {
+      return Future<void>.value();
+    }
+
+    // Publish the stopped session immediately. The old implementation waited
+    // for the serialized stop and seek before the Cubit reflected the button
+    // tap, allowing repeated taps to queue duplicate stops and stale UI state.
+    _stopCommandPending = true;
+    _playCommandPending = false;
+    _pauseCommandPending = false;
     quranSoundActive = false;
     _singleAyahPlayback = false;
     playbackMode = QuranPlaybackMode.fullSurah;
     _playbackSessionActive = false;
+    _audioSourcePrepared = false;
+    _pendingRestoredAudioPositionMs = null;
+    _lastSavedAudioPositionMs = 0;
+    if (surahNumber >= 1 && surahNumber <= 114) {
+      unawaited(
+        CacheHelper.removeData(
+          key: _savedAudioPositionKey(selectedReciter.id, surahNumber),
+        ),
+      );
+    }
     _audioStartTimeout?.cancel();
-    await _audioPlayer.stop();
-    await _audioPlayer.seekToStart();
-    _audioPlayer.handler.clearMediaItem();
     isAudioLoading = false;
-    soundIcon = Icons.play_arrow;
     emit(_nextState);
-  });
+
+    return _enqueueAudioCommand(() async {
+      try {
+        try {
+          await _audioPlayer.stop();
+        } finally {
+          try {
+            await _audioPlayer.seekToStart();
+          } finally {
+            _audioPlayer.handler.clearMediaItem();
+            debugPrint('QuranWidgetPlay: Stop completed and MediaSession cleared');
+          }
+        }
+      } finally {
+        _stopCommandPending = false;
+        if (!isClosed) emit(_nextState);
+      }
+    });
+  }
 
   Future<void> playAzan() async {
     await azanSound.setAsset(AppAssets.azan);
@@ -1046,35 +1392,115 @@ class QuranCubit extends Cubit<QuranState> {
 
   Future<void> stopAzan() => azanSound.stop();
 
-  Future<void> togglePlay() => _enqueueAudioCommand(() async {
-    if (_audioPlayer.player.playing) {
-      await _audioPlayer.pause();
-      return;
+  Future<void> togglePlay() {
+    // just_audio may emit the new playing value a moment after a command. Do
+    // not derive a second opposite command from that transitional value.
+    if (_stopCommandPending || _playCommandPending || _pauseCommandPending) {
+      return Future<void>.value();
     }
-    await _resumeQuranPlayback();
-  });
+    return _audioPlayer.player.playing
+        ? pausePlaybackFromMediaSession()
+        : resumePlaybackFromMediaSession();
+  }
 
   /// Entry point for Android MediaSession and widget Play commands. Unlike a
   /// UI toggle, a Play command must never pause an already-playing session.
   Future<void> resumePlaybackFromMediaSession() async {
+    debugPrint(
+      'QuranWidgetPlay: Cubit received Play surah=$surahNumber ayah=$currentAyahNumber '
+      'playing=${_audioPlayer.player.playing} prepared=$_audioSourcePrepared active=$quranSoundActive '
+      'position=${_audioPlayer.player.position}',
+    );
+    if (_audioPlayer.player.playing ||
+        _stopCommandPending ||
+        _playCommandPending ||
+        _pauseCommandPending) {
+      debugPrint('QuranWidgetPlay: Play ignored by state guard');
+      return;
+    }
+    _playCommandPending = true;
     await _reciterReady;
-    await _enqueueAudioCommand(() async {
-      if (_audioPlayer.player.playing) return;
-      await _resumeQuranPlayback();
-    });
+    try {
+      await _enqueueAudioCommand(() async {
+        if (_audioPlayer.player.playing) return;
+        // A stale third-party connectivity probe must not prevent the native
+        // widget from resolving the existing Surah source. Prefer the local
+        // cache first, then let the existing player report a genuine network
+        // failure if the source cannot be reached.
+        await _resumeQuranPlayback(allowNetworkWhenOffline: true);
+      });
+      debugPrint(
+        'QuranWidgetPlay: resume command finished playing=${_audioPlayer.player.playing} '
+        'loading=$isAudioLoading state=${_audioPlayer.player.playerState}',
+      );
+    } finally {
+      // startPlayer intentionally returns after issuing play(), while the
+      // actual PlayerState arrives on its stream. Keep duplicate Play events
+      // coalesced until that stream confirms playback or loading fails/ends.
+      if (_audioPlayer.player.playing ||
+          (!isAudioLoading &&
+              _audioPlayer.player.processingState != ProcessingState.loading &&
+              _audioPlayer.player.processingState != ProcessingState.buffering)) {
+        _playCommandPending = false;
+      }
+    }
   }
 
-  Future<void> pausePlaybackFromMediaSession() =>
-      _enqueueAudioCommand(() async {
-        if (_audioPlayer.player.playing) await _audioPlayer.pause();
-      });
-
-  Future<void> _resumeQuranPlayback() async {
+  Future<void> pausePlaybackFromMediaSession() async {
+    if (_stopCommandPending ||
+        !_audioPlayer.player.playing ||
+        _playCommandPending ||
+        _pauseCommandPending) {
+      return;
+    }
+    _pauseCommandPending = true;
     try {
+      await _enqueueAudioCommand(() async {
+        if (_audioPlayer.player.playing) {
+          await _audioPlayer.pause();
+          _persistCurrentAudioPosition(
+            _audioPlayer.player.position,
+            force: true,
+          );
+        }
+      });
+    } finally {
+      if (!_audioPlayer.player.playing) _pauseCommandPending = false;
+    }
+  }
+
+  Future<void> _resumeQuranPlayback({
+    bool allowNetworkWhenOffline = false,
+  }) async {
+    try {
+      debugPrint(
+        'QuranWidgetPlay: restore path surah=$surahNumber active=$quranSoundActive '
+        'prepared=$_audioSourcePrepared pendingPosition=$_pendingRestoredAudioPositionMs',
+      );
       if (surahNumber < 1) return;
       _audioErrorReported = false;
-      if (_playbackSessionActive) {
+      if (_playbackSessionActive && _audioSourcePrepared) {
         await _startPlayback();
+        return;
+      }
+      // The playback-session flag can outlive the prepared audio source during
+      // a source transition. Treat that as a recoverable resume, not as a
+      // ready player: _startPlayback would otherwise throw "source is not
+      // ready" and the shared failure handler would clear the MediaSession.
+      if (_playbackSessionActive && !_audioSourcePrepared) {
+        _playbackSessionActive = false;
+      }
+      final restoredPositionMs = _pendingRestoredAudioPositionMs;
+      if (restoredPositionMs != null) {
+        _pendingRestoredAudioPositionMs = null;
+        await _switchSurahForPlayback(
+          surahNumber,
+          targetAyah: currentAyahNumber,
+          resume: true,
+          mode: QuranPlaybackMode.fromAyah,
+          allowNetworkWhenOffline: allowNetworkWhenOffline,
+          restorePositionMs: restoredPositionMs,
+        );
         return;
       }
       if (playbackMode == QuranPlaybackMode.ayahOnly) {
@@ -1092,12 +1518,16 @@ class QuranCubit extends Cubit<QuranState> {
           targetAyah: currentAyahNumber,
           resume: true,
           mode: QuranPlaybackMode.fromAyah,
+          allowNetworkWhenOffline: allowNetworkWhenOffline,
         );
         return;
       }
       quranSoundActive = true;
       _publishMediaItem();
-      await _prepareAudioSource(preferOffline: true);
+      await _prepareAudioSource(
+        preferOffline: true,
+        allowNetworkWhenOffline: allowNetworkWhenOffline,
+      );
       await _startPlayback();
       if (!_singleAyahPlayback) unawaited(_loadAyahTimings(surahNumber));
     } catch (_) {
@@ -1105,18 +1535,22 @@ class QuranCubit extends Cubit<QuranState> {
     }
   }
 
-  Future<void> _prepareAudioSource({required bool preferOffline}) async {
+  Future<void> _prepareAudioSource({
+    required bool preferOffline,
+    bool allowNetworkWhenOffline = false,
+  }) async {
     if (_audioSourcePrepared) return;
     if (surahNumber < 1) throw StateError('No Surah selected');
 
     _singleAyahPlayback = false;
+    quranSoundUrl = audioUrlFor(surahNumber);
+    _persistCurrentAudioSource();
     _preparingAudioSource = true;
     _setAudioLoading(true);
     try {
       if (preferOffline) {
-        final currentUrl = audioUrlFor(surahNumber);
         final cachedPath = await _audioRepository.cachedPath(
-          currentUrl,
+          quranSoundUrl,
           legacyUrl: _legacyAlafasyUrl(surahNumber),
         );
         if (cachedPath != null) {
@@ -1131,12 +1565,11 @@ class QuranCubit extends Cubit<QuranState> {
             _audioSourcePrepared = false;
           }
         }
-        if (!isOnline) {
+        if (!isOnline && !allowNetworkWhenOffline) {
           throw StateError('Offline Quran audio is unavailable');
         }
       }
 
-      quranSoundUrl = audioUrlFor(surahNumber);
       await _audioPlayer.setUrl(quranSoundUrl);
       _audioSourcePrepared = true;
       _sourceReciter = selectedReciter;
@@ -1155,6 +1588,9 @@ class QuranCubit extends Cubit<QuranState> {
       await _audioPlayer.seekToStart();
     }
     _publishMediaItem();
+    debugPrint(
+      'QuranWidgetPlay: starting source=$quranSoundUrl at ${_audioPlayer.player.position}',
+    );
     _audioStartTimeout?.cancel();
     isAudioLoading = true;
     emit(_nextState);
@@ -1182,9 +1618,19 @@ class QuranCubit extends Cubit<QuranState> {
       _audioPlayer.handler.clearMediaItem();
     }
     final completed = state.processingState == ProcessingState.completed;
-    isPlaying = state.playing && !completed;
-    if (isPlaying) _playbackSessionActive = true;
-    soundIcon = isPlaying ? Icons.pause : Icons.play_arrow;
+    final isActuallyPlaying = state.playing && !completed;
+    if (isActuallyPlaying) {
+      _playbackSessionActive = true;
+      _playCommandPending = false;
+    } else {
+      if (_pauseCommandPending) _pauseCommandPending = false;
+      if (_playCommandPending &&
+          !isAudioLoading &&
+          state.processingState != ProcessingState.loading &&
+          state.processingState != ProcessingState.buffering) {
+        _playCommandPending = false;
+      }
+    }
 
     final buffering =
         state.processingState == ProcessingState.loading ||
@@ -1286,13 +1732,13 @@ class QuranCubit extends Cubit<QuranState> {
       return;
     }
     _audioErrorReported = true;
+    _playCommandPending = false;
+    _pauseCommandPending = false;
     _audioStartTimeout?.cancel();
-    isPlaying = false;
     isAudioLoading = false;
     quranSoundActive = false;
     _singleAyahPlayback = false;
     _playbackSessionActive = false;
-    soundIcon = Icons.play_arrow;
     _audioSourcePrepared = false;
     _audioPlayer.handler.clearMediaItem();
     emit(_nextState);

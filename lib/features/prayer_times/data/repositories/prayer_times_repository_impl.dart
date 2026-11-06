@@ -7,6 +7,9 @@ class PrayerTimesRepositoryImpl implements PrayerTimesRepository {
   final PrayerLocationDataSource dataSource;
 
   @override
+  Future<void> verifyLocationAccess() => dataSource.verifyLocationAccess();
+
+  @override
   Future<PrayerTimes?> getCached(DateTime date) => dataSource.getCached(date);
 
   @override

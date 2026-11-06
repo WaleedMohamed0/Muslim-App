@@ -24,7 +24,10 @@ class ElAzanScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    // The Isha photo is a night scene; keep its overlay dark in light mode too
+    // so the image does not get washed out by the light surface gradient.
+    final isDark =
+        theme.brightness == Brightness.dark || prayer.trim() == 'العشاء';
     const azanNight = Color(0xFF10231F);
     final foreground = isDark ? Colors.white : colors.onSurface;
     final mutedForeground =
@@ -58,11 +61,7 @@ class ElAzanScreen extends StatelessWidget {
                           azanNight.withValues(alpha: .48),
                           azanNight.withValues(alpha: .94),
                         ]
-                        : [
-                          colors.surface.withValues(alpha: .58),
-                          colors.surface.withValues(alpha: .72),
-                          colors.surface.withValues(alpha: .96),
-                        ],
+                        :[],
                 stops: const [0, .42, 1],
               ),
             ),

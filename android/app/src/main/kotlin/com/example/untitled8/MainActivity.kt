@@ -26,6 +26,20 @@ class MainActivity: AudioServiceActivity() {
     private var notificationPermissionResult: MethodChannel.Result? = null
     private val notificationPermissionRequest = 7401
 
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
+            )
+        }
+        super.onCreate(savedInstanceState)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         notificationNavigation = MethodChannel(
@@ -145,7 +159,17 @@ class MainActivity: AudioServiceActivity() {
     }
 
     private fun notificationRouteFrom(source: Intent?): String? {
-        val rawRoute = source?.getStringExtra("notification_route")
+        val surahNumber = source?.getIntExtra("surah_number", 0) ?: 0
+        val pageNumber = source?.getIntExtra("page_number", 0) ?: 0
+        val ayahNumber = source?.getIntExtra("ayah_number", 0) ?: 0
+        val explicitQuranPosition = if (surahNumber in 1..114 && ayahNumber > 0) {
+            "quran_reader:$surahNumber:$pageNumber:$ayahNumber"
+        } else {
+            null
+        }
+        val rawRoute = explicitQuranPosition
+            ?: source?.getStringExtra("notification_route")
+            ?: routeFromDailyReminderUri(source?.data)
             ?: if (source?.getBooleanExtra("open_adhan_settings", false) == true) {
                 "elazan_screen"
             } else {
@@ -157,11 +181,24 @@ class MainActivity: AudioServiceActivity() {
         return if (prayer.isNullOrBlank()) route else "$route:$prayer"
     }
 
+    private fun routeFromDailyReminderUri(uri: Uri?): String? {
+        if (uri?.scheme != "muslimapp" || uri.host != "notification") return null
+        return when (uri.lastPathSegment) {
+            "morning" -> "azkar_morning"
+            "evening" -> "azkar_evening"
+            "daily_wird" -> "daily_wird"
+            else -> null
+        }
+    }
+
     private fun consumeNotificationRoute(): String? {
         val route = pendingNotificationRoute ?: notificationRouteFrom(intent)
         pendingNotificationRoute = null
         intent?.removeExtra("notification_route")
         intent?.removeExtra("open_adhan_settings")
+        intent?.removeExtra("surah_number")
+        intent?.removeExtra("page_number")
+        intent?.removeExtra("ayah_number")
         return route
     }
 

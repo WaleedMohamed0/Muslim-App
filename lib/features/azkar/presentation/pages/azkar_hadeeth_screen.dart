@@ -241,11 +241,6 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                                       instructions: entry.verified
                                           ? entry.instructions
                                           : null,
-                                      isFavorite:
-                                          state.favoriteEntryIds.contains(entry.id),
-                                      onFavorite: () =>
-                                          cubit.toggleFavorite(entry),
-                                      onShare: () => cubit.shareEntry(entry),
                                       onCopy: () => Clipboard.setData(
                                         ClipboardData(text: entry.content),
                                       ),
@@ -289,9 +284,6 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                         instructions: entry.verified ? entry.instructions : null,
                         onCopy:
                             () => Clipboard.setData(ClipboardData(text: text)),
-                        isFavorite: state.favoriteEntryIds.contains(entry.id),
-                        onFavorite: () => cubit.toggleFavorite(entry),
-                        onShare: () => cubit.shareEntry(entry),
                         onIncrement: () => cubit.incrementEntry(entry),
                         onReset: () => cubit.resetEntry(entry),
                       );

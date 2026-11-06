@@ -51,16 +51,14 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
     _isLoadingPrayerTimes = true;
     try {
       final today = DateTime.now();
+      // Validate fresh OS permission/service state before even presenting a
+      // cached location-specific result. Permission revocation in Android
+      // Settings must not be hidden by today's cache.
+      await _getPrayerTimes.verifyLocationAccess();
       final cached = await _getPrayerTimes.getCached(today);
       if (cached != null) {
         _publishPrayerTimes(cached);
         if (!isOnline) return;
-      } else if (!isOnline) {
-        emit(const PrayerTimesState(
-          error: 'لا يوجد اتصال بالإنترنت',
-          status: PrayerTimesStatus.failure,
-        ));
-        return;
       }
       if (cached == null || forceRefresh) {
         if (cached == null) {
@@ -76,9 +74,12 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       }
     } catch (error) {
       // Keep a valid cached day visible when refresh/location lookup fails.
-      if (state.status != PrayerTimesStatus.loaded) {
+      if (state.status != PrayerTimesStatus.loaded ||
+          error is PrayerLocationException) {
+        final errorType = _errorType(error);
         emit(PrayerTimesState(
           error: _localizedError(error),
+          errorType: errorType,
           status: PrayerTimesStatus.failure,
         ));
       }
@@ -88,31 +89,52 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   }
 
   String _localizedError(Object error) {
-    final details = error.toString().toLowerCase();
-    if (error is DioException) {
-      if (error.type == DioExceptionType.connectionError ||
-          error.type == DioExceptionType.connectionTimeout ||
-          error.type == DioExceptionType.receiveTimeout ||
-          error.type == DioExceptionType.sendTimeout) {
-        return 'لا يوجد اتصال بالإنترنت';
-      }
-      return 'تعذر تحميل مواقيت الصلاة. يرجى المحاولة مرة أخرى.';
+    if (error is PrayerLocationException) {
+      return switch (error.failure) {
+        PrayerLocationFailure.servicesDisabled =>
+          'يرجى تفعيل الموقع (Location) لعرض مواقيت الصلاة.',
+        PrayerLocationFailure.permissionDenied =>
+          'يرجى السماح للتطبيق بالوصول إلى الموقع لعرض مواقيت الصلاة.',
+        PrayerLocationFailure.permissionPermanentlyDenied =>
+          'تم رفض إذن الموقع نهائيًا. افتح إعدادات التطبيق للسماح بالوصول إلى الموقع.',
+        PrayerLocationFailure.unavailable =>
+          'تعذر تحديد موقعك. تحقق من إعدادات الموقع وحاول مرة أخرى.',
+      };
     }
-    if (details.contains('location permission denied') ||
-        details.contains('permission denied')) {
-      return 'يرجى السماح بالوصول إلى الموقع لعرض مواقيت الصلاة.';
-    }
-    if (details.contains('location services are disabled') ||
-        details.contains('location service')) {
-      return 'يرجى تفعيل خدمات الموقع لعرض مواقيت الصلاة.';
-    }
-    if (!isOnline ||
-        details.contains('socketexception') ||
-        details.contains('failed host lookup') ||
-        details.contains('network is unreachable')) {
-      return 'لا يوجد اتصال بالإنترنت';
-    }
+    if (_isNetworkError(error)) return 'لا يوجد اتصال بالإنترنت';
     return 'تعذر تحميل مواقيت الصلاة. يرجى المحاولة مرة أخرى.';
+  }
+
+  PrayerTimesErrorType _errorType(Object error) {
+    if (error is PrayerLocationException) {
+      return switch (error.failure) {
+        PrayerLocationFailure.servicesDisabled =>
+          PrayerTimesErrorType.locationServicesDisabled,
+        PrayerLocationFailure.permissionDenied =>
+          PrayerTimesErrorType.locationPermissionDenied,
+        PrayerLocationFailure.permissionPermanentlyDenied =>
+          PrayerTimesErrorType.locationPermissionPermanentlyDenied,
+        PrayerLocationFailure.unavailable =>
+          PrayerTimesErrorType.locationUnavailable,
+      };
+    }
+    if (_isNetworkError(error)) return PrayerTimesErrorType.network;
+    return PrayerTimesErrorType.general;
+  }
+
+  bool _isNetworkError(Object error) {
+    if (error is DioException &&
+        (error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout ||
+            error.type == DioExceptionType.sendTimeout)) {
+      return true;
+    }
+    final cause = error is DioException ? error.error?.toString() ?? '' : '';
+    final details = '${error.toString()} $cause'.toLowerCase();
+    return details.contains('socketexception') ||
+        details.contains('failed host lookup') ||
+        details.contains('network is unreachable');
   }
 
   void _publishPrayerTimes(PrayerTimes times) {

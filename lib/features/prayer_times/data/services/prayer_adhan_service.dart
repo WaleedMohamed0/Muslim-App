@@ -48,7 +48,18 @@ class PrayerAdhanService {
 
   Future<PrayerAdhanSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    return PrayerAdhanSettings(
+    final settings = _settingsFromPrefs(prefs);
+    // Repair native/Dart preference drift before displaying the current state.
+    try {
+      await _syncNativeSettings(settings);
+    } on PlatformException {
+      // Settings remain readable if the native channel is temporarily absent.
+    }
+    return settings;
+  }
+
+  PrayerAdhanSettings _settingsFromPrefs(SharedPreferences prefs) =>
+      PrayerAdhanSettings(
       enabled: prefs.getBool(_enabledKey) ?? false,
       prayers: {
         for (final prayer in _prayers)
@@ -57,7 +68,14 @@ class PrayerAdhanService {
       volume: prefs.getDouble(_volumeKey) ?? .85,
       audioId: AdhanAudioOption.byId(prefs.getString(_audioIdKey)).id,
     );
-  }
+
+  Future<void> _syncNativeSettings(PrayerAdhanSettings settings) =>
+      _channel.invokeMethod<void>('saveSettings', {
+        'enabled': settings.enabled,
+        'volume': settings.volume.clamp(0, 1).toDouble(),
+        'prayers': settings.prayers,
+        'audioId': AdhanAudioOption.byId(settings.audioId).id,
+      });
 
   Future<void> saveSettings(PrayerAdhanSettings settings) async {
     final prefs = await SharedPreferences.getInstance();
@@ -70,15 +88,12 @@ class PrayerAdhanService {
     }
     final audioId = AdhanAudioOption.byId(settings.audioId).id;
     await prefs.setString(_audioIdKey, audioId);
-    await _channel.invokeMethod<void>('saveSettings', {
-      'enabled': settings.enabled,
-      'volume': settings.volume.clamp(0, 1).toDouble(),
-      'prayers': settings.prayers,
-      'audioId': audioId,
-    });
+    await _syncNativeSettings(settings);
   }
 
   Future<void> updateSchedule(List<PrayerAlarmTime> alarms) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _syncNativeSettings(_settingsFromPrefs(prefs));
     await _channel.invokeMethod<void>('updateSchedule', {
       'alarms': [
         for (final alarm in alarms)

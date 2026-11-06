@@ -10,7 +10,6 @@ import 'package:untitled8/core/widgets/app_widgets.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
 import 'package:untitled8/features/quran/presentation/widgets/mushaf_text_page.dart';
-import 'package:untitled8/features/quran/presentation/widgets/quran_audio_mini_player.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_reader_audio_controls.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_reader_palette.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_reader_sheets.dart';
@@ -21,9 +20,11 @@ class SurahScreen extends StatefulWidget {
     super.key,
     required this.surahNumber,
     this.initialAyah,
+    this.initialPageNumber,
   });
   final int surahNumber;
   final int? initialAyah;
+  final int? initialPageNumber;
 
   @override
   State<SurahScreen> createState() => _SurahScreenState();
@@ -44,8 +45,13 @@ class _SurahScreenState extends State<SurahScreen> {
   double _fontSize = 19;
   bool _fontSizeChangedBeforeRestore = false;
   bool _readerOnlyDuringOtherPlayback = false;
+  late int _lastSurahPlaybackNavigationRevision;
+  int? _playbackNavigationSurahOverride;
+  int? _playbackNavigationAyahOverride;
   int _pageIndex = 0;
   int _readerCurrentAyah = 1;
+  int? _pendingInitialPageIndex;
+  int? _pendingInitialAyah;
   bool _controlsVisible = true;
   Timer? _controlsTimer;
 
@@ -76,10 +82,17 @@ class _SurahScreenState extends State<SurahScreen> {
     _visibleSurahNumber = widget.surahNumber;
     final rawName = quran.getSurahNameArabic(_visibleSurahNumber);
     _surahName = rawName == 'اللهب' ? 'المسد' : rawName;
-    _pageIndex = quran.getPageNumber(widget.surahNumber, bookmarkedVerse) - 1;
+    final actualPage = quran.getPageNumber(widget.surahNumber, bookmarkedVerse);
+    final requestedPage = widget.initialPageNumber;
+    final pageNumber = requestedPage == actualPage ? requestedPage! : actualPage;
+    _pageIndex = pageNumber - 1;
     _readerCurrentAyah = bookmarkedVerse;
+    _pendingInitialPageIndex = _pageIndex;
+    _pendingInitialAyah = bookmarkedVerse;
     _pageController = PageController(initialPage: _pageIndex);
     _zoomController = TransformationController();
+    _lastSurahPlaybackNavigationRevision =
+        _cubit.surahPlaybackNavigationRevision;
     if (!_readerOnlyDuringOtherPlayback) {
       _cubit.setSurahInfo(widget.surahNumber, _surahName);
       if (!_cubit.hasActivePlaybackSession) {
@@ -87,7 +100,7 @@ class _SurahScreenState extends State<SurahScreen> {
       }
     }
     _audioStateSubscription = _cubit.stream.listen(
-      (_) => _handlePlaybackSessionEnded(),
+      (_) => _handleAudioStateChange(),
     );
     _scheduleControlsHide();
   }
@@ -173,6 +186,42 @@ class _SurahScreenState extends State<SurahScreen> {
     _cubit.setCurrentPageNumber(_readerCurrentAyah);
   }
 
+  void _handleAudioStateChange() {
+    if (!mounted) return;
+
+    final navigationRevision = _cubit.surahPlaybackNavigationRevision;
+    if (navigationRevision != _lastSurahPlaybackNavigationRevision) {
+      _lastSurahPlaybackNavigationRevision = navigationRevision;
+      final targetSurah = _cubit.surahPlaybackNavigationTarget;
+      final targetAyah = _cubit.surahPlaybackNavigationAyah;
+      if (targetSurah >= 1 && targetSurah <= quran.totalSurahCount) {
+        final targetPage = quran.getPageNumber(targetSurah, targetAyah) - 1;
+        final rawName = quran.getSurahNameArabic(targetSurah);
+        final targetName = rawName == 'اللهب' ? 'المسد' : rawName;
+        _readerOnlyDuringOtherPlayback = false;
+        _playbackNavigationSurahOverride =
+            targetPage == _pageIndex ? null : targetSurah;
+        _playbackNavigationAyahOverride =
+            targetPage == _pageIndex ? null : targetAyah;
+        setState(() {
+          _visibleSurahNumber = targetSurah;
+          _surahName = targetName;
+          _pageIndex = targetPage;
+          _readerCurrentAyah = targetAyah;
+          _zoomScale = 1;
+          _zoomController.value = Matrix4.identity();
+        });
+        _cubit.saveReaderPosition(targetSurah, targetAyah);
+        if (_pageController.hasClients &&
+            _pageController.page?.round() != targetPage) {
+          _pageController.jumpToPage(targetPage);
+        }
+      }
+    }
+
+    _handlePlaybackSessionEnded();
+  }
+
   void _changeZoom(double value) {
     _zoomScale = value.clamp(1, 3).toDouble();
     _zoomController.value = Matrix4.identity()..scale(_zoomScale);
@@ -245,8 +294,39 @@ class _SurahScreenState extends State<SurahScreen> {
   void _handlePageChanged(int index) {
     final pageEntries = quran.getPageData(index + 1);
     final first = pageEntries.first as Map;
-    final surahNumber = (first['surah'] as num).toInt();
-    final verseNumber = (first['start'] as num).toInt();
+    final firstSurahNumber = (first['surah'] as num).toInt();
+    final pendingInitialPage = _pendingInitialPageIndex;
+    final pendingInitialAyah = _pendingInitialAyah;
+    final preserveInitialAyah =
+        pendingInitialPage == index && pendingInitialAyah != null;
+    _pendingInitialPageIndex = null;
+    _pendingInitialAyah = null;
+    final playbackSurahOverride = _playbackNavigationSurahOverride;
+    final playbackAyahOverride = _playbackNavigationAyahOverride;
+    final usePlaybackSurahOverride =
+        playbackSurahOverride != null &&
+        playbackAyahOverride != null &&
+        quran.getPageNumber(playbackSurahOverride, playbackAyahOverride) - 1 ==
+            index;
+    final initialSurahIsOnPage = preserveInitialAyah &&
+        pageEntries.any(
+          (entry) =>
+              ((entry as Map)['surah'] as num).toInt() == widget.surahNumber,
+        );
+    final surahNumber = usePlaybackSurahOverride
+        ? playbackSurahOverride ?? firstSurahNumber
+        : initialSurahIsOnPage
+        ? widget.surahNumber
+        : firstSurahNumber;
+    final verseNumber = usePlaybackSurahOverride
+        ? playbackAyahOverride ?? (first['start'] as num).toInt()
+        : initialSurahIsOnPage
+        ? pendingInitialAyah ?? (first['start'] as num).toInt()
+        : (first['start'] as num).toInt();
+    if (usePlaybackSurahOverride) {
+      _playbackNavigationSurahOverride = null;
+      _playbackNavigationAyahOverride = null;
+    }
     final rawName = quran.getSurahNameArabic(surahNumber);
     setState(() {
       _pageIndex = index;
@@ -257,16 +337,10 @@ class _SurahScreenState extends State<SurahScreen> {
       _zoomController.value = Matrix4.identity();
     });
     _cubit.saveReaderPosition(surahNumber, verseNumber);
-    if (!_cubit.hasActivePlaybackSession) {
-      unawaited(
-        _cubit.selectSurah(
-          surahNumber,
-          _surahName,
-          online: _cubit.isOnline,
-        ),
-      );
-      _cubit.setCurrentPageNumber(verseNumber);
-    }
+    // PageView changes are reader-only. Audio-driven seeking/navigation is
+    // handled through the playback navigation revision in
+    // _handleAudioStateChange, so browsing pages must not seek or replace the
+    // active audio session.
     _scheduleControlsHide();
   }
 
@@ -367,7 +441,6 @@ class _SurahScreenState extends State<SurahScreen> {
                     );
                   },
                   onTafsir: () {
-                    Navigator.pop(sheetContext);
                     _openTafsir(surahNumber, verse);
                   },
                   onCopy: () {
@@ -398,7 +471,6 @@ class _SurahScreenState extends State<SurahScreen> {
                 ],
               ),
             ),
-            const QuranAudioMiniPlayer(),
           ],
         ),
       ),

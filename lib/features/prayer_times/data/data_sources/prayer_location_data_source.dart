@@ -34,14 +34,48 @@ class PrayerLocationDataSource {
     return cached.times;
   }
 
-  Future<PrayerTimesDto> fetch(DateTime date, {bool forceRefresh = false}) async {
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-      throw Exception('Location permission denied');
+  /// Refreshes Android's current service and permission status without using
+  /// a stale cached grant or requesting any network data.
+  Future<void> verifyLocationAccess() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const PrayerLocationException(PrayerLocationFailure.servicesDisabled);
     }
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
-    );
+
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.deniedForever) {
+      throw const PrayerLocationException(
+        PrayerLocationFailure.permissionPermanentlyDenied,
+      );
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.unableToDetermine) {
+      throw const PrayerLocationException(PrayerLocationFailure.permissionDenied);
+    }
+  }
+
+  Future<PrayerTimesDto> fetch(DateTime date, {bool forceRefresh = false}) async {
+    // Check location before the API request so a disabled GPS or missing
+    // permission can never be reported as an internet failure.
+    await verifyLocationAccess();
+
+    late final Position position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
+      );
+    } on LocationServiceDisabledException {
+      throw const PrayerLocationException(PrayerLocationFailure.servicesDisabled);
+    } on PermissionDeniedException {
+      final currentPermission = await Geolocator.checkPermission();
+      throw PrayerLocationException(
+        currentPermission == LocationPermission.deniedForever
+            ? PrayerLocationFailure.permissionPermanentlyDenied
+            : PrayerLocationFailure.permissionDenied,
+      );
+    } catch (error) {
+      if (error is PrayerLocationException) rethrow;
+      throw const PrayerLocationException(PrayerLocationFailure.unavailable);
+    }
     CachedPrayerTimes? cached;
     try {
       cached = await _cache.read(date);
@@ -98,4 +132,17 @@ class PrayerLocationDataSource {
     );
     return response.data as Map<String, dynamic>;
   }
+}
+
+enum PrayerLocationFailure {
+  servicesDisabled,
+  permissionDenied,
+  permissionPermanentlyDenied,
+  unavailable,
+}
+
+class PrayerLocationException implements Exception {
+  const PrayerLocationException(this.failure);
+
+  final PrayerLocationFailure failure;
 }

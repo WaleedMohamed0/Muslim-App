@@ -55,6 +55,6 @@ flutter:
     - assets/features/quran/images/
     - assets/images/reciters/
   fonts:
-    - family: QuranFont
+    - family: UthmanicHafs
       fonts:
-        - asset: assets/features/quran/fonts/quran.ttf
+        - asset: assets/features/quran/fonts/hafs.18.ttf
