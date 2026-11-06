@@ -53,8 +53,9 @@ flutter:
     - assets/features/prayer_times/audio/
     - assets/features/prayer_times/images/
     - assets/features/quran/images/
+    - assets/features/quran/data/
     - assets/images/reciters/
   fonts:
     - family: UthmanicHafs
       fonts:
-        - asset: assets/features/quran/fonts/hafs.18.ttf
+        - asset: assets/features/quran/fonts/UthmanicHafs-v-3.0.ttf

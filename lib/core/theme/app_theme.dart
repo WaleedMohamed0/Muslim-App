@@ -101,6 +101,69 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
+      timePickerTheme: TimePickerThemeData(
+        hourMinuteColor: brightness == Brightness.light
+            ? WidgetStateColor.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? scheme.primary
+                    : scheme.onSurface.withValues(alpha: 0.12),
+              )
+            : null,
+        hourMinuteTextColor: brightness == Brightness.light
+            ? WidgetStateColor.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? scheme.onPrimary
+                    : scheme.onSurface,
+              )
+            : null,
+        dayPeriodColor: brightness == Brightness.light
+            ? WidgetStateColor.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? scheme.primary
+                    : Colors.transparent,
+              )
+            : null,
+        dayPeriodTextColor: brightness == Brightness.light
+            ? WidgetStateColor.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? scheme.onPrimary
+                    : scheme.onSurface.withValues(alpha: 0.6),
+              )
+            : null,
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: scheme.primary,
+          backgroundColor: scheme.surfaceContainerLow,
+          side: BorderSide(color: scheme.outlineVariant),
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.xs,
+            vertical: 0,
+          ),
+          minimumSize: const Size(72, 36),
+          textStyle: textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+          shape: const StadiumBorder(),
+        ),
+        confirmButtonStyle: FilledButton.styleFrom(
+          foregroundColor: scheme.onPrimary,
+          backgroundColor: scheme.primary,
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.xs,
+            vertical: 0,
+          ),
+          minimumSize: const Size(72, 36),
+          textStyle: textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+          shape: const StadiumBorder(),
+        ),
+        helpTextStyle: textTheme.titleMedium?.copyWith(
+          color: scheme.onSurface,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        padding: const EdgeInsetsDirectional.fromSTEB(24, 16, 24, 16),
+      ),
       scaffoldBackgroundColor: background,
       canvasColor: background,
       iconTheme: IconThemeData(color: scheme.onSurfaceVariant),

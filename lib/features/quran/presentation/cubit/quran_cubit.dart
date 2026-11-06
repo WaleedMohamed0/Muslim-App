@@ -1159,8 +1159,7 @@ class QuranCubit extends Cubit<QuranState> {
     // Reading navigation must never interrupt a live or paused audio session.
     // The reader can display another Surah independently while the shared
     // player remains bound to its current media item.
-    if (hasActivePlaybackSession) return;
-    final initialAyah = (startAyah ?? lastAyahForSurah(number) ?? 1)
+    final initialAyah = (startAyah ?? 1)
         .clamp(1, quran.getVerseCount(number))
         .toInt();
     ++_surahSelectionRevision;
@@ -1182,8 +1181,27 @@ class QuranCubit extends Cubit<QuranState> {
       try {
         await _audioPlayer.stop();
         _audioPlayer.handler.clearMediaItem();
+        quranSoundUrl = audioUrlFor(number);
+        _persistCurrentAudioSource();
+        final cachedPath = await _audioRepository.cachedPath(
+          quranSoundUrl,
+          legacyUrl: _legacyAlafasyUrl(number),
+        );
+        if (cachedPath != null) {
+          await _audioPlayer.setFile(cachedPath);
+          isCached = true;
+        } else if (online || isOnline) {
+          await _audioPlayer.setUrl(quranSoundUrl);
+          isCached = false;
+        } else {
+          throw StateError('Surah is not available offline');
+        }
+        await _audioPlayer.player.seek(Duration.zero);
+        _audioSourcePrepared = true;
+        _sourceReciter = selectedReciter;
+        _publishMediaItem();
       } catch (_) {
-        // Reading position should remain usable if a stale source cannot stop.
+        _audioSourcePrepared = false;
       }
     });
     emit(_nextState);

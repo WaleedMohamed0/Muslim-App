@@ -9,6 +9,7 @@ import 'package:untitled8/features/quran/presentation/widgets/surah_list.dart';
 import 'package:untitled8/features/quran/presentation/widgets/juz_list.dart';
 import 'package:untitled8/features/quran/presentation/widgets/saved_bookmarks_dialog.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_browse_mode_switcher.dart';
+import 'package:untitled8/features/quran/presentation/widgets/quran_search_field.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -142,35 +143,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 12),
-                    child: TextField(
+                    child: QuranSearchField(
                       controller: _surahSearchController,
-                      textDirection: isArabic
-                          ? TextDirection.rtl
-                          : TextDirection.ltr,
-                      textInputAction: TextInputAction.search,
+                      query: _surahSearchQuery,
+                      hintText: _showJuzView
+                          ? (isArabic ? 'ابحث عن جزء أو سورة' : 'Search Juz or Surah')
+                          : (isArabic ? 'ابحث عن سورة' : 'Search Surah'),
+                      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+                      clearTooltip: isArabic ? 'مسح البحث' : 'Clear search',
                       onChanged: (value) => setState(() => _surahSearchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: _showJuzView
-                            ? (isArabic ? 'ابحث عن جزء أو سورة' : 'Search Juz or Surah')
-                            : (isArabic ? 'ابحث عن سورة' : 'Search Surah'),
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: _surahSearchQuery.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: isArabic ? 'مسح البحث' : 'Clear search',
-                                onPressed: () {
-                                  _surahSearchController.clear();
-                                  setState(() => _surahSearchQuery = '');
-                                },
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                        filled: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadii.card),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                      onClear: () {
+                        _surahSearchController.clear();
+                        setState(() => _surahSearchQuery = '');
+                      },
                     ),
                   ),
                   Expanded(

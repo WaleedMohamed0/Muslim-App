@@ -73,7 +73,9 @@ internal object DailyAzkarReminderScheduler {
     private const val PREFS = "daily_azkar_reminders"
     private const val SETTINGS = "settings_json"
     private const val ACTION_REMINDER = "com.example.untitled8.DAILY_REMINDER"
-    private const val CHANNEL = "daily_azkar_reminders"
+    // Use a new channel id so installs that already created the old default-
+    // importance channel receive the updated heads-up alert behavior.
+    private const val CHANNEL = "daily_azkar_reminders_alerts"
 
     private data class Reminder(
         val id: String,
@@ -256,8 +258,11 @@ internal object DailyAzkarReminderScheduler {
                 NotificationChannel(
                     CHANNEL,
                     "تذكيرات الأذكار والورد",
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                ).apply { description = "تذكيرات محلية يومية للأذكار والورد" },
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply {
+                    description = "تنبيهات بارزة لتذكيرات الأذكار والورد"
+                    setShowBadge(false)
+                },
             )
         }
         val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -274,10 +279,14 @@ internal object DailyAzkarReminderScheduler {
                     else -> reminder.route
                 },
             )
-            // Start the reminder destination with a fresh Activity task so a
-            // previously visible Home route cannot remain above it in the
-            // restored Flutter navigation stack.
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            // Reuse the running activity when possible so onNewIntent can
+            // route the tap. On a cold start Android creates MainActivity
+            // with this same intent and Flutter consumes it at startup.
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            )
         }
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -291,8 +300,9 @@ internal object DailyAzkarReminderScheduler {
             .setContentText(reminder.message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(reminder.message))
             .setContentIntent(contentIntent)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .build()
         try {
             manager.notify(reminder.id.hashCode(), notification)

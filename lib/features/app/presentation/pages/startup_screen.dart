@@ -13,6 +13,7 @@ import 'package:untitled8/features/prayer_times/presentation/pages/elazan_screen
 import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_experience_card.dart';
 import 'package:untitled8/features/qibla/presentation/pages/qibla_compass_screen.dart';
 import 'package:untitled8/features/quran/presentation/pages/home_screen.dart';
+import 'package:untitled8/features/quran/presentation/pages/mushaf_markings_screen.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
 import 'package:untitled8/features/quran/presentation/widgets/quran_audio_mini_player.dart';
@@ -368,6 +369,16 @@ class _StartUpScreenState extends State<StartUpScreen> {
                           onTap:
                               () =>
                                   navigateTo(context, const AsmaaAllahScreen()),
+                        ),
+                        HomeFeatureTile(
+                          icon: Icons.menu_book_rounded,
+                          title: 'علامات المصحف',
+                          onTap: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: '/mushaf-markings'),
+                              builder: (_) => const MushafMarkingsScreen(),
+                            ),
+                          ),
                         ),
                         HomeFeatureTile(
                           icon: Icons.explore_rounded,

@@ -27,6 +27,9 @@ class MainActivity: AudioServiceActivity() {
     private val notificationPermissionRequest = 7401
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        // Keep the launch notification route available before Flutter installs
+        // the MethodChannel used by runMuslimApp() to consume it.
+        pendingNotificationRoute = notificationRouteFrom(intent)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
