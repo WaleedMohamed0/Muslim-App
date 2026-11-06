@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:untitled8/core/theme/app_theme.dart';
-import 'package:untitled8/core/widgets/app_widgets.dart';
-import 'package:untitled8/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
-import 'package:untitled8/features/prayer_times/presentation/cubit/prayer_times_state.dart';
-import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_times_content.dart';
+import 'package:muslim/core/theme/app_theme.dart';
+import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
+import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
+import 'package:muslim/features/prayer_times/presentation/widgets/prayer_times_content.dart';
 
 class PrayerTimes extends StatefulWidget {
   const PrayerTimes({super.key});

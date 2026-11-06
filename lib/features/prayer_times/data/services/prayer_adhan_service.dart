@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:untitled8/features/prayer_times/domain/entities/prayer_alarm_time.dart';
-import 'package:untitled8/features/prayer_times/domain/entities/adhan_audio_option.dart';
+import 'package:muslim/features/prayer_times/domain/entities/prayer_alarm_time.dart';
+import 'package:muslim/features/prayer_times/domain/entities/adhan_audio_option.dart';
 
 class PrayerAdhanSettings {
   const PrayerAdhanSettings({

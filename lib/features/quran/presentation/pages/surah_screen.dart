@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quran/quran.dart' as quran;
-import 'package:untitled8/core/widgets/app_widgets.dart';
-import 'package:untitled8/features/quran/presentation/controllers/surah_reader_controller.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
-import 'package:untitled8/features/quran/presentation/widgets/quran_reader_palette.dart';
-import 'package:untitled8/features/quran/presentation/widgets/surah_reader_action_sheets.dart';
-import 'package:untitled8/features/quran/presentation/widgets/surah_reader_view.dart';
+import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/features/quran/presentation/controllers/surah_reader_controller.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
+import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
+import 'package:muslim/features/quran/presentation/widgets/surah_reader_action_sheets.dart';
+import 'package:muslim/features/quran/presentation/widgets/surah_reader_view.dart';
 
 class SurahScreen extends StatefulWidget {
   const SurahScreen({

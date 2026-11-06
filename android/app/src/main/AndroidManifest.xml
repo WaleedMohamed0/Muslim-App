@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.untitled8">
+    package="com.example.muslim">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -21,6 +21,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:screenOrientation="portrait"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -66,8 +67,8 @@
             android:name=".QuranWidgetPlayReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.example.untitled8.QURAN_WIDGET_PLAY" />
-                <action android:name="com.example.untitled8.QURAN_WIDGET_PAUSE" />
+                <action android:name="com.example.muslim.QURAN_WIDGET_PLAY" />
+                <action android:name="com.example.muslim.QURAN_WIDGET_PAUSE" />
             </intent-filter>
         </receiver>
         <receiver

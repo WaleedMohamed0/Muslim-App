@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:untitled8/features/prayer_times/domain/entities/prayer_times.dart'
+import 'package:muslim/features/prayer_times/domain/entities/prayer_times.dart'
     as prayer_model;
-import 'package:untitled8/features/prayer_times/presentation/cubit/prayer_times_state.dart';
-import 'package:untitled8/features/prayer_times/presentation/models/prayer_schedule_item.dart';
-import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_time_tile.dart';
-import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_times_header.dart';
+import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
+import 'package:muslim/features/prayer_times/presentation/models/prayer_schedule_item.dart';
+import 'package:muslim/features/prayer_times/presentation/widgets/prayer_time_tile.dart';
+import 'package:muslim/features/prayer_times/presentation/widgets/prayer_times_header.dart';
 
 class PrayerTimesContent extends StatelessWidget {
   const PrayerTimesContent({super.key, required this.state});

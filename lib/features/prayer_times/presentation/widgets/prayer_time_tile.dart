@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled8/core/theme/app_theme.dart';
+import 'package:muslim/core/theme/app_theme.dart';
 
 class PrayerTimeTile extends StatelessWidget {
   const PrayerTimeTile({

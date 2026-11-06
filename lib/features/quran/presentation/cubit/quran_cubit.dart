@@ -1638,6 +1638,10 @@ class QuranCubit extends Cubit<QuranState> {
     final completed = state.processingState == ProcessingState.completed;
     final isActuallyPlaying = state.playing && !completed;
     if (isActuallyPlaying) {
+      // A delayed idle event from the previous source can arrive while a
+      // single-ayah replay is already playing. The player state is the source
+      // of truth here, so restore the active flag when playback is confirmed.
+      quranSoundActive = true;
       _playbackSessionActive = true;
       _playCommandPending = false;
     } else {

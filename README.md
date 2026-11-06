@@ -26,7 +26,7 @@ If more than one device is connected, pass its ADB serial:
 .\tool\run_android_debug.ps1 -DeviceId <serial>
 ```
 
-The script builds only `android-arm64`, compares the new APK signing certificate with the installed app, then uses `adb install -r` to update `com.example.untitled8` and preserve its data. It refuses to install if the package is missing or its signing key differs; it never uninstalls the app or clears data. After launch, Flutter attaches for hot reload: press `r` to reload, `R` to restart, or `q` to detach.
+The script builds only `android-arm64`, compares the new APK signing certificate with the installed app, then uses `adb install -r` to update `com.example.muslim` and preserve its data. It refuses to install if the package is missing or its signing key differs; it never uninstalls the app or clears data. After launch, Flutter attaches for hot reload: press `r` to reload, `R` to restart, or `q` to detach.
 
 Use `-AllowFirstInstall` only when intentionally installing the app for the first time; a fresh install has no existing on-device app data to preserve.
 

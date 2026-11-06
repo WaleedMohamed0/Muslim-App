@@ -30,7 +30,7 @@ if ($connectedDeviceIds -notcontains $DeviceId) {
   throw "Android device '$DeviceId' is not connected and authorized in adb."
 }
 
-$applicationId = 'com.example.untitled8'
+$applicationId = 'com.example.muslim'
 $installedApkResult = @(& $adbCommand.Source -s $DeviceId shell pm path $applicationId)
 if ($LASTEXITCODE -ne 0 -or $installedApkResult.Count -eq 0) {
   if (-not $AllowFirstInstall) {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled8/features/prayer_times/presentation/cubit/prayer_times_state.dart';
+import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
 
 class PrayerScheduleItem {
   const PrayerScheduleItem({

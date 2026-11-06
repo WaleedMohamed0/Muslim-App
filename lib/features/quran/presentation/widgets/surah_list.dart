@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart';
-import 'package:untitled8/core/theme/app_theme.dart';
+import 'package:muslim/core/theme/app_theme.dart';
 
 import '../pages/surah_screen.dart';
 import '../../../../core/widgets/app_widgets.dart';

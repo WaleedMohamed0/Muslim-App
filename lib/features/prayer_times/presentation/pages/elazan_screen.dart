@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:untitled8/core/assets/app_assets.dart';
-import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
-import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_experience_card.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:muslim/core/assets/app_assets.dart';
+import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/prayer_times/presentation/widgets/prayer_experience_card.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 
 class ElAzanScreen extends StatelessWidget {
   const ElAzanScreen({super.key, required this.prayer});

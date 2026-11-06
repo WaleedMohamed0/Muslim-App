@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:untitled8/core/widgets/app_widgets.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
-import 'package:untitled8/features/quran/presentation/widgets/surah_list.dart';
-import 'package:untitled8/features/quran/presentation/widgets/juz_list.dart';
-import 'package:untitled8/features/quran/presentation/widgets/saved_bookmarks_dialog.dart';
-import 'package:untitled8/features/quran/presentation/widgets/quran_browse_mode_switcher.dart';
-import 'package:untitled8/features/quran/presentation/widgets/quran_search_field.dart';
+import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
+import 'package:muslim/features/quran/presentation/widgets/surah_list.dart';
+import 'package:muslim/features/quran/presentation/widgets/juz_list.dart';
+import 'package:muslim/features/quran/presentation/widgets/saved_bookmarks_dialog.dart';
+import 'package:muslim/features/quran/presentation/widgets/quran_browse_mode_switcher.dart';
+import 'package:muslim/features/quran/presentation/widgets/quran_search_field.dart';
 
 import '../../../../core/theme/app_theme.dart';
 

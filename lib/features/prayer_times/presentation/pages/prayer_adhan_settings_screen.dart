@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:untitled8/core/widgets/app_widgets.dart';
-import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
-import 'package:untitled8/features/prayer_times/domain/entities/adhan_audio_option.dart';
-import 'package:untitled8/features/prayer_times/presentation/widgets/adhan_settings_widgets.dart';
+import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/prayer_times/domain/entities/adhan_audio_option.dart';
+import 'package:muslim/features/prayer_times/presentation/widgets/adhan_settings_widgets.dart';
 
 class PrayerAdhanSettingsScreen extends StatefulWidget {
   const PrayerAdhanSettingsScreen({super.key});

@@ -3,10 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:untitled8/core/theme/app_theme.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
-import 'package:untitled8/features/quran/presentation/pages/surah_screen.dart';
-import 'package:untitled8/features/quran/presentation/widgets/quran_audio_mini_player.dart';
+import 'package:muslim/core/theme/app_theme.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:muslim/features/quran/presentation/pages/surah_screen.dart';
+import 'package:muslim/features/quran/presentation/widgets/quran_audio_mini_player.dart';
 
 void navigateTo(context, nextPage) =>
     Navigator.push(context, MaterialPageRoute(builder: (context) => nextPage));

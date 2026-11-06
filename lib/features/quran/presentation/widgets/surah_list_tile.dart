@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled8/core/utils/arabic_digits.dart';
+import 'package:muslim/core/utils/arabic_digits.dart';
 
 class SurahListTile extends StatelessWidget {
   const SurahListTile({

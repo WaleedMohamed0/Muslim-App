@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:untitled8/core/theme/app_theme.dart';
-import 'package:untitled8/core/utils/arabic_digits.dart';
-import 'package:untitled8/features/prayer_times/presentation/models/prayer_schedule_item.dart';
+import 'package:muslim/core/theme/app_theme.dart';
+import 'package:muslim/core/utils/arabic_digits.dart';
+import 'package:muslim/features/prayer_times/presentation/models/prayer_schedule_item.dart';
 
 class PrayerTimesIntroCard extends StatelessWidget {
   const PrayerTimesIntroCard({super.key});

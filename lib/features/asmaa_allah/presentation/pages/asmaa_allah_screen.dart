@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:untitled8/core/theme/app_theme.dart';
-import 'package:untitled8/features/asmaa_allah/domain/entities/allah_name.dart';
-import 'package:untitled8/features/asmaa_allah/presentation/cubit/allah_names_cubit.dart';
-import 'package:untitled8/features/asmaa_allah/presentation/cubit/allah_names_state.dart';
+import 'package:muslim/core/theme/app_theme.dart';
+import 'package:muslim/features/asmaa_allah/domain/entities/allah_name.dart';
+import 'package:muslim/features/asmaa_allah/presentation/cubit/allah_names_cubit.dart';
+import 'package:muslim/features/asmaa_allah/presentation/cubit/allah_names_state.dart';
 import '../../../../core/widgets/app_widgets.dart';
-import 'package:untitled8/features/asmaa_allah/presentation/widgets/asmaa_allah_widgets.dart';
+import 'package:muslim/features/asmaa_allah/presentation/widgets/asmaa_allah_widgets.dart';
 
 class AsmaaAllahScreen extends StatefulWidget {
   const AsmaaAllahScreen({super.key});

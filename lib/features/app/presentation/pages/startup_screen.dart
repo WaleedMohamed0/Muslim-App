@@ -4,25 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:untitled8/core/theme/app_colors.dart';
-import 'package:untitled8/core/widgets/app_widgets.dart';
-import 'package:untitled8/features/asmaa_allah/presentation/pages/asmaa_allah_screen.dart';
-import 'package:untitled8/features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
-import 'package:untitled8/features/prayer_times/presentation/pages/prayer_times_screen.dart';
-import 'package:untitled8/features/prayer_times/presentation/pages/elazan_screen.dart';
-import 'package:untitled8/features/prayer_times/presentation/widgets/prayer_experience_card.dart';
-import 'package:untitled8/features/qibla/presentation/pages/qibla_compass_screen.dart';
-import 'package:untitled8/features/quran/presentation/pages/home_screen.dart';
-import 'package:untitled8/features/quran/presentation/pages/mushaf_markings_screen.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_cubit.dart';
-import 'package:untitled8/features/quran/presentation/cubit/quran_state.dart';
-import 'package:untitled8/features/quran/presentation/widgets/quran_audio_mini_player.dart';
-import 'package:untitled8/features/app/presentation/widgets/startup_home_widgets.dart';
-import 'package:untitled8/features/app/presentation/pages/daily_reminder_settings_screen.dart';
-import 'package:untitled8/features/app/presentation/pages/app_settings_screen.dart';
-import 'package:untitled8/core/assets/app_assets.dart';
-import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
-import 'package:untitled8/features/stories/presentation/pages/story_collection_screen.dart';
+import 'package:muslim/core/theme/app_colors.dart';
+import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/features/asmaa_allah/presentation/pages/asmaa_allah_screen.dart';
+import 'package:muslim/features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
+import 'package:muslim/features/prayer_times/presentation/pages/prayer_times_screen.dart';
+import 'package:muslim/features/prayer_times/presentation/pages/elazan_screen.dart';
+import 'package:muslim/features/prayer_times/presentation/widgets/prayer_experience_card.dart';
+import 'package:muslim/features/qibla/presentation/pages/qibla_compass_screen.dart';
+import 'package:muslim/features/quran/presentation/pages/home_screen.dart';
+import 'package:muslim/features/quran/presentation/pages/mushaf_markings_screen.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
+import 'package:muslim/features/quran/presentation/widgets/quran_audio_mini_player.dart';
+import 'package:muslim/features/app/presentation/widgets/startup_home_widgets.dart';
+import 'package:muslim/features/app/presentation/pages/daily_reminder_settings_screen.dart';
+import 'package:muslim/features/app/presentation/pages/app_settings_screen.dart';
+import 'package:muslim/core/assets/app_assets.dart';
+import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/stories/presentation/pages/story_collection_screen.dart';
+import 'package:muslim/features/tajweed/presentation/pages/tajweed_lessons_screen.dart';
 
 class StartUpScreen extends StatefulWidget {
   const StartUpScreen({super.key});
@@ -387,6 +388,16 @@ class _StartUpScreenState extends State<StartUpScreen> {
                             MaterialPageRoute<void>(
                               settings: const RouteSettings(name: '/qibla'),
                               builder: (_) => const QiblaCompassScreen(),
+                            ),
+                          ),
+                        ),
+                        HomeFeatureTile(
+                          icon: Icons.menu_book_rounded,
+                          title: 'دروس التجويد',
+                          onTap: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: '/tajweed'),
+                              builder: (_) => const TajweedLessonsScreen(),
                             ),
                           ),
                         ),

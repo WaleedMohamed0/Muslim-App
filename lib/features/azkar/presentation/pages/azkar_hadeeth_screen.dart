@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:untitled8/features/azkar/presentation/cubit/azkar_cubit.dart';
-import 'package:untitled8/features/azkar/presentation/cubit/azkar_state.dart';
-import 'package:untitled8/features/azkar/domain/entities/azkar_entry.dart';
-import 'package:untitled8/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
-import 'package:untitled8/features/hadeeth/presentation/cubit/hadeeth_state.dart';
+import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
+import 'package:muslim/features/azkar/presentation/cubit/azkar_state.dart';
+import 'package:muslim/features/azkar/domain/entities/azkar_entry.dart';
+import 'package:muslim/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
+import 'package:muslim/features/hadeeth/presentation/cubit/hadeeth_state.dart';
 
 import '../../../../core/widgets/app_widgets.dart';
-import 'package:untitled8/features/azkar/presentation/widgets/azkar_text_card.dart';
-import 'package:untitled8/features/azkar/presentation/widgets/azkar_section_header.dart';
+import 'package:muslim/features/azkar/presentation/widgets/azkar_text_card.dart';
+import 'package:muslim/features/azkar/presentation/widgets/azkar_section_header.dart';
 
 class AzkarAndHadeethScreen extends StatefulWidget {
   const AzkarAndHadeethScreen({super.key, required this.index});

@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
-import 'package:untitled8/core/theme/app_theme.dart';
-import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
-import 'package:untitled8/features/prayer_times/presentation/pages/prayer_adhan_settings_screen.dart';
+import 'package:muslim/core/theme/app_theme.dart';
+import 'package:muslim/core/widgets/app_back_arrow.dart';
+import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/prayer_times/presentation/pages/prayer_adhan_settings_screen.dart';
 
 class AdhanSettingsCard extends StatefulWidget {
   const AdhanSettingsCard({super.key});
@@ -50,7 +50,10 @@ class AdhanSettingsCardState extends State<AdhanSettingsCard> {
             children: [
               CircleAvatar(
                 backgroundColor: colors.primaryContainer,
-                child: Icon(Icons.mosque_rounded, color: colors.onPrimaryContainer),
+                child: Icon(
+                  Icons.mosque_rounded,
+                  color: colors.onPrimaryContainer,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -68,23 +71,17 @@ class AdhanSettingsCardState extends State<AdhanSettingsCard> {
                       _enabled == null
                           ? 'جارٍ التحقق من الحالة…'
                           : enabled
-                              ? 'الأذان مفعّل'
-                              : 'الأذان غير مفعّل',
+                          ? 'الأذان مفعّل'
+                          : 'الأذان غير مفعّل',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: enabled ? colors.primary : colors.onSurfaceVariant,
+                        color:
+                            enabled ? colors.primary : colors.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              Directionality(
-                textDirection: TextDirection.ltr,
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 18,
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
+              AppBackArrow(),
             ],
           ),
         ),
@@ -95,6 +92,7 @@ class AdhanSettingsCardState extends State<AdhanSettingsCard> {
 
 class WelcomeCard extends StatelessWidget {
   const WelcomeCard({super.key, required this.onTap});
+
   final VoidCallback onTap;
 
   @override
@@ -187,6 +185,7 @@ class WelcomeCard extends StatelessWidget {
 
 class WirdCard extends StatelessWidget {
   const WirdCard({super.key, required this.item, required this.onTap});
+
   final (String, String) item;
   final VoidCallback onTap;
 
@@ -246,6 +245,7 @@ class HomeFeatureTile extends StatelessWidget {
     required this.title,
     required this.onTap,
   });
+
   final IconData icon;
   final String title;
   final VoidCallback onTap;
@@ -318,14 +318,7 @@ class DailyReminderCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Directionality(
-                textDirection: TextDirection.ltr,
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 18,
-                  color: colors.onTertiaryContainer,
-                ),
-              ),
+              AppBackArrow(),
             ],
           ),
         ),
@@ -421,17 +414,17 @@ class StoryHomeCard extends StatelessWidget {
                     title,
                     textDirection: TextDirection.rtl,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
                     textDirection: TextDirection.rtl,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: .9),
-                        ),
+                      color: Colors.white.withValues(alpha: .9),
+                    ),
                   ),
                 ],
               ),
@@ -442,4 +435,3 @@ class StoryHomeCard extends StatelessWidget {
     ),
   );
 }
-

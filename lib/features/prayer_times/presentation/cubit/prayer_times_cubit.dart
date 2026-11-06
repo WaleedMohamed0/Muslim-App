@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:untitled8/core/utils/arabic_digits.dart';
-import 'package:untitled8/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/core/utils/arabic_digits.dart';
+import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import '../../domain/entities/prayer_times.dart';
 import '../../domain/use_cases/get_prayer_times.dart';
 import '../../data/data_sources/prayer_location_data_source.dart';
