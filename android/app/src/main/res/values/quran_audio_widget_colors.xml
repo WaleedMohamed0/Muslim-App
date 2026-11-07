@@ -1,0 +1,14 @@
+<resources>
+    <color name="quran_widget_surface">#FFF8FBF8</color>
+    <color name="quran_widget_border">#FFD0DED5</color>
+    <color name="quran_widget_primary_text">#FF26372F</color>
+    <color name="quran_widget_secondary_text">#FF77847B</color>
+    <color name="quran_widget_accent">#FF176B55</color>
+    <color name="quran_widget_primary_button_start">#FF23836A</color>
+    <color name="quran_widget_gold">#FFB88A43</color>
+    <color name="quran_widget_pattern">#24B88A43</color>
+    <color name="quran_widget_on_accent">#FFFFFFFF</color>
+    <color name="quran_widget_control_surface">#FFDCE9E1</color>
+    <color name="quran_widget_avatar_surface">#FFD3E5DA</color>
+    <color name="quran_widget_progress_track">#FFC6D9CF</color>
+</resources>

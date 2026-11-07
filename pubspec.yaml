@@ -30,6 +30,8 @@ dependencies:
   internet_connection_checker: ^3.0.1
   flutter_cache_manager: ^3.4.6
   path_provider: ^2.1.6
+  lottie: ^3.3.1
+  flutter_svg: ^2.0.17
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +57,10 @@ flutter:
     - assets/features/quran/images/
     - assets/features/quran/data/
     - assets/images/reciters/
+    - assets/animations/wudu/
+    - assets/animations/salah/
+    # Bundles the Wudu PNG sequence and Salah SVG illustrations.
+    - assets/features/worship/illustrations/
   fonts:
     - family: UthmanicHafs
       fonts:

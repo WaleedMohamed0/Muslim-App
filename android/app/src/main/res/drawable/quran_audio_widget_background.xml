@@ -1,0 +1,17 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:endColor="@color/quran_widget_surface"
+                android:startColor="@color/quran_widget_control_surface" />
+            <stroke android:width="1dp" android:color="@color/quran_widget_border" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <item
+        android:drawable="@drawable/quran_audio_widget_pattern"
+        android:gravity="end|top"
+        android:height="74dp"
+        android:width="92dp" />
+</layer-list>

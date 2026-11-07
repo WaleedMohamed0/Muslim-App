@@ -1,0 +1,4 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/quran_widget_avatar_surface" />
+    <stroke android:width="2dp" android:color="@color/quran_widget_gold" />
+</shape>

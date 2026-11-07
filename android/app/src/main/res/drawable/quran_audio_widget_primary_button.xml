@@ -1,0 +1,6 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <gradient
+        android:angle="45"
+        android:endColor="@color/quran_widget_accent"
+        android:startColor="@color/quran_widget_primary_button_start" />
+</shape>

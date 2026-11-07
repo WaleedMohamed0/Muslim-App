@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:muslim/core/theme/app_colors.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/asmaa_allah/presentation/pages/asmaa_allah_screen.dart';
@@ -21,9 +19,13 @@ import 'package:muslim/features/app/presentation/widgets/startup_home_widgets.da
 import 'package:muslim/features/app/presentation/pages/daily_reminder_settings_screen.dart';
 import 'package:muslim/features/app/presentation/pages/app_settings_screen.dart';
 import 'package:muslim/core/assets/app_assets.dart';
-import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import 'package:muslim/features/stories/presentation/pages/story_collection_screen.dart';
 import 'package:muslim/features/tajweed/presentation/pages/tajweed_lessons_screen.dart';
+import 'package:muslim/features/worship/presentation/pages/worship_guide_screen.dart';
+import 'package:muslim/features/aqeedah/presentation/pillars_screen.dart';
+import 'package:muslim/features/app/data/data_sources/startup_permissions_data_source.dart';
+import 'package:muslim/features/app/presentation/cubit/startup_cubit.dart';
+import 'package:muslim/features/zakat/presentation/pages/zakat_calculator_screen.dart';
 
 class StartUpScreen extends StatefulWidget {
   const StartUpScreen({super.key});
@@ -33,8 +35,7 @@ class StartUpScreen extends StatefulWidget {
 }
 
 class _StartUpScreenState extends State<StartUpScreen> {
-  static const _notificationDecisionKey = 'first_launch_notifications_decided';
-  static const _locationDecisionKey = 'first_launch_location_decided';
+  late final StartupCubit _startupCubit;
   // Keep category indices tied to their existing routes/data while putting
   // the most frequently used Azkar shortcuts first in the carousel.
   static const _azkarDisplayOrder = [0, 1, 5, 2, 3, 4, 6, 7, 8, 9, 10];
@@ -43,53 +44,24 @@ class _StartUpScreenState extends State<StartUpScreen> {
   @override
   void initState() {
     super.initState();
+    _startupCubit = StartupCubit(
+      permissions: StartupPermissionsDataSource(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_requestFirstLaunchPermissions());
+      unawaited(
+        _startupCubit.requestFirstLaunchPermissions(
+          explainPermission: _explainPermission,
+          isMounted: () => mounted,
+        ),
+      );
     });
   }
 
   @override
   void dispose() {
     _miniPlayerHeight.dispose();
+    _startupCubit.close();
     super.dispose();
-  }
-
-  Future<void> _requestFirstLaunchPermissions() async {
-    try {
-      final preferences = await SharedPreferences.getInstance();
-      final adhan = PrayerAdhanService.instance;
-      final permissionStatus = await adhan.permissionStatus();
-
-      if (preferences.getBool(_notificationDecisionKey) != true) {
-        if (permissionStatus['notifications'] != true) {
-          final accepted = await _explainPermission(
-            'السماح بالإشعارات',
-            'نستخدم الإشعارات لعرض تنبيهات الصلاة والأذان في أوقاتها.',
-          );
-          await preferences.setBool(_notificationDecisionKey, true);
-          if (accepted) await adhan.requestNotificationPermission();
-        } else {
-          await preferences.setBool(_notificationDecisionKey, true);
-        }
-      }
-
-      if (!mounted || preferences.getBool(_locationDecisionKey) == true) return;
-      final locationPermission = await Geolocator.checkPermission();
-      if (locationPermission == LocationPermission.deniedForever ||
-          locationPermission == LocationPermission.whileInUse ||
-          locationPermission == LocationPermission.always) {
-        await preferences.setBool(_locationDecisionKey, true);
-        return;
-      }
-      final accepted = await _explainPermission(
-        'السماح بالوصول إلى الموقع',
-        'نحتاج إلى موقعك لحساب مواقيت الصلاة المناسبة لمكانك. يمكنك المتابعة وتفعيل الإذن لاحقًا من صلاحيات الجهاز.',
-      );
-      await preferences.setBool(_locationDecisionKey, true);
-      if (accepted && mounted) await Geolocator.requestPermission();
-    } catch (_) {
-      // Permission setup is optional; the user can grant access in settings.
-    }
   }
 
   Future<bool> _explainPermission(String title, String description) async =>
@@ -356,6 +328,13 @@ class _StartUpScreenState extends State<StartUpScreen> {
                       subtitle: 'تعرّف إلى أسماء الله واستقبل قبلتك',
                     ),
                     const SizedBox(height: 12),
+                    PillarsHomeCard(onTap: () => Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        settings: const RouteSettings(name: '/aqeedah-pillars'),
+                        builder: (_) => const PillarsScreen(),
+                      ),
+                    )),
+                    const SizedBox(height: 10),
                     GridView.count(
                       crossAxisCount: 2,
                       crossAxisSpacing: 10,
@@ -370,6 +349,16 @@ class _StartUpScreenState extends State<StartUpScreen> {
                           onTap:
                               () =>
                                   navigateTo(context, const AsmaaAllahScreen()),
+                        ),
+                        HomeFeatureTile(
+                          icon: Icons.savings_rounded,
+                          title: 'حاسبة الزكاة',
+                          onTap: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: '/zakat'),
+                              builder: (_) => const ZakatCalculatorScreen(),
+                            ),
+                          ),
                         ),
                         HomeFeatureTile(
                           icon: Icons.menu_book_rounded,
@@ -401,6 +390,26 @@ class _StartUpScreenState extends State<StartUpScreen> {
                             ),
                           ),
                         ),
+                        HomeFeatureTile(
+                          icon: Icons.water_drop_rounded,
+                          title: 'تعلم الوضوء',
+                          onTap: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: '/learn-wudu'),
+                              builder: (_) => const WorshipGuideScreen(lesson: 'wudu'),
+                            ),
+                          ),
+                        ),
+                        HomeFeatureTile(
+                          icon: Icons.mosque_rounded,
+                          title: 'تعلم الصلاة',
+                          onTap: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: '/learn-prayer'),
+                              builder: (_) => const WorshipGuideScreen(lesson: 'prayer'),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -427,4 +436,5 @@ class _StartUpScreenState extends State<StartUpScreen> {
     },
   );
 }
+
 

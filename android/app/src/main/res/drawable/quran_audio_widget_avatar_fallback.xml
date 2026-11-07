@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="54dp"
+    android:height="54dp"
+    android:viewportWidth="54"
+    android:viewportHeight="54">
+    <path android:fillColor="@color/quran_widget_accent" android:pathData="M27,18c-4,-3 -8,-3 -12,-1v18c4,-2 8,-2 12,1c4,-3 8,-3 12,-1V17c-4,-2 -8,-2 -12,1z" />
+    <path android:fillColor="@color/quran_widget_on_accent" android:pathData="M26,20h2v14h-2z" />
+</vector>

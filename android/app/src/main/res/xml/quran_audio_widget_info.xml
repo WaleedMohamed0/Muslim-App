@@ -1,0 +1,11 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/quran_audio_widget_description"
+    android:initialLayout="@layout/quran_audio_widget"
+    android:minWidth="250dp"
+    android:minHeight="138dp"
+    android:previewLayout="@layout/quran_audio_widget"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="92dp"
+    android:height="74dp"
+    android:viewportWidth="92"
+    android:viewportHeight="74">
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M92,1 L70,1 L57,14 L70,27 L92,27 M92,10 L79,10 L70,19 L79,28 L92,28 M92,36 L72,36 L62,46 L72,56 L92,56 M92,46 L81,46 L72,55 L81,64 L92,64 M57,14 L57,46 L62,46 M70,27 L70,55"
+        android:strokeColor="@color/quran_widget_pattern"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1" />
+    <path
+        android:fillColor="@color/quran_widget_pattern"
+        android:pathData="M57,14 A2,2 0,1 0,57 18 A2,2 0,1 0,57 14 M70,53 A2,2 0,1 0,70 57 A2,2 0,1 0,70 53" />
+</vector>

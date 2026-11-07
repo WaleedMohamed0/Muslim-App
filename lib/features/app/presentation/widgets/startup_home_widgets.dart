@@ -435,3 +435,64 @@ class StoryHomeCard extends StatelessWidget {
     ),
   );
 }
+
+class PillarsHomeCard extends StatelessWidget {
+  const PillarsHomeCard({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: AlignmentDirectional.centerStart,
+              end: AlignmentDirectional.centerEnd,
+              colors: [colors.primaryContainer, colors.surface],
+            ),
+          ),
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 15, 16, 15),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundColor: colors.primary.withValues(alpha: .12),
+                child: Icon(Icons.account_balance_rounded, color: colors.primary),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'أركان الإسلام والإيمان',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'تعرّف على أركان دينك وتعلّم أساسيات العقيدة الإسلامية.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: colors.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

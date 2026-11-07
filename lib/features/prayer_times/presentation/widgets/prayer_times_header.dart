@@ -18,7 +18,10 @@ class PrayerTimesIntroCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: AlignmentDirectional.topStart,
           end: AlignmentDirectional.bottomEnd,
-          colors: [colors.primaryContainer, colors.surfaceContainerHigh],
+          colors: [
+            colors.primaryContainer,
+            Color.lerp(colors.primaryContainer, colors.primary, .24)!,
+          ],
         ),
         borderRadius: BorderRadius.circular(AppRadii.card),
         border: Border.all(color: colors.outlineVariant.withValues(alpha: .45)),
