@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:muslim/core/widgets/app_back_arrow.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 
 import '../../data/repositories/local_stories_repository.dart';

@@ -150,7 +150,6 @@ class QuranCubit extends Cubit<QuranState> {
   bool _playCommandPending = false;
   bool _pauseCommandPending = false;
   bool _stopCommandPending = false;
-  int _surahSelectionRevision = 0;
   int _seekRevision = 0;
   Future<void> _audioCommandQueue = Future<void>.value();
   late final StreamSubscription<PlayerState> _playerStateSubscription;
@@ -1138,7 +1137,6 @@ class QuranCubit extends Cubit<QuranState> {
       if (number < 1 || number > 114) return;
       if (ayah < 1 || ayah > quran.getVerseCount(number)) return;
       ++_seekRevision;
-      ++_surahSelectionRevision;
       _audioErrorReported = false;
       _audioStartTimeout?.cancel();
       await _switchSurahForPlayback(
@@ -1172,7 +1170,6 @@ class QuranCubit extends Cubit<QuranState> {
     final initialAyah = (startAyah ?? 1)
         .clamp(1, quran.getVerseCount(number))
         .toInt();
-    ++_surahSelectionRevision;
     _audioStartTimeout?.cancel();
     isCached = false;
     _audioSourcePrepared = false;
