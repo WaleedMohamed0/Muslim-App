@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -17,7 +18,11 @@ class QuranWidgetSessionSyncService : Service() {
     private var controller: MediaControllerCompat? = null
     private var callback: MediaControllerCompat.Callback? = null
     private var connectionPending = false
+    private var hasSeenMetadata = false
     private val reconnect = Runnable { connectToSession() }
+    private val stopIfSessionStaysEmpty = Runnable {
+        if (controller?.metadata == null) stopSelf()
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -25,6 +30,25 @@ class QuranWidgetSessionSyncService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // The app's task can be dismissed before the media session reports
+        // destruction. Snapshot its current position and freeze the widget
+        // directly from this lifecycle callback.
+        val playbackState = controller?.playbackState
+        val positionMs = playbackState?.let { state ->
+            val elapsedMs = (SystemClock.elapsedRealtime() - state.lastPositionUpdateTime)
+                .coerceAtLeast(0L)
+            val runningMs = if (state.state == PlaybackStateCompat.STATE_PLAYING) {
+                (elapsedMs * state.playbackSpeed).toLong()
+            } else {
+                0L
+            }
+            (state.position + runningMs).coerceAtLeast(0L)
+        }
+        QuranAudioWidgetProvider.stopForTaskRemoval(this, positionMs)
+        super.onTaskRemoved(rootIntent)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Android restarts START_STICKY services with a null Intent after
@@ -38,8 +62,9 @@ class QuranWidgetSessionSyncService : Service() {
                 playing = false,
             )
             connectToSession()
-        } else if (intent.action == ACTION_START) {
-            connectToSession()
+        } else if (intent.action == ACTION_START || intent.action == ACTION_REFRESH) {
+            if (browser?.isConnected == true && controller != null) syncSnapshot()
+            else connectToSession()
         }
         return START_STICKY
     }
@@ -66,11 +91,24 @@ class QuranWidgetSessionSyncService : Service() {
                     controller = mediaController
                     val stateCallback = object : MediaControllerCompat.Callback() {
                         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                            syncSnapshot()
+                            mirrorSnapshot(mediaController.metadata, state)
+                        }
+
+                        override fun onSessionDestroyed() {
+                            // The audio service can disappear when its app task
+                            // is terminated. Freeze the widget at its last
+                            // mirrored MediaSession position and show Play.
+                            QuranAudioWidgetProvider.updateTransportState(
+                                this@QuranWidgetSessionSyncService,
+                                active = false,
+                                playing = false,
+                            )
+                            releaseConnection()
+                            stopSelf()
                         }
 
                         override fun onMetadataChanged(metadata: android.support.v4.media.MediaMetadataCompat?) {
-                            syncSnapshot()
+                            mirrorSnapshot(metadata, mediaController.playbackState)
                         }
                     }
                     callback = stateCallback
@@ -84,6 +122,7 @@ class QuranWidgetSessionSyncService : Service() {
 
             override fun onConnectionFailed() {
                 connectionPending = false
+                releaseConnection()
                 QuranAudioWidgetProvider.updateTransportState(
                     this@QuranWidgetSessionSyncService,
                     active = false,
@@ -120,15 +159,41 @@ class QuranWidgetSessionSyncService : Service() {
 
     private fun syncSnapshot() {
         val mediaController = controller ?: return
+        mirrorSnapshot(mediaController.metadata, mediaController.playbackState)
+    }
+
+    private fun mirrorSnapshot(
+        metadata: android.support.v4.media.MediaMetadataCompat?,
+        state: PlaybackStateCompat?,
+    ) {
+        if (metadata != null) {
+            hasSeenMetadata = true
+            mainHandler.removeCallbacks(stopIfSessionStaysEmpty)
+        } else if (hasSeenMetadata) {
+            QuranAudioWidgetProvider.updateFromMediaSession(
+                this,
+                null,
+                state,
+            )
+            stopSelf()
+            return
+        } else {
+            // AudioService can reconnect before its Flutter engine restores
+            // the saved Quran item. Stay attached briefly so the later
+            // metadata/playback callbacks update the widget after restoration.
+            mainHandler.removeCallbacks(stopIfSessionStaysEmpty)
+            mainHandler.postDelayed(stopIfSessionStaysEmpty, EMPTY_SESSION_GRACE_MS)
+        }
         QuranAudioWidgetProvider.updateFromMediaSession(
             this,
-            mediaController.metadata,
-            mediaController.playbackState,
+            metadata,
+            state,
         )
     }
 
     private fun scheduleReconnect() {
         mainHandler.removeCallbacks(reconnect)
+        mainHandler.removeCallbacks(stopIfSessionStaysEmpty)
         mainHandler.postDelayed(reconnect, RECONNECT_INTERVAL_MS)
     }
 
@@ -146,6 +211,7 @@ class QuranWidgetSessionSyncService : Service() {
 
     override fun onDestroy() {
         mainHandler.removeCallbacks(reconnect)
+        mainHandler.removeCallbacks(stopIfSessionStaysEmpty)
         releaseConnection()
         isRunning = false
         super.onDestroy()
@@ -157,6 +223,8 @@ class QuranWidgetSessionSyncService : Service() {
             private set
 
         const val ACTION_START = "com.example.muslim.QURAN_WIDGET_SYNC_START"
+        const val ACTION_REFRESH = "com.example.muslim.QURAN_WIDGET_SYNC_REFRESH"
         private const val RECONNECT_INTERVAL_MS = 5000L
+        private const val EMPTY_SESSION_GRACE_MS = 60000L
     }
 }

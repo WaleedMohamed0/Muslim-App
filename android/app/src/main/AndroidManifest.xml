@@ -67,8 +67,7 @@
             android:name=".QuranWidgetPlayReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.example.muslim.QURAN_WIDGET_PLAY" />
-                <action android:name="com.example.muslim.QURAN_WIDGET_PAUSE" />
+                <action android:name="com.example.muslim.QURAN_WIDGET_TOGGLE" />
             </intent-filter>
         </receiver>
         <receiver

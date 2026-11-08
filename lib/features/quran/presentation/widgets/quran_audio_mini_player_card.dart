@@ -135,6 +135,7 @@ class QuranAudioMiniPlayerCard extends StatelessWidget {
                               child: QuranPlaybackProgress(
                                 cubit: cubit,
                                 palette: palette,
+                                showTimeLabels: true,
                               ),
                             ),
                           ] else

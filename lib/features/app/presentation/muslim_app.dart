@@ -566,21 +566,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final correctPage = quran.getPageNumber(surahNumber, ayahNumber);
     final pageNumber = requestedPage == correctPage ? requestedPage : correctPage;
     final routeName = '/quran-reader/$surahNumber';
-    // A widget launch is a direct reader entry point. Remove Home/AppEntry
-    // and any stale routes so Back cannot reveal a Home screen inserted
-    // solely to sit underneath this reader. Playback state lives in the
-    // shared Cubit/AudioHandler and is unaffected by replacing the route stack.
+    // Keep an app entry route beneath notification-launched readers so Back
+    // always returns to the app instead of dismissing the Activity.
+    if (_appRouteObserver.currentRouteName == routeName) return;
     navigator.pushAndRemoveUntil<void>(
       MaterialPageRoute<void>(
-        settings: RouteSettings(name: routeName),
-        builder: (_) => SurahScreen(
-          surahNumber: surahNumber,
-          initialAyah: ayahNumber,
-          initialPageNumber: pageNumber,
-        ),
+        settings: const RouteSettings(name: '/home'),
+        builder: (_) => const StartUpScreen(),
       ),
       (_) => false,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || appNavigatorKey.currentState != navigator) return;
+      if (_appRouteObserver.currentRouteName == routeName) return;
+      navigator.push<void>(
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: routeName),
+          builder: (_) => SurahScreen(
+            surahNumber: surahNumber,
+            initialAyah: ayahNumber,
+            initialPageNumber: pageNumber,
+          ),
+        ),
+      );
+    });
   }
 
   @override
@@ -697,7 +706,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           (initialRoute) => [
             if (initialDestination != null &&
                 (initialDestination.routeName.startsWith('/azkar-category-') ||
-                    initialDestination.routeName == '/quran-home')) ...[
+                    initialDestination.routeName == '/quran-home' ||
+                    initialDestination.routeName.startsWith('/quran-reader/'))) ...[
               MaterialPageRoute<void>(
                 settings: const RouteSettings(name: '/home'),
                 builder: (_) => const StartUpScreen(),

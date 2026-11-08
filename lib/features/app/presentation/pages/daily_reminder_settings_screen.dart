@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:muslim/core/widgets/app_time_picker.dart';
 import 'package:muslim/core/widgets/app_switch.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';

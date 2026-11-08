@@ -12,6 +12,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Shader
 import android.graphics.BitmapShader
+import android.os.SystemClock
 import android.view.View
 import android.view.KeyEvent
 import android.widget.RemoteViews
@@ -116,14 +117,68 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
         }
 
         /** Sync state reported by the Android MediaSession after a widget tap. */
-        fun updateTransportState(context: Context, active: Boolean, playing: Boolean) {
+        fun updateTransportState(
+            context: Context,
+            active: Boolean,
+            playing: Boolean,
+            positionMs: Long? = null,
+        ) {
             val before = readState(context)
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putBoolean(KEY_ACTIVE, active)
                 .putBoolean(KEY_PLAYING, active && playing)
                 .putBoolean(KEY_LOADING, false)
-                .apply()
+            if (positionMs != null) {
+                editor.putLong(KEY_POSITION_MS, positionMs.coerceAtLeast(0L))
+            }
+            editor.apply()
             refreshIfChanged(context, before, readState(context))
+        }
+
+        /** Freeze only the changing playback views when Android removes the app task. */
+        fun stopForTaskRemoval(context: Context, positionMs: Long?) {
+            val before = readState(context)
+            val position = positionMs?.coerceAtLeast(0L) ?: before.positionMs
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_ACTIVE, false)
+                .putBoolean(KEY_PLAYING, false)
+                .putBoolean(KEY_LOADING, false)
+                .putLong(KEY_POSITION_MS, position)
+                .apply()
+
+            val stopped = before.copy(
+                active = false,
+                playing = false,
+                loading = false,
+                positionMs = position,
+            )
+            val manager = AppWidgetManager.getInstance(context)
+            val component = ComponentName(context, QuranAudioWidgetProvider::class.java)
+            val widgetIds = manager.getAppWidgetIds(component)
+            if (widgetIds.isEmpty()) return
+
+            val boundedPosition = stopped.positionMs.coerceIn(
+                0L,
+                stopped.durationMs.coerceAtLeast(0L),
+            )
+            val progress = if (stopped.durationMs > 0L) {
+                ((boundedPosition * PROGRESS_MAX) / stopped.durationMs).toInt()
+            } else {
+                0
+            }
+            val views = RemoteViews(context.packageName, R.layout.quran_audio_widget).apply {
+                setImageViewResource(R.id.quran_widget_play_pause, R.drawable.quran_widget_play)
+                setContentDescription(R.id.quran_widget_play_pause, "استئناف التلاوة")
+                setTextViewText(R.id.quran_widget_state, statusText(stopped))
+                setProgressBar(R.id.quran_widget_progress, PROGRESS_MAX, progress, false)
+                setChronometer(
+                    R.id.quran_widget_elapsed,
+                    SystemClock.elapsedRealtime() - position,
+                    "%s",
+                    false,
+                )
+            }
+            widgetIds.forEach { id -> manager.partiallyUpdateAppWidget(id, views) }
         }
 
         /** Persist the active MediaSession snapshot as the widget's state source. */
@@ -139,7 +194,7 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
                 val displayTitle = metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE)
                     ?: metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
                     ?: mediaId.substringAfter("quran:").substringBeforeLast(":")
-                val surahName = displayTitle.removePrefix("سورة ").trim()
+                val surahName = stripSurahPrefix(displayTitle)
                 val reciter = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
                     ?: metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE)
                     ?: mediaId.substringAfterLast(":")
@@ -164,13 +219,11 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
             }
             val playing = when (state?.state) {
                 PlaybackStateCompat.STATE_PLAYING -> true
-                PlaybackStateCompat.STATE_BUFFERING -> false
-                // AudioService can publish STOPPED briefly while changing the
-                // prepared source. With metadata still attached, keep the last
-                // confirmed transport state; a real Stop clears the item.
+                // The widget reflects the active service state. Do not carry
+                // a persisted Playing value across service/process recreation.
+                PlaybackStateCompat.STATE_BUFFERING,
                 PlaybackStateCompat.STATE_NONE,
-                PlaybackStateCompat.STATE_STOPPED ->
-                    metadata != null && before.playing
+                PlaybackStateCompat.STATE_STOPPED -> false
                 else -> false
             }
             val active = metadata != null
@@ -188,7 +241,6 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
             }
             editor.apply()
             refreshIfChanged(context, before, readState(context))
-            if (!active) context.stopService(Intent(context, QuranWidgetSessionSyncService::class.java))
         }
 
         private fun editorFallbackSurah(context: Context): Int =
@@ -219,7 +271,19 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
 
         /** Reattach the widget mirror after a media-button Play command. */
         fun requestSessionSync(context: Context) {
-            ensureSessionSync(context, readState(context))
+            // A stale or stopped persisted state must not prevent reconnecting
+            // after the widget itself has started AudioService.
+            val state = readState(context)
+            if (state.surahNumber !in 1..114) return
+            val intent = Intent(context, QuranWidgetSessionSyncService::class.java)
+                .setAction(
+                    if (QuranWidgetSessionSyncService.isRunning) {
+                        QuranWidgetSessionSyncService.ACTION_REFRESH
+                    } else {
+                        QuranWidgetSessionSyncService.ACTION_START
+                    },
+                )
+            runCatching { context.startService(intent) }
         }
 
         /**
@@ -288,7 +352,12 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
             }
             val views = RemoteViews(context.packageName, R.layout.quran_audio_widget).apply {
                 setProgressBar(R.id.quran_widget_progress, PROGRESS_MAX, progress, false)
-                setTextViewText(R.id.quran_widget_elapsed, formatTime(state.positionMs))
+                setChronometer(
+                    R.id.quran_widget_elapsed,
+                    SystemClock.elapsedRealtime() - state.positionMs.coerceAtLeast(0L),
+                    "%s",
+                    state.playing,
+                )
                 setTextViewText(
                     R.id.quran_widget_remaining,
                     formatTime(state.durationMs),
@@ -355,7 +424,7 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
             }
             views.setTextViewText(
                 R.id.quran_widget_surah,
-                if (hasTrack) "سورة ${state.surah}" else "القرآن الكريم",
+                if (hasTrack) "سُورَةُ ${stripSurahPrefix(state.surah)}" else "القرآن الكريم",
             )
             views.setTextViewText(
                 R.id.quran_widget_reciter,
@@ -374,9 +443,11 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
                 0
             }
             views.setProgressBar(R.id.quran_widget_progress, PROGRESS_MAX, progress, false)
-            views.setTextViewText(
+            views.setChronometer(
                 R.id.quran_widget_elapsed,
-                formatTime(state.positionMs),
+                SystemClock.elapsedRealtime() - state.positionMs.coerceAtLeast(0L),
+                "%s",
+                state.playing,
             )
             views.setTextViewText(
                 R.id.quran_widget_remaining,
@@ -430,9 +501,8 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
                     R.id.quran_widget_play_pause,
                     widgetTransportPendingIntent(
                         context,
-                        if (state.playing) QuranWidgetPlayReceiver.ACTION_PAUSE
-                        else QuranWidgetPlayReceiver.ACTION_PLAY,
-                        if (state.playing) 412 else 415,
+                        QuranWidgetPlayReceiver.ACTION_TOGGLE,
+                        415,
                     ),
                 )
             }
@@ -448,6 +518,13 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
             }
             manager.updateAppWidget(widgetId, views)
         }
+
+        private fun stripSurahPrefix(value: String): String =
+            value.trim()
+                .removePrefix("سُورَةُ ")
+                .removePrefix("سُورَة ")
+                .removePrefix("سورة ")
+                .trim()
 
         private fun readerPendingIntent(
             context: Context,

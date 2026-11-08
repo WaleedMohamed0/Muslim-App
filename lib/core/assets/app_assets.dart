@@ -1,19 +1,19 @@
 class AppAssets {
   static const appLogo = 'assets/features/app/images/logo.png';
-  static const quranLogo = 'assets/features/app/images/quran_logo.png';
+  static const quranLogo = 'assets/features/app/images/quran_logo.webp';
   static const quranFont =
       'assets/features/quran/fonts/UthmanicHafs-v-3.0.ttf';
   static const azan = 'assets/features/prayer_times/audio/المدينة المنورة.mp3';
   static const adhanFajrBackground =
-      'assets/features/prayer_times/images/adhan_fajr.jpg';
+      'assets/features/prayer_times/images/adhan_fajr.webp';
   static const adhanDhuhrBackground =
-      'assets/features/prayer_times/images/adhan_dhuhr.jpg';
+      'assets/features/prayer_times/images/adhan_dhuhr.webp';
   static const adhanAsrBackground =
-      'assets/features/prayer_times/images/adhan_asr.jpg';
+      'assets/features/prayer_times/images/adhan_asr.webp';
   static const adhanMaghribBackground =
-      'assets/features/prayer_times/images/adhan_maghrib.jpg';
+      'assets/features/prayer_times/images/adhan_maghrib.webp';
   static const adhanIshaBackground =
-      'assets/features/prayer_times/images/adhan_nabawi_night.jpg';
+      'assets/features/prayer_times/images/adhan_nabawi_night.webp';
 
   static String adhanBackgroundForPrayer(String prayer) =>
       switch (prayer.trim()) {
@@ -27,8 +27,8 @@ class AppAssets {
   static const azkarData = 'assets/features/azkar/data/azkar.json';
   static const storiesData = 'assets/features/stories/stories.json';
   static const prophetsCardBackground =
-      'assets/features/prayer_times/images/Masjid.jpg';
+      'assets/features/prayer_times/images/Masjid.webp';
   static const seerahCardBackground =
-      'assets/features/prayer_times/images/MasjidElnabwy.png';
+      'assets/features/prayer_times/images/MasjidElnabwy.webp';
   static const allahNamesData = 'assets/features/asmaa_allah/asmaa_allah.json';
 }

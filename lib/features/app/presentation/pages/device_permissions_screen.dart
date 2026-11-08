@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:muslim/core/widgets/app_snackbar.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import 'package:muslim/features/prayer_times/presentation/widgets/adhan_settings_widgets.dart';

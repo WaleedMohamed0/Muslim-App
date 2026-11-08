@@ -37,10 +37,11 @@ class _QuranReaderBackgroundScreenState
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => CustomReaderColorPicker(
-        initialColor: currentColor,
-        darkMode: darkMode,
-      ),
+      builder:
+          (_) => CustomReaderColorPicker(
+            initialColor: currentColor,
+            darkMode: darkMode,
+          ),
     );
     if (picked == null || !mounted) return;
     await cubit.setReaderBackgroundColor(darkMode: darkMode, color: picked);
@@ -60,19 +61,26 @@ class _QuranReaderBackgroundScreenState
       body: SafeArea(
         child: BlocBuilder<QuranCubit, QuranState>(
           builder: (context, state) {
-            final storedColor = darkMode
-                ? cubit.darkReaderBackgroundColorValue
-                : cubit.lightReaderBackgroundColorValue;
-            final selectedColor = storedColor == null
-                ? QuranReaderBackgroundColors.defaultFor(darkMode)
-                : Color(storedColor);
+            final storedColor =
+                darkMode
+                    ? cubit.darkReaderBackgroundColorValue
+                    : cubit.lightReaderBackgroundColorValue;
+            final selectedColor =
+                storedColor == null
+                    ? QuranReaderBackgroundColors.defaultFor(darkMode)
+                    : Color(storedColor);
             final textColor = QuranReaderBackgroundColors.textFor(darkMode);
             final accent = QuranReaderBackgroundColors.accentFor(darkMode);
             return Column(
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsetsDirectional.fromSTEB(18, 16, 18, 18),
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      18,
+                      16,
+                      18,
+                      18,
+                    ),
                     children: [
                       Text(
                         'اختر لونًا مريحًا للقراءة. لكل وضع لوني اختياره الخاص.',
@@ -83,38 +91,25 @@ class _QuranReaderBackgroundScreenState
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: theme.colorScheme.outline,
-                            width: 1.5,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildModeOption(
+                            context,
+                            label: 'الوضع الفاتح',
+                            icon: Icons.light_mode_rounded,
+                            value: false,
+                            selected: !darkMode,
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Row(
-                          children: [
-                            _buildModeOption(
-                              context,
-                              label: 'الوضع الفاتح',
-                              icon: Icons.light_mode_rounded,
-                              value: false,
-                              selected: !darkMode,
-                            ),
-                            Container(
-                              width: 1.5,
-                              height: 52,
-                              color: theme.colorScheme.outline,
-                            ),
-                            _buildModeOption(
-                              context,
-                              label: 'الوضع الداكن',
-                              icon: Icons.dark_mode_rounded,
-                              value: true,
-                              selected: darkMode,
-                            ),
-                          ],
-                        ),
+                          const SizedBox(width: 10),
+                          _buildModeOption(
+                            context,
+                            label: 'الوضع الداكن',
+                            icon: Icons.dark_mode_rounded,
+                            value: true,
+                            selected: darkMode,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 18),
                       ReaderColorPreview(
@@ -144,13 +139,15 @@ class _QuranReaderBackgroundScreenState
                                   width: itemWidth,
                                   child: PresetColorTile(
                                     preset: preset,
-                                    selected: preset.color.toARGB32() ==
+                                    selected:
+                                        preset.color.toARGB32() ==
                                         selectedColor.toARGB32(),
                                     width: itemWidth,
-                                    onTap: () => cubit.setReaderBackgroundColor(
-                                      darkMode: darkMode,
-                                      color: preset.color,
-                                    ),
+                                    onTap:
+                                        () => cubit.setReaderBackgroundColor(
+                                          darkMode: darkMode,
+                                          color: preset.color,
+                                        ),
                                   ),
                                 ),
                             ],
@@ -175,21 +172,23 @@ class _QuranReaderBackgroundScreenState
                               ),
                             ),
                           ),
-                          onTap: () => _chooseCustomColor(
-                            cubit,
-                            selectedColor,
-                            darkMode,
-                          ),
+                          onTap:
+                              () => _chooseCustomColor(
+                                cubit,
+                                selectedColor,
+                                darkMode,
+                              ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
                         child: TextButton.icon(
-                          onPressed: () => cubit.setReaderBackgroundColor(
-                            darkMode: darkMode,
-                            color: null,
-                          ),
+                          onPressed:
+                              () => cubit.setReaderBackgroundColor(
+                                darkMode: darkMode,
+                                color: null,
+                              ),
                           icon: const Icon(Icons.restart_alt_rounded),
                           label: const Text('استعادة اللون الافتراضي'),
                         ),
@@ -223,36 +222,54 @@ class _QuranReaderBackgroundScreenState
     required bool selected,
   }) {
     final theme = Theme.of(context);
-    return Expanded(
-      child: Material(
-        color: selected
-            ? theme.colorScheme.primaryContainer
-            : theme.colorScheme.surface,
-        child: InkWell(
-          onTap: () => setState(() => _targetDarkMode = value),
-          child: SizedBox(
-            height: 52,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: selected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurface,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: selected
-                        ? theme.colorScheme.onPrimaryContainer
-                        : theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () => setState(() => _targetDarkMode = value),
+        child: Ink(
+          decoration: BoxDecoration(
+            color:
+                selected
+                    ? theme.colorScheme.primaryContainer
+                    : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color:
+                  selected
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.outlineVariant,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: SizedBox(
+              height: 42,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color:
+                        selected
+                            ? theme.colorScheme.onPrimaryContainer
+                            : theme.colorScheme.onSurface,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color:
+                          selected
+                              ? theme.colorScheme.onPrimaryContainer
+                              : theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -260,4 +277,3 @@ class _QuranReaderBackgroundScreenState
     );
   }
 }
-

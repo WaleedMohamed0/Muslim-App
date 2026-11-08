@@ -145,14 +145,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.2"
-  cupertino_icons:
-    dependency: "direct main"
-    description:
-      name: cupertino_icons
-      sha256: "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.9"
   dbus:
     dependency: transitive
     description:
@@ -307,14 +299,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_svg:
-    dependency: "direct main"
-    description:
-      name: flutter_svg
-      sha256: c200fd79c918a40c5cd50ea0877fa13f81bdaf6f0a5d3dbcc2a13e3285d6aa1b
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.17"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -413,14 +397,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.8"
-  hexcolor:
-    dependency: "direct main"
-    description:
-      name: hexcolor
-      sha256: "235555a30d5817a88df1cb4eb72c0c3b448f9aafb848d9f01857c2214d3e77b0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.3"
   http:
     dependency: transitive
     description:
@@ -454,7 +430,7 @@ packages:
     source: hosted
     version: "3.0.1"
   intl:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: intl
       sha256: "1ca20c894b1717686a2319b8548763d812bc0aabdac580420a44c5178c57a867"
@@ -533,14 +509,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
-  lottie:
-    dependency: "direct main"
-    description:
-      name: lottie
-      sha256: "3ce005da56c2ce38b97d2fe8ca812627d12aae3d13bb611f735c4a506cdf46b9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.8.2"
   matcher:
     dependency: transitive
     description:
@@ -621,14 +589,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
-  path_parsing:
-    dependency: transitive
-    description:
-      name: path_parsing
-      sha256: "883402936929eac138ee0a45da5b0f2c80f89913e6dc3bf77eb65b84b409c6ca"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   path_provider:
     dependency: "direct main"
     description:
@@ -938,30 +898,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.6.0"
-  vector_graphics:
-    dependency: transitive
-    description:
-      name: vector_graphics
-      sha256: "44cc7104ff32563122a929e4620cf3efd584194eec6d1d913eb5ba593dbcf6de"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.18"
-  vector_graphics_codec:
-    dependency: transitive
-    description:
-      name: vector_graphics_codec
-      sha256: "99fd9fbd34d9f9a32efd7b6a6aae14125d8237b10403b422a6a6dfeac2806146"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.13"
-  vector_graphics_compiler:
-    dependency: transitive
-    description:
-      name: vector_graphics_compiler
-      sha256: "1b4b9e706a10294258727674a340ae0d6e64a7231980f9f9a3d12e4b42407aad"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.16"
   vector_math:
     dependency: transitive
     description:
@@ -978,14 +914,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "15.2.0"
-  we_slide:
-    dependency: "direct main"
-    description:
-      name: we_slide
-      sha256: b1baea1c5be157f69dc5260cdb63ce80927e0f17ff6dbf4ef8d4b162ae3efcf8
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.4.0"
   web:
     dependency: transitive
     description:

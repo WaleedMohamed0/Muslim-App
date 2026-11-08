@@ -46,6 +46,7 @@ class QuranAudioHandler extends BaseAudioHandler
   Future<void> Function()? onPauseAction;
   Future<void> Function()? onStopAction;
   bool _standaloneRestorePending = false;
+  bool _standaloneSkipPending = false;
   String _lastCheckpointTrack = '';
   int _lastCheckpointPositionMs = 0;
 
@@ -122,9 +123,9 @@ class QuranAudioHandler extends BaseAudioHandler
     final isPlaying =
         state.playing && state.processingState != ja.ProcessingState.completed;
     final controls = <MediaControl>[
-      if (onNext != null) MediaControl.skipToNext,
+      MediaControl.skipToNext,
       isPlaying ? MediaControl.pause : MediaControl.play,
-      if (onPrevious != null) MediaControl.skipToPrevious,
+      MediaControl.skipToPrevious,
       MediaControl.stop,
     ];
     playbackState.add(
@@ -329,11 +330,78 @@ class QuranAudioHandler extends BaseAudioHandler
     clearMediaItem();
   }
 
-  @override
-  Future<void> skipToPrevious() async => onPrevious?.call();
+  Future<void> _skipSavedSurah(int delta) async {
+    if (_standaloneSkipPending) return;
+    _standaloneSkipPending = true;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.reload();
+      final current = mediaItem.value?.extras?['surahNumber'] as int? ??
+          preferences.getInt('quran_last_played_surah') ?? 1;
+      final next = (current + delta).clamp(1, 114);
+      final reciter = QuranReciter.byId(
+        preferences.getString('quran_audio_reciter_id'),
+      );
+      final sourceUrl = reciter.surahUrl(next);
+      await player.setUrl(sourceUrl);
+      await preferences.setInt('quran_last_played_surah', next);
+      await preferences.setInt('quran_last_played_ayah_$next', 1);
+      await preferences.setInt('quran_last_played_ayah', 1);
+      await preferences.setString(
+        'quran_audio_source_${reciter.id}_$next',
+        sourceUrl,
+      );
+      await preferences.setInt('quran_audio_position_${reciter.id}_$next', 0);
+
+      final rawSurahName = quran.getSurahNameArabic(next);
+      final surahName = rawSurahName == 'اللهب' ? 'المسد' : rawSurahName;
+      final item = MediaItem(
+        id: 'quran:$surahName:${reciter.nameArabic}',
+        album: 'الْقُرْآن الكريم',
+        title: 'سُورَة $surahName',
+        artist: reciter.nameArabic,
+        duration: player.duration,
+        displayTitle: 'سُورَة $surahName',
+        displaySubtitle: reciter.nameArabic,
+        displayDescription: 'الْآيَة 1',
+        extras: {
+          'surahName': surahName,
+          'surahNumber': next,
+          'mushafPageNumber': quran.getPageNumber(next, 1),
+          'reciterName': reciter.nameArabic,
+          'reciterId': reciter.id,
+          'sourceUrl': sourceUrl,
+          'ayahNumber': 1,
+        },
+      );
+      mediaItem.add(item);
+      queue.add([item]);
+      _publishState(player.playerState);
+      await startPlayer();
+    } finally {
+      _standaloneSkipPending = false;
+    }
+  }
 
   @override
-  Future<void> skipToNext() async => onNext?.call();
+  Future<void> skipToPrevious() async {
+    final action = onPrevious;
+    if (action != null) {
+      await action();
+    } else {
+      await _skipSavedSurah(-1);
+    }
+  }
+
+  @override
+  Future<void> skipToNext() async {
+    final action = onNext;
+    if (action != null) {
+      await action();
+    } else {
+      await _skipSavedSurah(1);
+    }
+  }
 
   @override
   Future<void> seek(Duration position) => player.seek(position);

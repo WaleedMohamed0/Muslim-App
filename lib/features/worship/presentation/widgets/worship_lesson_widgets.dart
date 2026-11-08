@@ -3,7 +3,6 @@ import 'package:muslim/core/utils/arabic_digits.dart';
 
 import '../../data/worship_ui_strings.dart';
 import '../../domain/entities/worship_step.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class WorshipStepCard extends StatelessWidget {
   const WorshipStepCard({
@@ -44,16 +43,7 @@ class WorshipStepCard extends StatelessWidget {
                 child: SizedBox(
                   height: 270,
                   width: double.infinity,
-                  child: assetPath.endsWith('.svg')
-                      ? SvgPicture.asset(
-                          assetPath,
-                          fit: BoxFit.contain,
-                          semanticsLabel: WorshipUiStrings.illustrationSemantics(step: toArabicIndicDigits(index + 1), title: step.title),
-                          placeholderBuilder: (_) => Center(
-                            child: Icon(Icons.auto_awesome_rounded, size: 54, color: colors.primary.withValues(alpha: .35)),
-                          ),
-                        )
-                      : Image.asset(
+                  child: Image.asset(
                           assetPath,
                           fit: BoxFit.contain,
                           alignment: Alignment.center,

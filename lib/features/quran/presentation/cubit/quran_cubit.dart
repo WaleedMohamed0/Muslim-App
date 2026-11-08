@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:quran/quran.dart' as quran;
 import '../../../../core/storage/cache_helper.dart';
@@ -866,7 +867,7 @@ class QuranCubit extends Cubit<QuranState> {
       _publishMediaItem();
       if (resume) await _startPlayback();
     } catch (_) {
-      _handleAudioFailure(force: true);
+      unawaited(_handleAudioFailure(force: true));
     } finally {
       _setAudioLoading(false);
     }
@@ -1556,7 +1557,7 @@ class QuranCubit extends Cubit<QuranState> {
       await _startPlayback();
       if (!_singleAyahPlayback) unawaited(_loadAyahTimings(surahNumber));
     } catch (_) {
-      _handleAudioFailure(force: true);
+      unawaited(_handleAudioFailure(force: true));
     }
   }
 
@@ -1622,11 +1623,11 @@ class QuranCubit extends Cubit<QuranState> {
     final playback = _audioPlayer.play();
     unawaited(
       playback.catchError((Object error, StackTrace stackTrace) {
-        _handleAudioFailure(force: true);
+        unawaited(_handleAudioFailure(force: true));
       }),
     );
     _audioStartTimeout = Timer(const Duration(seconds: 15), () {
-      if (isAudioLoading) _handleAudioFailure();
+      if (isAudioLoading) unawaited(_handleAudioFailure());
     });
   }
 
@@ -1749,9 +1750,9 @@ class QuranCubit extends Cubit<QuranState> {
   }
 
   void _handlePlayerError(PlayerException _) =>
-      _handleAudioFailure(force: true);
+      unawaited(_handleAudioFailure(force: true));
 
-  void _handleAudioFailure({bool force = false}) {
+  Future<void> _handleAudioFailure({bool force = false}) async {
     if (isClosed ||
         _audioErrorReported ||
         (!force &&
@@ -1771,8 +1772,23 @@ class QuranCubit extends Cubit<QuranState> {
     _audioSourcePrepared = false;
     _audioPlayer.handler.clearMediaItem();
     emit(_nextState);
-    AppSnackBar.show(message: 'تعذر تشغيل التلاوة، حاول مجددًا');
     unawaited(_enqueueAudioCommand(() => _audioPlayer.stop()));
+    final hasConnection = await _hasInternetConnection();
+    if (isClosed) return;
+    AppSnackBar.show(
+      message:
+          hasConnection
+              ? 'تعذر تشغيل التلاوة، حاول مجددًا'
+              : 'لا يوجد اتصال بالإنترنت. اتصل بالإنترنت وحاول مجددًا',
+    );
+  }
+
+  Future<bool> _hasInternetConnection() async {
+    try {
+      return await InternetConnectionChecker.instance.hasConnection;
+    } catch (_) {
+      return true;
+    }
   }
 
   void _setAudioLoading(bool value) {

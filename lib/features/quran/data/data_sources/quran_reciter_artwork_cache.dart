@@ -32,7 +32,7 @@ class QuranReciterArtworkCache {
           'reciter_${reciter.id}${reciter.avatarAsset!.substring(reciter.avatarAsset!.lastIndexOf('.'))}',
         ),
       const MapEntry(
-        'assets/features/app/images/quran_logo.png',
+        'assets/features/app/images/quran_logo.webp',
         'quran_notification_artwork.png',
       ),
     ];

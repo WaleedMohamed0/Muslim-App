@@ -30,7 +30,7 @@ The script builds only `android-arm64`, compares the new APK signing certificate
 
 Use `-AllowFirstInstall` only when intentionally installing the app for the first time; a fresh install has no existing on-device app data to preserve.
 
-The text-based offline Quran reader no longer bundles the old Quran page images. The original image files are retained in the repository, but excluded from the APK.
+The text-based offline Quran reader uses the bundled Uthmanic text and font. The legacy Quran page images are no longer included in the app assets.
 
 <br>
 <br>
