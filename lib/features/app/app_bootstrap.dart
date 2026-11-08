@@ -7,6 +7,7 @@ import 'package:muslim/core/network/dio_client.dart';
 import 'package:muslim/core/storage/cache_helper.dart';
 import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
 import 'package:muslim/features/app/presentation/muslim_app.dart';
+import 'package:muslim/features/app/data/services/kahf_reminder_service.dart';
 import 'package:muslim/features/asmaa_allah/presentation/cubit/allah_names_cubit.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:muslim/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
@@ -14,6 +15,7 @@ import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cub
 import 'package:muslim/features/quran/data/data_sources/quran_audio_handler.dart';
 import 'package:muslim/features/quran/data/data_sources/uthmani_quran_text.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 const MethodChannel _notificationNavigationChannel = MethodChannel(
   'com.muslim/notification_navigation',
 );
@@ -22,13 +24,24 @@ Future<void> runMuslimApp() async {
   WidgetsFlutterBinding.ensureInitialized();
   await UthmaniQuranText.initialize();
   final quranAudioHandler = await initializeQuranAudioService();
+  String? initialKahfRoute;
+  try {
+    final kahfReminder = KahfReminderService.instance;
+    await kahfReminder.initialize();
+    initialKahfRoute = kahfReminder.takePendingLaunchRoute();
+    await kahfReminder.schedule();
+  } catch (_) {
+    // Keep app startup available if notification services are unavailable.
+  }
   DioHelper.init();
   DioHelper.initHadeeth();
-  final initialNotificationRoute = await _readInitialNotificationRoute();
+  final initialNotificationRoute =
+      initialKahfRoute ?? await _readInitialNotificationRoute();
   await CacheHelper.init().catchError((Object _) {});
   runApp(
     MultiBlocProvider(
       providers: [
+        BlocProvider(create: (_) => KhatmahCubit()),
         BlocProvider(
           create: (_) => QuranCubit(
             audioHandler: quranAudioHandler as QuranAudioHandler,

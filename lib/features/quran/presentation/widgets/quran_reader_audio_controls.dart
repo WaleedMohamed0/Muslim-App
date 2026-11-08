@@ -32,10 +32,6 @@ class QuranReaderAudioControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = Color.alphaBlend(
-      palette.accent.withValues(alpha: .055),
-      palette.background,
-    );
     final reciter = cubit.displayReciter;
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final verseCount = cubit.currentSurahVerseCount;
@@ -43,17 +39,12 @@ class QuranReaderAudioControls extends StatelessWidget {
         ? cubit.currentAyahNumber.clamp(1, verseCount)
         : cubit.currentAyahNumber;
 
-    return Material(
-      color: cardColor,
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: .1),
-      borderRadius: BorderRadius.circular(21),
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 10, 7),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(21),
-          border: Border.all(color: palette.frame.withValues(alpha: .8)),
-        ),
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(4, 2, 4, 4),
+      child: Material(
+        color: Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(6, 4, 6, 4),
         child: Directionality(
           textDirection: TextDirection.rtl,
           child: Column(
@@ -146,6 +137,7 @@ class QuranReaderAudioControls extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

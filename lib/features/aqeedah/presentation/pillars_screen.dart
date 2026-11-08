@@ -4,7 +4,7 @@ import 'package:muslim/features/aqeedah/data/pillars_content.dart';
 
 Color _categoryAccent(BuildContext context, PillarCategory category) {
   if (Theme.of(context).brightness != Brightness.dark) return category.color;
-  return category.title == 'أركان الإسلام'
+  return category.title == 'أَرْكَان الْإِسْلَام'
       ? const Color(0xFF8ED7B5)
       : const Color(0xFFE5C17F);
 }
@@ -61,7 +61,7 @@ class _PillarsScreenState extends State<PillarsScreen> {
 
   @override
   Widget build(BuildContext context) => Directionality(textDirection: TextDirection.rtl, child: Scaffold(
-    appBar: AppBar(title: const Text('أركان الإسلام والإيمان', style: TextStyle(fontWeight: FontWeight.w800))),
+    appBar: AppBar(title: const Text('أَرْكَان الْإِسْلَام والإيمان', style: TextStyle(fontWeight: FontWeight.w800))),
     body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 28), children: [
       Text('رحلة قصيرة لتتعرف على أصول دينك. اقرأ كل درس، ثم علّمه كمكتمل لتتابع تقدمك.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.6)),
       const SizedBox(height: 18),
@@ -132,8 +132,8 @@ class _PillarDetailScreenState extends State<PillarDetailScreen> {
       Card(color: c.primaryContainer, child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [CircleAvatar(radius: 24, backgroundColor: c.surface.withValues(alpha: .7), child: Icon(widget.lesson.icon, color: c.primary, size: 24)), const SizedBox(width: 14), Expanded(child: Text(widget.lesson.title, style: theme.textTheme.headlineSmall?.copyWith(fontSize: 22, fontWeight: FontWeight.w800, color: c.onPrimaryContainer)))]))),
       section('شرح مبسط', paragraph(widget.lesson.explanation), Icons.lightbulb_outline_rounded),
       section('أهميته ومكانته', paragraph(widget.lesson.importance), Icons.stars_rounded),
-      section('من القرآن الكريم', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('﴿${widget.lesson.verse}﴾', textAlign: TextAlign.center, style: theme.textTheme.titleMedium?.copyWith(height: 2, fontWeight: FontWeight.w700)), const SizedBox(height: 8), Text(widget.lesson.reference, style: theme.textTheme.labelMedium?.copyWith(color: c.primary, fontWeight: FontWeight.bold))]), Icons.menu_book_rounded),
-      if (widget.lesson.hadith != null) section('من السنة النبوية', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [paragraph('«${widget.lesson.hadith}»'), const SizedBox(height: 8), Text(widget.lesson.hadithSource!, style: theme.textTheme.labelMedium?.copyWith(color: c.primary, fontWeight: FontWeight.bold))]), Icons.format_quote_rounded),
+      section('من الْقُرْآن الكريم', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('﴿${widget.lesson.verse}﴾', textAlign: TextAlign.center, style: theme.textTheme.titleMedium?.copyWith(height: 2, fontWeight: FontWeight.w700)), const SizedBox(height: 8), Text(widget.lesson.reference, style: theme.textTheme.labelMedium?.copyWith(color: c.primary, fontWeight: FontWeight.bold))]), Icons.menu_book_rounded),
+      if (widget.lesson.hadith != null) section('من السُّنَّة النبوية', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [paragraph('«${widget.lesson.hadith}»'), const SizedBox(height: 8), Text(widget.lesson.hadithSource!, style: theme.textTheme.labelMedium?.copyWith(color: c.primary, fontWeight: FontWeight.bold))]), Icons.format_quote_rounded),
       section('في حياتنا اليومية', paragraph(widget.lesson.example), Icons.volunteer_activism_outlined),
       const SizedBox(height: 18),
       _CompletionAction(

@@ -109,15 +109,15 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     final isPlaying = _isPlaying && playingName != null;
     final title =
         isPlaying
-            ? 'حان الآن وقت صلاة $playingName'
+            ? 'حان الآن وقت صَلَاة $playingName'
             : next == null
-            ? 'مواقيت الصلاة'
-            : 'الصلاة القادمة: ${next.name}';
+            ? 'مواقيت الصَّلَاة'
+            : 'الصَّلَاة القادمة: ${next.name}';
     final subtitle =
         isPlaying
             ? 'الأذان يعمل الآن'
             : next == null
-            ? 'اضغط لعرض مواقيت الصلاة'
+            ? 'اضغط لعرض مواقيت الصَّلَاة'
             : 'متبقي ${_formatRemaining(next.at.difference(DateTime.now()))}';
     final foregroundColor =
         widget.onDarkBackground
@@ -219,11 +219,11 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
   _NextPrayer? _nextPrayer(PrayerTimes? times, DateTime now) {
     if (times == null) return null;
     const prayers = <(String, String)>[
-      ('الفجر', 'fajr'),
-      ('الظهر', 'dhuhr'),
-      ('العصر', 'asr'),
-      ('المغرب', 'maghrib'),
-      ('العشاء', 'isha'),
+      ('الْفَجْر', 'fajr'),
+      ('الظُّهْر', 'dhuhr'),
+      ('الْعَصْر', 'asr'),
+      ('الْمَغْرِب', 'maghrib'),
+      ('الْعِشَاء', 'isha'),
     ];
     final prayerTimes = [
       times.fajr,
@@ -251,11 +251,11 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
   }
 
   String? _prayerName(String? prayer) => switch (prayer) {
-    'fajr' => 'الفجر',
-    'dhuhr' => 'الظهر',
-    'asr' => 'العصر',
-    'maghrib' => 'المغرب',
-    'isha' => 'العشاء',
+    'fajr' => 'الْفَجْر',
+    'dhuhr' => 'الظُّهْر',
+    'asr' => 'الْعَصْر',
+    'maghrib' => 'الْمَغْرِب',
+    'isha' => 'الْعِشَاء',
     _ => null,
   };
 

@@ -20,6 +20,16 @@ class SurahListTile extends StatelessWidget {
   final String? subtitle;
   final String? numberLabel;
 
+  String _verseCountLabel() {
+    final count = verses;
+    final noun = count == 2
+        ? 'آيتان'
+        : count >= 3 && count <= 10
+        ? 'آيات'
+        : 'آية';
+    return '${toArabicIndicDigits(count)} $noun';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -64,7 +74,7 @@ class SurahListTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      subtitle ?? '$place  •  ${toArabicIndicDigits(verses)} آيات',
+                      subtitle ?? '$place  •  ${_verseCountLabel()}',
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

@@ -14,7 +14,8 @@ class SurahReaderController extends ChangeNotifier {
     required int initialSurah,
     int? initialAyah,
     int? initialPageNumber,
-  }) {
+    ValueChanged<int>? onPageRead,
+  }) : _onPageRead = onPageRead {
     _readerOnlyDuringOtherPlayback = false;
     final savedReaderPosition = cubit.lastReaderAyahForSurah(initialSurah);
     final savedPlaybackPosition = cubit.lastAyahForSurah(initialSurah);
@@ -69,6 +70,7 @@ class SurahReaderController extends ChangeNotifier {
   static const _maximumFontSize = 32.0;
 
   final QuranCubit cubit;
+  final ValueChanged<int>? _onPageRead;
   late final PageController pageController;
   late final TransformationController zoomController;
   late final StreamSubscription<QuranState> _audioStateSubscription;
@@ -164,13 +166,13 @@ class SurahReaderController extends ChangeNotifier {
 
     final surahNumber =
         usePlaybackOverride
-            ? playbackSurah ?? firstSurahNumber
+            ? playbackSurah
             : initialSurahIsOnPage
             ? initialSurah
             : firstSurahNumber;
     final verseNumber =
         usePlaybackOverride
-            ? playbackAyah ?? (first['start'] as num).toInt()
+            ? playbackAyah
             : initialSurahIsOnPage
             ? pendingInitialAyah!
             : (first['start'] as num).toInt();
@@ -184,6 +186,7 @@ class SurahReaderController extends ChangeNotifier {
       surahNumber: surahNumber,
       ayahNumber: verseNumber,
     );
+    _onPageRead?.call(index + 1);
     cubit.saveReaderPosition(surahNumber, verseNumber);
     _scheduleControlsHide();
   }

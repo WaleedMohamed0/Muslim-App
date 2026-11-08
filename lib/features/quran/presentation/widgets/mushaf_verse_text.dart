@@ -54,13 +54,28 @@ class _PageVerseTextState extends State<_PageVerseText> {
       );
       recognizer.onLongPress =
           () => widget.onAyahLongPress(widget.surahNumber, verseNumber);
+      final verseText = _displayVerseText(
+        widget.surahNumber,
+        verseNumber,
+        separateBasmala: widget.separateBasmala,
+      );
+      final basmalaStyle = widget.surahNumber == 1 && verseNumber == 1
+          ? TextStyle(
+              fontSize: widget.fontSize * 1.1,
+              fontWeight: FontWeight.w700,
+            )
+          : null;
+      final verseChildren = basmalaStyle != null &&
+              verseText.startsWith(_mushafBasmala)
+          ? <InlineSpan>[
+              TextSpan(text: _mushafBasmala, style: basmalaStyle),
+              TextSpan(text: verseText.substring(_mushafBasmala.length)),
+            ]
+          : null;
       spans.add(
         TextSpan(
-          text: _displayVerseText(
-            widget.surahNumber,
-            verseNumber,
-            separateBasmala: widget.separateBasmala,
-          ),
+          text: verseChildren == null ? verseText : null,
+          children: verseChildren,
           recognizer: recognizer,
           style: isHighlighted || isBookmarked
               ? TextStyle(
@@ -78,25 +93,33 @@ class _PageVerseTextState extends State<_PageVerseText> {
               : null,
         ),
       );
+      // A WidgetSpan is bidi-neutral in its parent paragraph. Surround it
+      // with strong RTL marks so it stays at the end of this verse in reading
+      // order instead of being associated with the neighboring verse.
+      spans.add(const TextSpan(text: '\u200F'));
       spans.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onLongPress:
-                () => widget.onAyahLongPress(
-                  widget.surahNumber,
-                  verseNumber,
-                ),
-            child: _VerseMarker(
-              number: verseNumber,
-              palette: widget.palette,
-              isHighlighted: isHighlighted,
-              isBookmarked: isBookmarked,
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onLongPress:
+                  () => widget.onAyahLongPress(
+                    widget.surahNumber,
+                    verseNumber,
+                  ),
+              child: _VerseMarker(
+                number: _markerVerseNumber(widget.surahNumber, verseNumber),
+                palette: widget.palette,
+                isHighlighted: isHighlighted,
+                isBookmarked: isBookmarked,
+              ),
             ),
           ),
         ),
       );
+      spans.add(const TextSpan(text: '\u200F'));
       spans.add(
         const WidgetSpan(
           alignment: PlaceholderAlignment.middle,
@@ -141,5 +164,15 @@ class _PageVerseTextState extends State<_PageVerseText> {
     }
     super.dispose();
   }
+}
+
+// The first two Al-Imran markers are associated with the adjacent verses in
+// reverse order by the Mushaf paragraph's bidi layout. Keep the verse text and
+// its interactions indexed normally, while correcting only these two marker
+// labels.
+int _markerVerseNumber(int surahNumber, int verseNumber) {
+  if (surahNumber == 3 && verseNumber == 1) return 2;
+  if (surahNumber == 3 && verseNumber == 2) return 1;
+  return verseNumber;
 }
 

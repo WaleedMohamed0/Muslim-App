@@ -14,6 +14,8 @@ are named by the corresponding MP3Quran reciter ID.
 | `mp3quran_86.jpg` | Nasser Al-Qatami | [Commons file](https://commons.wikimedia.org/wiki/File:%D8%B5%D9%88%D8%B1%D8%A9_%D8%B4%D8%AE%D8%B5%D9%8A%D8%A9_%D8%A7%D9%84%D8%B4%D9%8A%D8%AE_%D9%86%D8%A7%D8%B5%D8%B1_%D8%A7%D9%84%D9%82%D8%B7%D8%A7%D9%85%D9%8A.jpg); Ayman ZouLghina, CC BY-SA 4.0. |
 | `mp3quran_118.jpg` | Mahmoud Khalil Al-Hussary | [Commons file](https://commons.wikimedia.org/wiki/File:Hussary.jpg); released by the photographer into the public domain. |
 | `mp3quran_112.jpg` | Mohamed Siddiq El-Minshawi | [Commons file](https://commons.wikimedia.org/wiki/File:Elminshwey.jpg); public domain in Egypt. |
+| `mp3quran_122.jpg` | Mahmoud Ali Al-Banna | [Prayer Now reciter image](https://app.prayer-now.com/en/app/quran/mahmoud-ali-al-banna-muratalun/5781679083880448); no reuse license is stated on the source page. |
+| `mp3quran_31.png` | Saud Al-Shuraim | [Commons file](https://commons.wikimedia.org/wiki/File:Saud_Shuraim_doing_the_Khutbah.png); Sobi2203, CC BY-SA 4.0. |
 
 The CC BY-SA portraits are distributed under their respective ShareAlike
 licenses. Thumbnails are used without additional edits.

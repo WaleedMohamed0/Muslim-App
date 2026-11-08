@@ -133,14 +133,14 @@ class AppActionDialog extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
+                    TextButton(
+                      onPressed: onSecondary,
+                      child: Text(secondaryLabel),
+                    ),
                     FilledButton.icon(
                       onPressed: onPrimary,
                       icon: Icon(primaryIcon, size: 19),
                       label: Text(primaryLabel),
-                    ),
-                    TextButton(
-                      onPressed: onSecondary,
-                      child: Text(secondaryLabel),
                     ),
                     if (tertiaryLabel != null && onTertiary != null)
                       OutlinedButton.icon(

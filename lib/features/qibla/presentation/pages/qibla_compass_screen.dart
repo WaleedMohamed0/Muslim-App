@@ -53,7 +53,7 @@ class _QiblaCompassViewState extends State<_QiblaCompassView>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: defaultAppBar(context: context, text: 'بوصلة القبلة'),
+    appBar: defaultAppBar(context: context, text: 'بوصلة الْقِبْلَة'),
     body: SafeArea(
       child: BlocBuilder<QiblaCubit, QiblaState>(
         builder: (context, state) {
@@ -65,7 +65,7 @@ class _QiblaCompassViewState extends State<_QiblaCompassView>
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 14),
-                  Text('جارٍ تحديد اتجاه القبلة…'),
+                  Text('جارٍ تحديد اتجاه الْقِبْلَة…'),
                 ],
               ),
             );
@@ -102,7 +102,7 @@ class _CompassContent extends StatelessWidget {
           padding: const EdgeInsetsDirectional.fromSTEB(22, 18, 22, 28),
           children: [
             Text(
-              'حرّك هاتفك حتى يشير المؤشر إلى اتجاه القبلة',
+              'حرّك هاتفك حتى يشير المؤشر إلى اتجاه الْقِبْلَة',
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -133,7 +133,7 @@ class _CompassContent extends StatelessWidget {
               children: [
                 Expanded(
                   child: _DirectionValueCard(
-                    label: 'اتجاه القبلة',
+                    label: 'اتجاه الْقِبْلَة',
                     value: '${toArabicIndicDigits(bearing.round() % 360)}°',
                     icon: Icons.mosque_rounded,
                   ),
@@ -208,7 +208,7 @@ class _CompassUnavailable extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'اتجاه القبلة ${toArabicIndicDigits(bearing.round() % 360)}°',
+              'اتجاه الْقِبْلَة ${toArabicIndicDigits(bearing.round() % 360)}°',
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -235,7 +235,7 @@ class _DirectionStatus extends StatelessWidget {
     final direction = rotation > 0 ? 'يمينًا' : 'يسارًا';
     final text =
         isAligned
-            ? 'أنت باتجاه القبلة'
+            ? 'أنت باتجاه الْقِبْلَة'
             : 'استدر $direction بمقدار ${toArabicIndicDigits(rotation.abs().round())}°';
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 13, 16, 13),
@@ -367,10 +367,10 @@ class _LocationHelp extends StatelessWidget {
         state.status == QiblaStatus.locationServicesDisabled;
     final title =
         isDenied || isPermanentlyDenied
-            ? 'يلزم إذن الموقع لحساب اتجاه القبلة'
+            ? 'يلزم إذن الموقع لحساب اتجاه الْقِبْلَة'
             : isServiceDisabled
             ? 'خدمات الموقع غير مفعّلة'
-            : state.error ?? 'تعذر تحديد اتجاه القبلة';
+            : state.error ?? 'تعذر تحديد اتجاه الْقِبْلَة';
     final description =
         isDenied || isPermanentlyDenied
             ? 'يُستخدم موقعك الحالي لحساب الاتجاه إلى الكعبة، ولا يُحفظ أو يُرسل عبر الإنترنت.'
@@ -457,7 +457,7 @@ class _LocationHelp extends StatelessWidget {
             (dialogContext) => AlertDialog(
               title: const Text('إذن الموقع', textDirection: TextDirection.rtl),
               content: const Text(
-                'نحتاج إلى موقعك الحالي لحساب اتجاه القبلة بدقة. يُستخدم الموقع على جهازك فقط.',
+                'نحتاج إلى موقعك الحالي لحساب اتجاه الْقِبْلَة بدقة. يُستخدم الموقع على جهازك فقط.',
                 textDirection: TextDirection.rtl,
                 textAlign: TextAlign.start,
               ),

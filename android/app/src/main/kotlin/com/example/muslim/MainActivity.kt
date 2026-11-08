@@ -190,6 +190,7 @@ class MainActivity: AudioServiceActivity() {
             "morning" -> "azkar_morning"
             "evening" -> "azkar_evening"
             "daily_wird" -> "daily_wird"
+            "salawat_morning", "salawat_evening" -> "salawat"
             else -> null
         }
     }

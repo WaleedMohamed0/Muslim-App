@@ -178,22 +178,23 @@ class _StoryDetailsScreenState extends State<StoryDetailsScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _chapterIndex + 1 < widget.story.chapters.length
-                          ? () => _moveTo(_chapterIndex + 1)
-                          : null,
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                      label: const Text('التالي'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _chapterIndex > 0
                           ? () => _moveTo(_chapterIndex - 1)
                           : null,
-                      icon: const AppBackArrow(),
+                      icon: const Icon(Icons.arrow_back_rounded),
                       label: const Text('السابق'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _chapterIndex + 1 < widget.story.chapters.length
+                          ? () => _moveTo(_chapterIndex + 1)
+                          : null,
+                      iconAlignment: IconAlignment.end,
+                      label: const Text('التالي'),
+                      icon: const Icon(Icons.arrow_forward_rounded),
                     ),
                   ),
                 ],

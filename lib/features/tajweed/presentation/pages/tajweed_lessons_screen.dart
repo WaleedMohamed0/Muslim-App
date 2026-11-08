@@ -12,7 +12,7 @@ class TajweedLessonsScreen extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(title: const Text('دروس التجويد')),
+        appBar: AppBar(title: const Text('دروس التَّجْوِيد')),
         body: ListView(
           padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 28),
           children: [

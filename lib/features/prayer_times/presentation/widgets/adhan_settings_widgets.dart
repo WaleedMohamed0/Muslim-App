@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muslim/core/widgets/app_switch.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/features/prayer_times/domain/entities/adhan_audio_option.dart';
 class AdhanInfoCard extends StatelessWidget {
@@ -238,21 +239,24 @@ class PermissionStatusTile extends StatelessWidget {
     required this.description,
     required this.value,
     required this.onChanged,
+    this.icon,
   });
 
   final String title;
   final String description;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return SwitchListTile.adaptive(
+    return AppSwitchListTile(
       value: value,
       onChanged: onChanged,
-      secondary: Icon(
-        value ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+      leading: Icon(
+        icon ??
+            (value ? Icons.check_circle_rounded : Icons.info_outline_rounded),
         color: value ? colors.primary : colors.onSurfaceVariant,
       ),
       title: Text(title),
@@ -261,24 +265,6 @@ class PermissionStatusTile extends StatelessWidget {
         textDirection: TextDirection.rtl,
       ),
       controlAffinity: ListTileControlAffinity.trailing,
-      thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (Theme.of(context).brightness == Brightness.dark) return null;
-        return states.contains(WidgetState.selected)
-            ? colors.onPrimary
-            : colors.surface;
-      }),
-      trackColor: WidgetStateProperty.resolveWith((states) {
-        if (Theme.of(context).brightness == Brightness.dark) return null;
-        return states.contains(WidgetState.selected)
-            ? colors.primary
-            : colors.onSurfaceVariant;
-      }),
-      trackOutlineColor: WidgetStateProperty.resolveWith((states) {
-        if (Theme.of(context).brightness == Brightness.dark) return null;
-        return states.contains(WidgetState.selected)
-            ? colors.primary
-            : colors.onSurfaceVariant;
-      }),
     );
   }
 }

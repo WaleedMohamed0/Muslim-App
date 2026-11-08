@@ -140,11 +140,13 @@ internal object DailyAzkarReminderScheduler {
             .put(reminderJson("morning", "azkar_morning", "أذكار الصباح", "صباح الخير 🌿 حان وقت أذكار الصباح، ابدأ يومك بذكر الله.", 7, 0))
             .put(reminderJson("evening", "azkar_evening", "أذكار المساء", "لا تنسَ أذكار المساء، حصّن يومك بذكر الله.", 17, 0))
             .put(reminderJson("daily_wird", "daily_wird", "وردك اليومي", "حان وقت وردك اليومي، اجعل لنفسك نصيبًا من القرآن والذكر.", 21, 0))
+            .put(reminderJson("salawat_morning", "salawat", "الصلاة على النبي ﷺ", "لا تنسَ الصلاة على النبي ﷺ ❤️", 10, 0, true))
+            .put(reminderJson("salawat_evening", "salawat", "الصلاة على النبي ﷺ", "اجعل لسانك رطبًا بالصلاة على النبي ﷺ.", 18, 0, true))
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(SETTINGS, defaults.toString()) ?: defaults.toString()
         return try {
             val array = JSONArray(raw)
-            (0 until array.length()).mapNotNull { index ->
+            val reminders = (0 until array.length()).mapNotNull { index ->
                 val json = array.optJSONObject(index) ?: return@mapNotNull null
                 val id = json.optString("id")
                 if (id.isBlank()) return@mapNotNull null
@@ -157,7 +159,18 @@ internal object DailyAzkarReminderScheduler {
                     minute = json.optInt("minute", 0).coerceIn(0, 59),
                     enabled = json.optBoolean("enabled", false),
                 )
+            }.toMutableList()
+            val knownIds = reminders.map { it.id }.toSet()
+            listOf(
+                reminderJson("salawat_morning", "salawat", "الصلاة على النبي ﷺ", "لا تنسَ الصلاة على النبي ﷺ ❤️", 10, 0, true),
+                reminderJson("salawat_evening", "salawat", "الصلاة على النبي ﷺ", "اجعل لسانك رطبًا بالصلاة على النبي ﷺ.", 18, 0, true),
+            ).forEach { json ->
+                val id = json.optString("id")
+                if (id !in knownIds) reminders.add(
+                    Reminder(id, json.optString("route"), json.optString("title"), json.optString("message"), json.optInt("hour"), json.optInt("minute"), json.optBoolean("enabled")),
+                )
             }
+            reminders
         } catch (_: Exception) {
             emptyList()
         }
@@ -170,6 +183,7 @@ internal object DailyAzkarReminderScheduler {
         message: String,
         hour: Int,
         minute: Int,
+        enabled: Boolean = false,
     ) = JSONObject()
         .put("id", id)
         .put("route", route)
@@ -177,7 +191,7 @@ internal object DailyAzkarReminderScheduler {
         .put("message", message)
         .put("hour", hour)
         .put("minute", minute)
-        .put("enabled", false)
+        .put("enabled", enabled)
 
     private fun scheduleNext(context: Context, reminder: Reminder) {
         val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
@@ -276,6 +290,7 @@ internal object DailyAzkarReminderScheduler {
                     "morning" -> "azkar_morning"
                     "evening" -> "azkar_evening"
                     "daily_wird" -> "daily_wird"
+                    "salawat_morning", "salawat_evening" -> "salawat"
                     else -> reminder.route
                 },
             )
@@ -294,11 +309,22 @@ internal object DailyAzkarReminderScheduler {
             openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val salawatMessages = listOf(
+            "لا تنسَ الصلاة على النبي ﷺ ❤️",
+            "اجعل لسانك رطبًا بالصلاة على النبي ﷺ.",
+            "اللهم صلِّ وسلم على نبينا محمد ﷺ.",
+            "أكثروا من الصلاة على النبي ﷺ.",
+            "دقيقة من وقتك، صلِّ فيها على النبي ﷺ.",
+        )
+        val message = if (reminder.route == "salawat") {
+            val day = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+            salawatMessages[(day + reminder.id.hashCode().ushr(1)) % salawatMessages.size]
+        } else reminder.message
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.mipmap.launcher_icon)
             .setContentTitle(reminder.title)
-            .setContentText(reminder.message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(reminder.message))
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setContentIntent(contentIntent)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)

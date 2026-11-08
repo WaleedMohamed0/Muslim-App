@@ -1,3 +1,5 @@
+enum QuranReciterCountry { egypt, saudiArabia, kuwait, other }
+
 /// A remotely streamed complete-Surah recitation.
 ///
 /// The stream directories below are the Hafs Murattal entries published by
@@ -12,6 +14,7 @@ class QuranReciter {
     required this.timingReadId,
     required this.avatarLabel,
     required this.avatarColorValue,
+    required this.country,
     this.avatarAsset,
     this.ayahAudioDirectory,
   });
@@ -27,6 +30,7 @@ class QuranReciter {
   final String? ayahAudioDirectory;
   final String avatarLabel;
   final int avatarColorValue;
+  final QuranReciterCountry country;
 
   String displayName({required bool arabic}) =>
       arabic ? nameArabic : nameEnglish;
@@ -52,6 +56,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_123.jpg',
       avatarLabel: 'مش',
       avatarColorValue: 0xFF315C4C,
+      country: QuranReciterCountry.kuwait,
     ),
     QuranReciter(
       id: 'mp3quran_54',
@@ -63,6 +68,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_54.png',
       avatarLabel: 'عس',
       avatarColorValue: 0xFF426C5A,
+      country: QuranReciterCountry.saudiArabia,
     ),
     QuranReciter(
       id: 'mp3quran_30',
@@ -74,6 +80,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_30.jpg',
       avatarLabel: 'سغ',
       avatarColorValue: 0xFF597A68,
+      country: QuranReciterCountry.saudiArabia,
     ),
     QuranReciter(
       id: 'mp3quran_133',
@@ -85,6 +92,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_133.jpg',
       avatarLabel: 'ما',
       avatarColorValue: 0xFF3D6855,
+      country: QuranReciterCountry.saudiArabia,
     ),
     QuranReciter(
       id: 'mp3quran_53',
@@ -96,6 +104,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_53.jpg',
       avatarLabel: 'عب',
       avatarColorValue: 0xFF526F5F,
+      country: QuranReciterCountry.egypt,
     ),
     QuranReciter(
       id: 'mp3quran_92',
@@ -107,6 +116,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_92.jpg',
       avatarLabel: 'يد',
       avatarColorValue: 0xFF6B8674,
+      country: QuranReciterCountry.saudiArabia,
     ),
     QuranReciter(
       id: 'mp3quran_86',
@@ -118,6 +128,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_86.jpg',
       avatarLabel: 'نق',
       avatarColorValue: 0xFF426350,
+      country: QuranReciterCountry.saudiArabia,
     ),
     QuranReciter(
       id: 'mp3quran_118',
@@ -129,6 +140,7 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_118.jpg',
       avatarLabel: 'مح',
       avatarColorValue: 0xFF647D6C,
+      country: QuranReciterCountry.egypt,
     ),
     QuranReciter(
       id: 'mp3quran_112',
@@ -140,7 +152,39 @@ class QuranReciter {
       avatarAsset: 'assets/images/reciters/mp3quran_112.jpg',
       avatarLabel: 'من',
       avatarColorValue: 0xFF557360,
+      country: QuranReciterCountry.egypt,
     ),
+    QuranReciter(
+      id: 'mp3quran_122',
+      nameArabic: 'محمود علي البنا',
+      nameEnglish: 'Mahmoud Ali Al-Banna',
+      serverUrl: 'https://cdn.mp3quran.net/audio/mahmoud-banna/r2/',
+      timingReadId: 122,
+      ayahAudioDirectory: 'mahmoud_ali_al_banna_32kbps',
+      avatarAsset: 'assets/images/reciters/mp3quran_122.jpg',
+      avatarLabel: 'مب',
+      avatarColorValue: 0xFF765D4D,
+      country: QuranReciterCountry.egypt,
+    ),
+    QuranReciter(
+      id: 'mp3quran_31',
+      nameArabic: 'سعود الشريم',
+      nameEnglish: 'Saud Al-Shuraim',
+      serverUrl: 'https://cdn.mp3quran.net/audio/saud-shuraim/r1/',
+      timingReadId: 31,
+      ayahAudioDirectory: 'Saood_ash-Shuraym_128kbps',
+      avatarAsset: 'assets/images/reciters/mp3quran_31.png',
+      avatarLabel: 'سش',
+      avatarColorValue: 0xFF526B75,
+      country: QuranReciterCountry.saudiArabia,
+    ),
+  ];
+
+  /// Reciters grouped in the picker priority order, while preserving catalog
+  /// order within each nationality.
+  static List<QuranReciter> get orderedByCountry => [
+    for (final country in QuranReciterCountry.values)
+      ...all.where((reciter) => reciter.country == country),
   ];
 
   static QuranReciter byId(String? id) => all.firstWhere(

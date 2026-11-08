@@ -28,7 +28,7 @@ class _AsmaaAllahScreenState extends State<AsmaaAllahScreen> {
   Widget build(BuildContext context) => BlocBuilder<AllahNamesCubit, AllahNamesState>(
     builder: (context, state) {
       return Scaffold(
-        appBar: defaultAppBar(context: context, text: 'أسماء الله الحسنى'),
+        appBar: defaultAppBar(context: context, text: 'أسماء اللَّه الحسنى'),
         body: state.isLoading && state.names.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : state.error != null && state.names.isEmpty

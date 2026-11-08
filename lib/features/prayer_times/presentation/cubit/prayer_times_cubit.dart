@@ -92,9 +92,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
     if (error is PrayerLocationException) {
       return switch (error.failure) {
         PrayerLocationFailure.servicesDisabled =>
-          'يرجى تفعيل الموقع (Location) لعرض مواقيت الصلاة.',
+          'يرجى تفعيل الموقع (Location) لعرض مواقيت الصَّلَاة.',
         PrayerLocationFailure.permissionDenied =>
-          'يرجى السماح للتطبيق بالوصول إلى الموقع لعرض مواقيت الصلاة.',
+          'يرجى السماح للتطبيق بالوصول إلى الموقع لعرض مواقيت الصَّلَاة.',
         PrayerLocationFailure.permissionPermanentlyDenied =>
           'تم رفض إذن الموقع نهائيًا. افتح إعدادات التطبيق للسماح بالوصول إلى الموقع.',
         PrayerLocationFailure.unavailable =>
@@ -102,7 +102,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       };
     }
     if (_isNetworkError(error)) return 'لا يوجد اتصال بالإنترنت';
-    return 'تعذر تحميل مواقيت الصلاة. يرجى المحاولة مرة أخرى.';
+    return 'تعذر تحميل مواقيت الصَّلَاة. يرجى المحاولة مرة أخرى.';
   }
 
   PrayerTimesErrorType _errorType(Object error) {

@@ -57,8 +57,16 @@ class _DevicePermissionsScreenState extends State<DevicePermissionsScreen>
   Future<void> _changePermission(String key, bool enabled) async {
     try {
       if (!enabled) {
+        if (!(_permissions[key] ?? false)) return;
+        final shouldContinue = await _confirmPermissionDisable(key);
+        if (!shouldContinue || !mounted) return;
+
         if (key == 'notifications') {
           await _service.openNotificationSettings();
+        } else if (key == 'exactAlarms') {
+          // Android does not let apps revoke exact-alarm access themselves.
+          // Send the user to App info, where they can turn it off.
+          await _service.openAppSettings();
         } else {
           await _service.openAppSettings();
         }
@@ -76,6 +84,8 @@ class _DevicePermissionsScreenState extends State<DevicePermissionsScreen>
                 await Geolocator.openAppSettings();
               }
             }
+          case 'exactAlarms':
+            await _service.requestExactAlarmPermission();
         }
       }
     } catch (_) {
@@ -86,6 +96,43 @@ class _DevicePermissionsScreenState extends State<DevicePermissionsScreen>
       }
     }
     await _refreshPermissions();
+  }
+
+  Future<bool> _confirmPermissionDisable(String key) async {
+    final (title, message) = switch (key) {
+      'notifications' => (
+          'إيقاف الإشعارات؟',
+          'لن يتمكن التطبيق من عرض تنبيهات الصلاة والأذان والتذكيرات. يمكنك إيقافها من إعدادات الإشعارات في الجهاز.',
+        ),
+      'location' => (
+          'إيقاف إذن الموقع؟',
+          'لن يستطيع التطبيق تحديد موقعك تلقائيًا لحساب مواقيت الصلاة. ستحتاج إلى اختيار المدينة يدويًا أو تفعيل الإذن مجددًا.',
+        ),
+      'exactAlarms' => (
+          'إيقاف المنبهات والتذكيرات؟',
+          'لن يتمكن التطبيق من جدولة تنبيهات الصلاة والأذان والتذكيرات في مواعيدها الدقيقة.',
+        ),
+      _ => ('إيقاف الصلاحية؟', 'قد تتوقف بعض ميزات التطبيق عن العمل.'),
+    };
+
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title, textDirection: TextDirection.rtl),
+            content: Text(message, textDirection: TextDirection.rtl),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('متابعة إلى الإعدادات'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
@@ -115,6 +162,16 @@ class _DevicePermissionsScreenState extends State<DevicePermissionsScreen>
                           value: _permissions['location'] ?? false,
                           onChanged: (value) =>
                               _changePermission('location', value),
+                        ),
+                        const Divider(height: 1),
+                        PermissionStatusTile(
+                          title: 'المنبهات والتذكيرات',
+                          description:
+                              'لجدولة إشعارات الصلاة والأذان والتذكيرات بدقة.',
+                          value: _permissions['exactAlarms'] ?? false,
+                          icon: Icons.alarm_rounded,
+                          onChanged: (value) =>
+                              _changePermission('exactAlarms', value),
                         ),
                       ],
                     ),

@@ -9,7 +9,8 @@ import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.
 double estimateQuranMiniPlayerHeight(BuildContext context) =>
     (MediaQuery.sizeOf(context).width * .17 +
             MediaQuery.sizeOf(context).height * .012 +
-            35)
+            35 +
+            MediaQuery.viewPaddingOf(context).bottom)
         .clamp(108.0, double.infinity)
         .toDouble();
 
@@ -22,8 +23,8 @@ double quranMiniPlayerBottomInset(
   final playerHeight = measuredHeight > 0
       ? measuredHeight
       : estimateQuranMiniPlayerHeight(context);
-  // Use the remaining inset: the app shell already applies SafeArea globally.
-  return playerHeight + MediaQuery.paddingOf(context).bottom;
+  // The measured height includes the navigation inset added by the player.
+  return playerHeight;
 }
 
 /// A compact Quran playback card shared by the Surah list and Quran reader.

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:muslim/core/widgets/app_time_picker.dart';
+import 'package:muslim/core/widgets/app_switch.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
@@ -125,13 +127,9 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
       hour: reminder['hour'] as int,
       minute: reminder['minute'] as int,
     );
-    final time = await showTimePicker(
+    final time = await AppTimePicker.show(
       context: context,
       initialTime: initial,
-      builder: (context, child) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: child ?? const SizedBox.shrink(),
-      ),
     );
     if (time == null || !mounted) return;
     final updated = _copyReminders();
@@ -143,6 +141,12 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
   List<Map<String, dynamic>> _copyReminders() => _reminders
       .map((reminder) => Map<String, dynamic>.from(reminder))
       .toList(growable: true);
+
+  List<MapEntry<int, Map<String, dynamic>>> get _visibleReminders => [
+    for (var index = 0; index < _reminders.length; index++)
+      if (_reminders[index]['route'] != 'salawat')
+        MapEntry(index, _reminders[index]),
+  ];
 
   Future<void> _save(List<Map<String, dynamic>> reminders) async {
     setState(() => _saving = true);
@@ -163,6 +167,12 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
       hour: reminder['hour'] as int,
       minute: reminder['minute'] as int,
     ).format(context);
+    final arabicTime = time.replaceAllMapped(
+      RegExp(r'[0-9]'),
+      (match) => String.fromCharCode(
+        0x0660 + int.parse(match.group(0)!),
+      ),
+    );
     final scheduled = reminder['scheduled'] == true;
     final enabled = reminder['enabled'] == true;
     final status = scheduled
@@ -170,7 +180,7 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
         : enabled
         ? 'بانتظار الجدولة'
         : 'متوقف';
-    return '$time · $status';
+    return '$arabicTime · $status';
   }
 
   IconData _iconFor(String id) => switch (id) {
@@ -206,9 +216,13 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
                   ),
                 ),
                 const SizedBox(height: 16),
-                for (var index = 0; index < _reminders.length; index++) ...[
-                  _reminderCard(context, _reminders[index], index),
-                  if (index != _reminders.length - 1)
+                for (var index = 0; index < _visibleReminders.length; index++) ...[
+                  _reminderCard(
+                    context,
+                    _visibleReminders[index].value,
+                    _visibleReminders[index].key,
+                  ),
+                  if (index != _visibleReminders.length - 1)
                     const SizedBox(height: 12),
                 ],
                 if (_saving) ...[
@@ -244,33 +258,9 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
                 _formatTime(context, reminder),
                 textDirection: TextDirection.rtl,
               ),
-              trailing: Switch.adaptive(
+              trailing: AppSwitch(
                 value: scheduled,
                 onChanged: _saving ? null : (value) => _setReminder(index, value),
-                thumbColor: WidgetStateProperty.resolveWith((states) {
-                  if (Theme.of(context).brightness == Brightness.dark) {
-                    return null;
-                  }
-                  return states.contains(WidgetState.selected)
-                      ? colors.onPrimary
-                      : colors.surface;
-                }),
-                trackColor: WidgetStateProperty.resolveWith((states) {
-                  if (Theme.of(context).brightness == Brightness.dark) {
-                    return null;
-                  }
-                  return states.contains(WidgetState.selected)
-                      ? colors.primary
-                      : colors.onSurfaceVariant;
-                }),
-                trackOutlineColor: WidgetStateProperty.resolveWith((states) {
-                  if (Theme.of(context).brightness == Brightness.dark) {
-                    return null;
-                  }
-                  return states.contains(WidgetState.selected)
-                      ? colors.primary
-                      : colors.onSurfaceVariant;
-                }),
               ),
             ),
             Align(

@@ -27,7 +27,7 @@ class ElAzanScreen extends StatelessWidget {
     // The Isha photo is a night scene; keep its overlay dark in light mode too
     // so the image does not get washed out by the light surface gradient.
     final isDark =
-        theme.brightness == Brightness.dark || prayer.trim() == 'العشاء';
+        theme.brightness == Brightness.dark || prayer.trim() == 'الْعِشَاء';
     const azanNight = Color(0xFF10231F);
     final foreground = isDark ? Colors.white : colors.onSurface;
     final mutedForeground =
@@ -137,7 +137,7 @@ class ElAzanScreen extends StatelessWidget {
                                   ),
                                   SizedBox(width: 7),
                                   Text(
-                                    'تنبيه الصلاة',
+                                    'تنبيه الصَّلَاة',
                                     textDirection: TextDirection.rtl,
                                     style: TextStyle(
                                       color: foreground,
@@ -169,7 +169,7 @@ class ElAzanScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'حان الآن وقت صلاة',
+                          'حان الآن وقت صَلَاة',
                           textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.titleLarge?.copyWith(
@@ -190,7 +190,7 @@ class ElAzanScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          'حيّ على الصلاة',
+                          'حيّ على الصَّلَاة',
                           textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.titleMedium?.copyWith(

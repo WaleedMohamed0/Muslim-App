@@ -10,6 +10,7 @@ import 'package:muslim/features/quran/presentation/widgets/juz_list.dart';
 import 'package:muslim/features/quran/presentation/widgets/saved_bookmarks_dialog.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_browse_mode_switcher.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_search_field.dart';
+import 'package:muslim/features/quran/presentation/pages/quran_verse_search_screen.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -52,6 +53,13 @@ class _HomeScreenState extends State<HomeScreen> {
             context: context,
             text: "القراّن الكريم",
             actions: [
+              IconButton(
+                tooltip: isArabic ? 'البحث في القرآن' : 'Search Quran',
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => const QuranVerseSearchScreen(),
+                )),
+                icon: const Icon(Icons.search_rounded),
+              ),
               IconButton(
                 tooltip: isArabic ? 'العلامات المرجعية' : 'Saved bookmarks',
                 onPressed: () => unawaited(

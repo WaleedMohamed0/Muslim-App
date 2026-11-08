@@ -422,6 +422,16 @@ class QuranCubit extends Cubit<QuranState> {
       if (timing.start > position) break;
       current = timing;
     }
+    // If a recording's first verse timestamp follows a lead-in, the first
+    // timed verse is still what should be highlighted during that interval.
+    if (current == null) {
+      for (final timing in _ayahTimings) {
+        if (timing.ayah > 0) {
+          current = timing;
+          break;
+        }
+      }
+    }
     if (current == null || (!force && current.ayah == currentAyahNumber)) {
       return;
     }

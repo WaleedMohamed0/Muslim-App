@@ -508,7 +508,7 @@ class _PrayerRakahReferenceCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      cell('الصلاة', emphasized: true),
+                      cell('الصَّلَاة', emphasized: true),
                       cell(WorshipUiStrings.fardLabel, emphasized: true),
                       cell(WorshipUiStrings.sunnahBeforeLabel, emphasized: true),
                       cell(WorshipUiStrings.sunnahAfterLabel, emphasized: true),

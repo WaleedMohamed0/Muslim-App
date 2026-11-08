@@ -17,11 +17,11 @@ class AppAssets {
 
   static String adhanBackgroundForPrayer(String prayer) =>
       switch (prayer.trim()) {
-        'الفجر' => adhanFajrBackground,
-        'الظهر' => adhanDhuhrBackground,
-        'العصر' => adhanAsrBackground,
-        'المغرب' => adhanMaghribBackground,
-        'العشاء' => adhanIshaBackground,
+        'الْفَجْر' => adhanFajrBackground,
+        'الظُّهْر' => adhanDhuhrBackground,
+        'الْعَصْر' => adhanAsrBackground,
+        'الْمَغْرِب' => adhanMaghribBackground,
+        'الْعِشَاء' => adhanIshaBackground,
         _ => adhanIshaBackground,
       };
   static const azkarData = 'assets/features/azkar/data/azkar.json';

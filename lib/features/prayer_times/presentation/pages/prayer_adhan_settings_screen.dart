@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:muslim/core/widgets/app_switch.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
@@ -27,11 +28,11 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
   String? _previewingId;
 
   static const _prayerNames = {
-    'fajr': 'الفجر',
-    'dhuhr': 'الظهر',
-    'asr': 'العصر',
-    'maghrib': 'المغرب',
-    'isha': 'العشاء',
+    'fajr': 'الْفَجْر',
+    'dhuhr': 'الظُّهْر',
+    'asr': 'الْعَصْر',
+    'maghrib': 'الْمَغْرِب',
+    'isha': 'الْعِشَاء',
   };
 
   @override
@@ -121,7 +122,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       if (currentPermissions['notifications'] != true) {
         final accepted = await _explainPermission(
           'السماح بالإشعارات',
-          'يلزم السماح بالإشعارات لتلقي تنبيهات الأذان عند دخول وقت الصلاة.',
+          'يلزم السماح بالإشعارات لتلقي تنبيهات الأذان عند دخول وقت الصَّلَاة.',
         );
         if (!accepted) return;
         await _service.requestNotificationPermission();
@@ -140,7 +141,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       if (_permissions['exactAlarms'] != true) {
         final accepted = await _explainPermission(
           'السماح بالمنبهات الدقيقة',
-          'هذا الإذن مطلوب لتشغيل صوت الأذان تلقائيًا في الخلفية عند دخول وقت الصلاة. إذا لم تسمح به، سيصلك إشعار الصلاة من دون تشغيل الصوت.',
+          'هذا الإذن مطلوب لتشغيل صوت الأذان تلقائيًا في الخلفية عند دخول وقت الصَّلَاة. إذا لم تسمح به، سيصلك إشعار الصَّلَاة من دون تشغيل الصوت.',
         );
         if (accepted) await _service.requestExactAlarmPermission();
       }
@@ -149,7 +150,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     } catch (_) {
       if (mounted) {
         AppSnackBar.show(
-          message: 'الوصول إلى الموقع مطلوب لحساب مواقيت صلاة دقيقة. يمكنك المحاولة مرة أخرى.',
+          message: 'الوصول إلى الموقع مطلوب لحساب مواقيت صَلَاة دقيقة. يمكنك المحاولة مرة أخرى.',
         );
       }
     } finally {
@@ -220,11 +221,11 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                 AdhanInfoCard(
                   icon: Icons.alarm_rounded,
                   title: 'كيف يعمل الأذان؟',
-                  text: 'اختر صوت الأذان المفضل لديك، وتحكم في تنبيهات الصلوات بسهولة.',
+                  text: 'اختر صوت الأذان المفضل لديك، وتحكم في تنبيهات الصَّلَوَات بسهولة.',
                 ),
                 const SizedBox(height: 14),
                 Card(
-                  child: SwitchListTile.adaptive(
+                  child: AppSwitchListTile(
                     value: _settings.enabled,
                     onChanged: _enablingAdhan ? null : _setAdhanEnabled,
                     title: const Text('تفعيل الأذان تلقائيًا'),
@@ -233,38 +234,13 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                           ? 'يلزم السماح بالمنبهات الدقيقة لتشغيل الصوت تلقائيًا'
                           : 'تشغيل الأذان عند حلول المواقيت المحددة',
                     ),
-                    secondary: Icon(Icons.notifications_active_outlined,
+                    leading: Icon(Icons.notifications_active_outlined,
                         color: colors.primary),
-                    thumbColor: WidgetStateProperty.resolveWith((states) {
-                      if (Theme.of(context).brightness == Brightness.dark) {
-                        return null;
-                      }
-                      return states.contains(WidgetState.selected)
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.surface;
-                    }),
-                    trackColor: WidgetStateProperty.resolveWith((states) {
-                      if (Theme.of(context).brightness == Brightness.dark) {
-                        return null;
-                      }
-                      return states.contains(WidgetState.selected)
-                          ? colors.primary
-                          : colors.onSurfaceVariant;
-                    }),
-                    trackOutlineColor:
-                        WidgetStateProperty.resolveWith((states) {
-                      if (Theme.of(context).brightness == Brightness.dark) {
-                        return null;
-                      }
-                      return states.contains(WidgetState.selected)
-                          ? colors.primary
-                          : colors.onSurfaceVariant;
-                    }),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'الأذان لكل صلاة',
+                  'الأذان لكل صَلَاة',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -274,39 +250,11 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                   child: Column(
                     children: [
                       for (final prayer in _prayerNames.entries)
-                        SwitchListTile.adaptive(
+                        AppSwitchListTile(
                           value: _settings.prayers[prayer.key] ?? true,
                           title: Text(prayer.value),
-                          secondary: Icon(_prayerIcon(prayer.key),
+                          leading: Icon(_prayerIcon(prayer.key),
                               color: colors.primary),
-                          thumbColor: WidgetStateProperty.resolveWith((states) {
-                            if (Theme.of(context).brightness ==
-                                Brightness.dark) {
-                              return null;
-                            }
-                            return states.contains(WidgetState.selected)
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : Theme.of(context).colorScheme.surface;
-                          }),
-                          trackColor: WidgetStateProperty.resolveWith((states) {
-                            if (Theme.of(context).brightness ==
-                                Brightness.dark) {
-                              return null;
-                            }
-                            return states.contains(WidgetState.selected)
-                                ? colors.primary
-                                : colors.onSurfaceVariant;
-                          }),
-                          trackOutlineColor:
-                              WidgetStateProperty.resolveWith((states) {
-                            if (Theme.of(context).brightness ==
-                                Brightness.dark) {
-                              return null;
-                            }
-                            return states.contains(WidgetState.selected)
-                                ? colors.primary
-                                : colors.onSurfaceVariant;
-                          }),
                           onChanged: (value) {
                             final prayers = Map<String, bool>.from(_settings.prayers)
                               ..[prayer.key] = value;
@@ -374,7 +322,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'عند اكتشاف أن الجهاز في وضع مكالمة، لا يُشغّل الأذان ويصل تنبيه الصلاة بصمت. قد تؤثر قيود النظام أو الشركة المصنّعة في توقيت التنبيهات، كما يلتزم الصوت بإعدادات عدم الإزعاج في الجهاز.',
+                  'عند اكتشاف أن الجهاز في وضع مكالمة، لا يُشغّل الأذان ويصل تنبيه الصَّلَاة بصمت. قد تؤثر قيود النظام أو الشركة المصنّعة في توقيت التنبيهات، كما يلتزم الصوت بإعدادات عدم الإزعاج في الجهاز.',
                   textDirection: TextDirection.rtl,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,

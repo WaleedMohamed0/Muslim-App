@@ -32,7 +32,7 @@ class _StoryCollectionScreenState extends State<StoryCollectionScreen> {
         return Scaffold(
           appBar: defaultAppBar(
             context: context,
-            text: widget.isSeerah ? 'السيرة النبوية' : 'قصص الأنبياء',
+            text: widget.isSeerah ? 'السيرة النبوية' : 'قصص الْأَنْبِيَاء',
           ),
           body: const Center(child: Text('تعذر تحميل المحتوى المحلي')),
         );
@@ -45,7 +45,7 @@ class _StoryCollectionScreenState extends State<StoryCollectionScreen> {
       return Scaffold(
         appBar: defaultAppBar(
           context: context,
-          text: widget.isSeerah ? 'السيرة النبوية' : 'قصص الأنبياء',
+          text: widget.isSeerah ? 'السيرة النبوية' : 'قصص الْأَنْبِيَاء',
           actions: [
             IconButton(
               tooltip: _onlyBookmarks ? 'عرض الكل' : 'المحفوظات',
@@ -88,7 +88,7 @@ class _StoryCollectionScreenState extends State<StoryCollectionScreen> {
                     textAlign: TextAlign.right,
                     onChanged: (value) => setState(() => _search = value),
                     decoration: InputDecoration(
-                      hintText: 'ابحث في ${widget.isSeerah ? 'السيرة' : 'قصص الأنبياء'}',
+                      hintText: 'ابحث في ${widget.isSeerah ? 'السيرة' : 'قصص الْأَنْبِيَاء'}',
                       prefixIcon: const Icon(Icons.search_rounded),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     ),

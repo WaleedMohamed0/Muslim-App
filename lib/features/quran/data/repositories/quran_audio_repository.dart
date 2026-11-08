@@ -35,7 +35,10 @@ class QuranAudioRepository implements contract.QuranAudioRepository {
     required int readId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final cacheKey = 'quran_ayah_timing_${reciterId}_$surahNumber';
+    // Saud's cached timings need to be refreshed to remove the opening
+    // Bismillah row without shifting the numbered verses.
+    final cacheVersion = reciterId == 'mp3quran_31' ? 'v3' : 'v2';
+    final cacheKey = 'quran_ayah_timing_${cacheVersion}_${reciterId}_$surahNumber';
     final saved = prefs.getString(cacheKey);
     if (saved != null) {
       try {
@@ -55,22 +58,54 @@ class QuranAudioRepository implements contract.QuranAudioRepository {
       'https://www.mp3quran.net/api/v3/ayat_timing',
       queryParameters: {'surah': surahNumber, 'read': readId},
     );
-    final timings = (response.data ?? const <dynamic>[])
+    final timings = normalizeTimingRecords(
+      response.data ?? const <dynamic>[],
+      reciterId: reciterId,
+      surahNumber: surahNumber,
+    );
+    if (timings.isEmpty) throw StateError('Ayah timing unavailable');
+    await prefs.setString(
+      cacheKey,
+      jsonEncode(timings
+          .map(
+            (timing) => {
+              'ayah': timing.ayah,
+              'start': timing.start.inMilliseconds,
+            },
+          )
+          .toList()),
+    );
+    return timings;
+  }
+
+  /// Maps API timing rows into the Quran numbering used by the reader.
+  /// Public for focused regression tests of timing responses.
+  static List<QuranAyahTiming> normalizeTimingRecords(
+    List<dynamic> records, {
+    required String reciterId,
+    required int surahNumber,
+  }) {
+    final rawTimings = records
         .whereType<Map>()
-        .where((item) => item['ayah'] is num && (item['ayah'] as num) > 0)
+        .where((item) => item['ayah'] is num)
+        .toList(growable: false);
+    final hasSaudBismillahSegment =
+        reciterId == 'mp3quran_31' && surahNumber != 1;
+    return rawTimings
+        .where((item) {
+          final ayah = (item['ayah'] as num).toInt();
+          // Saud's non-Fatihah ayah 0 row is the opening Bismillah segment.
+          // It has no Quran verse number and must not shift the numbered rows.
+          if (ayah == 0 && hasSaudBismillahSegment) return false;
+          // Other recordings' ayah 0 rows are likewise not numbered verses;
+          // retain their established behavior of excluding them.
+          return ayah > 0;
+        })
         .map((item) => QuranAyahTiming(
               ayah: (item['ayah'] as num).toInt(),
               start: Duration(milliseconds: (item['start_time'] as num).toInt()),
             ))
         .toList(growable: false);
-    if (timings.isEmpty) throw StateError('Ayah timing unavailable');
-    await prefs.setString(
-      cacheKey,
-      jsonEncode(timings
-          .map((timing) => {'ayah': timing.ayah, 'start': timing.start.inMilliseconds})
-          .toList()),
-    );
-    return timings;
   }
 
   @override

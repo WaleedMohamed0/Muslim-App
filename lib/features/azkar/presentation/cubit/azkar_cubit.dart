@@ -96,7 +96,7 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
           entriesByCategory: _entriesByCategory,
           favoriteEntryIds: Set.unmodifiable(_favoriteEntryIds),
           revision: state.revision + 1,
-          error: 'تعذر تحميل الأذكار',
+          error: 'تعذر تحميل الْأَذْكَار',
         ),
       );
     } finally {
@@ -110,11 +110,11 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
       'أذكار المساء',
       'أذكار النوم',
       'أذكار الاستيقاظ',
-      'أذكار بعد السلام من الصلاة المفروضة',
+      'أذكار بعد السلام من الصَّلَاة المفروضة',
       'تسابيح',
       'أدعية قرآنية',
-      'أدعية الأنبياء',
-      'أدعية من السنة النبوية',
+      'أدعية الْأَنْبِيَاء',
+      'أدعية من السُّنَّة النبوية',
       'أدعية للمواقف اليومية',
     ];
     if (category < 0 || category >= names.length) return const [];
@@ -130,11 +130,11 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
       'أذكار المساء',
       'أذكار النوم',
       'أذكار الاستيقاظ',
-      'أذكار بعد السلام من الصلاة المفروضة',
+      'أذكار بعد السلام من الصَّلَاة المفروضة',
       'تسابيح',
       'أدعية قرآنية',
-      'أدعية الأنبياء',
-      'أدعية من السنة النبوية',
+      'أدعية الْأَنْبِيَاء',
+      'أدعية من السُّنَّة النبوية',
       'أدعية للمواقف اليومية',
     ];
     if (category < 0 || category >= names.length) return const [];

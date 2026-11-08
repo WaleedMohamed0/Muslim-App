@@ -30,18 +30,25 @@ class QuranAudioMiniPlayerCard extends StatelessWidget {
               toArabicIndicDigits(cubit.currentSurahVerseCount)
         : 'سورة ${cubit.surahName}  ·  توقيت الآية غير متاح';
 
-    return Container(
-      margin: const EdgeInsetsDirectional.fromSTEB(12, 5, 12, 5),
-      child: Material(
+    final navigationInset = MediaQuery.viewPaddingOf(context).bottom;
+
+    return Material(
         color: palette.surface,
         elevation: 2,
         shadowColor: Colors.black.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(18),
+        ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(11, 7, 7, 7),
+            padding: EdgeInsetsDirectional.fromSTEB(
+              11,
+              7,
+              7,
+              7 + navigationInset,
+            ),
             child: Directionality(
               textDirection: TextDirection.rtl,
               child: LayoutBuilder(
@@ -141,7 +148,6 @@ class QuranAudioMiniPlayerCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }

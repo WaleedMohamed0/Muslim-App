@@ -136,7 +136,7 @@ class SavedBookmarksDialog {
                   if (pageItems.isNotEmpty)
                     const SizedBox(height: AppSpacing.md),
                   _BookmarkSectionHeading(
-                    title: isArabic ? 'الآيات' : 'Ayahs',
+                    title: isArabic ? 'الْآيَات' : 'Ayahs',
                     count: ayahItems.length,
                     isArabic: isArabic,
                   ),

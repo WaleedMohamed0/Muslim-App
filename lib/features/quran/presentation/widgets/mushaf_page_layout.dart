@@ -1,5 +1,32 @@
 part of 'mushaf_text_page.dart';
 
+const _mushafBasmala = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
+
+class _MushafBasmala extends StatelessWidget {
+  const _MushafBasmala({required this.palette, required this.fontSize});
+
+  final QuranReaderPalette palette;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    _mushafBasmala,
+    textDirection: TextDirection.rtl,
+    textAlign: TextAlign.center,
+    style: TextStyle(
+      fontFamily: 'UthmanicHafs',
+      fontFeatures: const [
+        FontFeature.enable('mark'),
+        FontFeature.enable('mkmk'),
+      ],
+      fontSize: fontSize * 1.1,
+      fontWeight: FontWeight.w700,
+      height: 1.8,
+      color: palette.text,
+    ),
+  );
+}
+
 class _MushafPageContent extends StatelessWidget {
   const _MushafPageContent({
     required this.pageNumber,
@@ -43,21 +70,7 @@ class _MushafPageContent extends StatelessWidget {
         pageText.add(const SizedBox(height: 14));
         if (isBaqarahOpening) {
           pageText.add(
-            Text(
-              UthmaniQuranText.getVerse(1, 1),
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'UthmanicHafs',
-                fontFeatures: const [
-                  FontFeature.enable('mark'),
-                  FontFeature.enable('mkmk'),
-                ],
-                fontSize: fontSize,
-                height: 1.8,
-                color: palette.text,
-              ),
-            ),
+            _MushafBasmala(palette: palette, fontSize: fontSize),
           );
           pageText.add(const SizedBox(height: 12));
         } else {
@@ -104,21 +117,7 @@ class _MushafPageContent extends StatelessWidget {
             if (surahNumber != 1 && surahNumber != 9) {
               pageText.add(const SizedBox(height: 8));
               pageText.add(
-                Text(
-                  UthmaniQuranText.getVerse(1, 1),
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'UthmanicHafs',
-                    fontFeatures: const [
-                      FontFeature.enable('mark'),
-                      FontFeature.enable('mkmk'),
-                    ],
-                    fontSize: fontSize - 1,
-                    height: 1.8,
-                    color: palette.text,
-                  ),
-                ),
+                _MushafBasmala(palette: palette, fontSize: fontSize - 1),
               );
             }
             pageText.add(const SizedBox(height: 10));

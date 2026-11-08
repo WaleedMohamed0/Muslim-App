@@ -43,7 +43,7 @@ class PrayerTimesContent extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  'الصلاة نور يومك',
+                  'الصَّلَاة نور يومك',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),

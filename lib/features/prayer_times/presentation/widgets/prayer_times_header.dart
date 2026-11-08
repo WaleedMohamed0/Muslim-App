@@ -164,7 +164,7 @@ class _PrayerTimesNextCardState extends State<PrayerTimesNextCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'الصلاة القادمة',
+                  'الصَّلَاة القادمة',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: colors.onPrimary.withValues(alpha: .82),
                     fontWeight: FontWeight.w600,

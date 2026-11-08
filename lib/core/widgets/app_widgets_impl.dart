@@ -1,5 +1,4 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -23,7 +22,6 @@ Widget defaultText({
   linesMax,
   TextOverflow? textOverflow,
   FontStyle? fontStyle,
-  TextStyle? hintStyle,
   TextAlign? textAlign,
 }) => Text(
   isUpperCase ? text.toUpperCase() : text,
@@ -46,39 +44,6 @@ Widget myDivider(BuildContext context) => Container(
   color: Theme.of(context).dividerColor,
   height: 1,
 );
-
-Widget homeItem(context, text, screen) {
-  final scheme = Theme.of(context).colorScheme;
-  return InkWell(
-    onTap: () {
-      navigateTo(context, screen);
-    },
-    child: Stack(
-      alignment: AlignmentDirectional.bottomCenter,
-      children: [
-        Container(
-          padding: EdgeInsets.zero,
-          width: Adaptive.w(76),
-          height: Adaptive.h(8),
-          alignment: AlignmentDirectional.center,
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadiusDirectional.only(
-              topStart: Radius.circular(AppRadii.pill),
-              bottomEnd: Radius.circular(AppRadii.pill),
-            ),
-            color: scheme.secondaryContainer,
-          ),
-        ),
-        defaultText(
-          text: text,
-          fontsize: 33,
-          textAlign: TextAlign.center,
-          textColor: scheme.onSecondaryContainer,
-        ),
-      ],
-    ),
-  );
-}
 
 AppBar defaultAppBar({
   required BuildContext context,

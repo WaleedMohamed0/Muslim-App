@@ -28,13 +28,13 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     1 => 'أَذْكَارُ المساءِ',
     2 => 'أَذْكَارُ النَوْم',
     3 => 'أذكار الاستيقاظ',
-    4 => 'أذكار ما بعد الصلاة',
+    4 => 'أذكار ما بعد الصَّلَاة',
     5 => 'التسابيح',
     6 => 'أدعية قرآنية',
-    7 => 'أدعية الأنبياء',
-    8 => 'أدعية من السنة النبوية',
+    7 => 'أدعية الْأَنْبِيَاء',
+    8 => 'أدعية من السُّنَّة النبوية',
     9 => 'أدعية للمواقف اليومية',
-    _ => 'الأحاديث النبوية',
+    _ => 'الْأَحَادِيث النبوية',
   };
 
   @override
@@ -169,7 +169,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                             onChanged: (value) =>
                                 setState(() => _duaSearch = value),
                             decoration: InputDecoration(
-                              hintText: 'ابحث في الأدعية',
+                              hintText: 'ابحث في الْأَدْعِيَة',
                               prefixIcon: const Icon(Icons.search_rounded),
                               suffixIcon: _duaSearch.isEmpty
                                   ? null

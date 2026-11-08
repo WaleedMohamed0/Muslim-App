@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// A consistently oriented back-style arrow used for navigation affordances.
 class AppBackArrow extends StatelessWidget {
-  const AppBackArrow({super.key, this.size = 16, this.color});
+  const AppBackArrow({super.key, this.size = 15, this.color});
 
   final double size;
   final Color? color;

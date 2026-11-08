@@ -68,24 +68,28 @@ class ReaderControlsOverlay extends StatelessWidget {
             constraints: BoxConstraints(maxHeight: constraints.maxHeight),
             child: SingleChildScrollView(
               reverse: true,
-              child: Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(
-                  14, 8, 14, MediaQuery.viewPaddingOf(context).bottom + 12,
-                ),
-                child: DecoratedBox(
+              child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: palette.surface.withValues(alpha: .97),
-                    borderRadius: BorderRadius.circular(26),
-                    border: Border.all(color: palette.muted.withValues(alpha: .16)),
+                    color: palette.surface,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 24, offset: const Offset(0, 8)),
+                      BoxShadow(color: Colors.black.withValues(alpha: .14), blurRadius: 18, offset: const Offset(0, -4)),
                     ],
                   ),
-                child: Column(
+                child: Padding(
+                  padding: EdgeInsetsDirectional.fromSTEB(
+                    12,
+                    12,
+                    12,
+                    MediaQuery.viewPaddingOf(context).bottom + 8,
+                  ),
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 8),
+                      padding: const EdgeInsetsDirectional.fromSTEB(4, 2, 4, 8),
                       child: audioControls,
                     ),
                     Divider(height: 1, color: palette.muted.withValues(alpha: .16)),
@@ -109,7 +113,7 @@ class ReaderControlsOverlay extends StatelessWidget {
                       ]),
                     ),
                   ],
-                ),
+                  ),
                 ),
               ),
             ),

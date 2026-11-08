@@ -173,7 +173,7 @@ class AzkarTextCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   _TasbeehActionButton(
                     onPressed: onCopy,
-                    tooltip: 'نسخ الذكر',
+                    tooltip: 'نسخ الذِّكْر',
                     icon: Icons.content_copy_rounded,
                     backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                     foregroundColor:
@@ -204,7 +204,7 @@ class AzkarTextCard extends StatelessWidget {
                     const Spacer(),
                   _TasbeehActionButton(
                     onPressed: onCopy,
-                    tooltip: 'نسخ الذكر',
+                    tooltip: 'نسخ الذِّكْر',
                     icon: Icons.content_copy_rounded,
                     backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                     foregroundColor:
@@ -219,7 +219,7 @@ class AzkarTextCard extends StatelessWidget {
                 alignment: AlignmentDirectional.centerStart,
                 child: Text(
                   counter! >= repetitionCount!
-                      ? 'اكتمل الذكر'
+                      ? 'اكتمل الذِّكْر'
                       : 'المتبقي: ${toArabicIndicDigits(repetitionCount! - counter!)}',
                   textDirection: TextDirection.rtl,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -249,7 +249,7 @@ class AzkarTextCard extends StatelessWidget {
                   if (onShare != null)
                     IconButton(
                       onPressed: onShare,
-                      tooltip: 'مشاركة الدعاء',
+                      tooltip: 'مشاركة الدُّعَاء',
                       icon: const Icon(Icons.share_rounded),
                     ),
                 ],

@@ -48,7 +48,7 @@ class _PrayerTimesState extends State<PrayerTimes> with WidgetsBindingObserver {
         return Scaffold(
           appBar: defaultAppBar(
             context: context,
-            text: 'مواقيت الصلاة',
+            text: 'مواقيت الصَّلَاة',
             actions: [
               IconButton(
                 tooltip: 'تحديث المواقيت',
@@ -73,7 +73,7 @@ class _PrayerTimesState extends State<PrayerTimes> with WidgetsBindingObserver {
                     CircularProgressIndicator(),
                     SizedBox(height: 14),
                     Text(
-                      'جارٍ تحميل مواقيت الصلاة...',
+                      'جارٍ تحميل مواقيت الصَّلَاة...',
                       textDirection: TextDirection.rtl,
                       textAlign: TextAlign.center,
                     ),
@@ -81,7 +81,7 @@ class _PrayerTimesState extends State<PrayerTimes> with WidgetsBindingObserver {
                 ),
               ),
             PrayerTimesStatus.failure => _PrayerTimesError(
-              message: state.error ?? 'تعذر تحميل مواقيت الصلاة',
+              message: state.error ?? 'تعذر تحميل مواقيت الصَّلَاة',
               errorType: state.errorType,
               onRetry: () => context.read<PrayerTimesCubit>().getPrayerTime(),
               onOpenLocationSettings: Geolocator.openLocationSettings,

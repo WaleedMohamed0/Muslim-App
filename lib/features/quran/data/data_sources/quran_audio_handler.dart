@@ -77,16 +77,16 @@ class QuranAudioHandler extends BaseAudioHandler
   }) {
     final item = MediaItem(
       id: 'quran:$surahName:$reciterName',
-      album: 'القرآن الكريم',
+      album: 'الْقُرْآن الكريم',
       title:
-          'سورة $surahName${ayahNumber == null ? '' : ' • الآية $ayahNumber'}',
+          'سُورَة $surahName${ayahNumber == null ? '' : ' • الْآيَة $ayahNumber'}',
       artist: reciterName,
       duration: player.duration,
       artUri: artworkUri,
-      displayTitle: 'سورة $surahName',
+      displayTitle: 'سُورَة $surahName',
       displaySubtitle: reciterName,
       displayDescription:
-          ayahNumber == null ? 'القرآن الكريم' : 'الآية $ayahNumber',
+          ayahNumber == null ? 'الْقُرْآن الكريم' : 'الْآيَة $ayahNumber',
       extras: {
         'surahName': surahName,
         'surahNumber': surahNumber,
@@ -268,13 +268,13 @@ class QuranAudioHandler extends BaseAudioHandler
     final surahName = rawSurahName == 'اللهب' ? 'المسد' : rawSurahName;
     final item = MediaItem(
       id: 'quran:$surahName:${reciter.nameArabic}',
-      album: 'القرآن الكريم',
-      title: 'سورة $surahName • الآية $ayahNumber',
+      album: 'الْقُرْآن الكريم',
+      title: 'سُورَة $surahName • الْآيَة $ayahNumber',
       artist: reciter.nameArabic,
       duration: player.duration,
-      displayTitle: 'سورة $surahName',
+      displayTitle: 'سُورَة $surahName',
       displaySubtitle: reciter.nameArabic,
-      displayDescription: 'الآية $ayahNumber',
+      displayDescription: 'الْآيَة $ayahNumber',
       extras: {
         'surahName': surahName,
         'surahNumber': surahNumber,
@@ -358,8 +358,8 @@ Future<AudioHandler> initializeQuranAudioService() async {
     builder: QuranAudioHandler.new,
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.example.muslim.quran_audio',
-      androidNotificationChannelName: 'تلاوة القرآن الكريم',
-      androidNotificationChannelDescription: 'تشغيل تلاوة القرآن في الخلفية',
+      androidNotificationChannelName: 'تلاوة الْقُرْآن الكريم',
+      androidNotificationChannelDescription: 'تشغيل تلاوة الْقُرْآن في الخلفية',
       androidNotificationIcon: 'mipmap/launcher_icon',
       // Keep the media service and its lock-screen controls available while
       // paused. audio_service requires ongoing=false for this configuration.

@@ -27,6 +27,9 @@ dependencies:
   page_transition: ^2.2.2
   we_slide: ^2.4.0
   shared_preferences: ^2.5.6
+  flutter_local_notifications: ^19.4.2
+  flutter_timezone: ^5.1.1
+  timezone: ^0.10.1
   internet_connection_checker: ^3.0.1
   flutter_cache_manager: ^3.4.6
   path_provider: ^2.1.6

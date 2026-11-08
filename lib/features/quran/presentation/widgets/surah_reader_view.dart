@@ -24,6 +24,8 @@ class SurahReaderView extends StatelessWidget {
     required this.surahName,
     required this.surahNumber,
     required this.currentAyah,
+    this.searchHighlightSurah,
+    this.searchHighlightAyah,
     required this.palette,
     required this.onToggleControls,
     required this.onBookmark,
@@ -51,6 +53,8 @@ class SurahReaderView extends StatelessWidget {
   final String surahName;
   final int surahNumber;
   final int currentAyah;
+  final int? searchHighlightSurah;
+  final int? searchHighlightAyah;
   final QuranReaderPalette palette;
   final VoidCallback onToggleControls;
   final VoidCallback onBookmark;
@@ -90,12 +94,16 @@ class SurahReaderView extends StatelessWidget {
                       zoomScale: zoomScale,
                       fontSize: fontSize,
                       palette: palette,
-                      highlightedSurahNumber:
+                      highlightedSurahNumber: searchHighlightAyah != null
+                          ? searchHighlightSurah
+                          :
                           cubit.hasActivePlaybackSession &&
                                   cubit.hasReliableCurrentAyah
                               ? cubit.surahNumber
                               : null,
-                      highlightedAyahNumber:
+                      highlightedAyahNumber: searchHighlightAyah != null
+                          ? searchHighlightAyah
+                          :
                           cubit.hasActivePlaybackSession &&
                                   cubit.hasReliableCurrentAyah
                               ? cubit.currentAyahNumber

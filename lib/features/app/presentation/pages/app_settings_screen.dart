@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/widgets/app_widgets_impl.dart';
 import 'package:muslim/core/widgets/app_back_arrow.dart';
+import 'package:muslim/core/widgets/app_switch.dart';
 import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
 import 'package:muslim/features/app/presentation/cubit/app_state.dart';
 import 'package:muslim/features/app/presentation/pages/device_permissions_screen.dart';
@@ -36,8 +37,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             Card(
               clipBehavior: Clip.antiAlias,
               child: BlocBuilder<AppCubit, AppState>(
-                builder: (context, state) => SwitchListTile(
-                  secondary: const _SettingsLeadingIcon(
+                builder: (context, state) => AppSwitchListTile(
+                  leading: const _SettingsLeadingIcon(
                     icon: Icons.dark_mode_rounded,
                   ),
                   title: const Text('الوضع الداكن'),
@@ -47,32 +48,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                         : 'غير مفعّل',
                   ),
                   value: state.themeMode == ThemeMode.dark,
-                  thumbColor: WidgetStateProperty.resolveWith((states) {
-                    if (Theme.of(context).brightness == Brightness.dark) {
-                      return null;
-                    }
-                    return states.contains(WidgetState.selected)
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.surface;
-                  }),
-                  trackColor: WidgetStateProperty.resolveWith((states) {
-                    if (Theme.of(context).brightness == Brightness.dark) {
-                      return null;
-                    }
-                    final colors = Theme.of(context).colorScheme;
-                    return states.contains(WidgetState.selected)
-                        ? colors.primary
-                        : colors.onSurfaceVariant;
-                  }),
-                  trackOutlineColor: WidgetStateProperty.resolveWith((states) {
-                    if (Theme.of(context).brightness == Brightness.dark) {
-                      return null;
-                    }
-                    final colors = Theme.of(context).colorScheme;
-                    return states.contains(WidgetState.selected)
-                        ? colors.primary
-                        : colors.onSurfaceVariant;
-                  }),
                   onChanged: (enabled) => context.read<AppCubit>().setThemeMode(
                     enabled ? ThemeMode.dark : ThemeMode.light,
                   ),
@@ -102,7 +77,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            _SectionTitle(title: 'إعدادات القرآن الكريم'),
+            _SectionTitle(title: 'إعدادات الْقُرْآن الكريم'),
             const SizedBox(height: 10),
             Card(
               clipBehavior: Clip.antiAlias,

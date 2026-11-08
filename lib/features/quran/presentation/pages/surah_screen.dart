@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/quran/presentation/controllers/surah_reader_controller.dart';
@@ -18,11 +19,13 @@ class SurahScreen extends StatefulWidget {
     required this.surahNumber,
     this.initialAyah,
     this.initialPageNumber,
+    this.highlightAyah = false,
   });
 
   final int surahNumber;
   final int? initialAyah;
   final int? initialPageNumber;
+  final bool highlightAyah;
 
   @override
   State<SurahScreen> createState() => _SurahScreenState();
@@ -32,10 +35,18 @@ class _SurahScreenState extends State<SurahScreen> {
   late final QuranCubit _cubit;
   late final SurahReaderController _reader;
   String? _lastSystemUiStyleSignature;
+  late bool _searchHighlightActive;
+  Timer? _searchHighlightTimer;
 
   @override
   void initState() {
     super.initState();
+    _searchHighlightActive = widget.highlightAyah;
+    if (_searchHighlightActive) {
+      _searchHighlightTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _searchHighlightActive = false);
+      });
+    }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _cubit = context.read<QuranCubit>();
     _reader = SurahReaderController(
@@ -43,6 +54,7 @@ class _SurahScreenState extends State<SurahScreen> {
       initialSurah: widget.surahNumber,
       initialAyah: widget.initialAyah,
       initialPageNumber: widget.initialPageNumber,
+      onPageRead: (page) => context.read<KhatmahCubit>().recordPage(page),
     )..addListener(_handleReaderChanged);
   }
 
@@ -111,6 +123,7 @@ class _SurahScreenState extends State<SurahScreen> {
     _reader
       ..removeListener(_handleReaderChanged)
       ..dispose();
+    _searchHighlightTimer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -119,22 +132,28 @@ class _SurahScreenState extends State<SurahScreen> {
   Widget build(BuildContext context) => BlocBuilder<QuranCubit, QuranState>(
     builder: (context, state) {
       final palette = QuranReaderPalette.fromTheme(context);
-      final systemBarColor = palette.background;
-      final useLightSystemIcons = systemBarColor.computeLuminance() < .5;
+      final statusBarColor = palette.background;
+      final navigationBarColor = _reader.controlsVisible
+          ? palette.surface
+          : palette.background;
+      final useLightStatusIcons = statusBarColor.computeLuminance() < .5;
+      final useLightNavigationIcons =
+          navigationBarColor.computeLuminance() < .5;
       final systemUiStyle = SystemUiOverlayStyle(
-        statusBarColor: systemBarColor,
+        statusBarColor: statusBarColor,
         statusBarIconBrightness:
-            useLightSystemIcons ? Brightness.light : Brightness.dark,
+            useLightStatusIcons ? Brightness.light : Brightness.dark,
         statusBarBrightness:
-            useLightSystemIcons ? Brightness.dark : Brightness.light,
-        systemNavigationBarColor: systemBarColor,
-        systemNavigationBarDividerColor: systemBarColor,
+            useLightStatusIcons ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: navigationBarColor,
+        systemNavigationBarDividerColor: navigationBarColor,
         systemNavigationBarIconBrightness:
-            useLightSystemIcons ? Brightness.light : Brightness.dark,
+            useLightNavigationIcons ? Brightness.light : Brightness.dark,
         systemNavigationBarContrastEnforced: false,
       );
       final styleSignature =
-          '${systemBarColor.toARGB32()}:$useLightSystemIcons';
+          '${statusBarColor.toARGB32()}:${navigationBarColor.toARGB32()}:'
+          '$useLightStatusIcons:$useLightNavigationIcons';
       if (_lastSystemUiStyleSignature != styleSignature) {
         _lastSystemUiStyleSignature = styleSignature;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -157,6 +176,8 @@ class _SurahScreenState extends State<SurahScreen> {
           surahName: _reader.surahName,
           surahNumber: _reader.visibleSurahNumber,
           currentAyah: _reader.currentAyah,
+          searchHighlightSurah: _searchHighlightActive ? widget.surahNumber : null,
+          searchHighlightAyah: _searchHighlightActive ? widget.initialAyah : null,
           palette: palette,
           onToggleControls: _reader.toggleControls,
           onBookmark: () => unawaited(_toggleCurrentPageBookmark()),

@@ -13,6 +13,7 @@ Future<void> showQuranReciterPicker(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    showDragHandle: false,
     backgroundColor: palette.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -50,40 +51,49 @@ Future<void> showQuranReciterPicker(
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...QuranReciter.all.map((reciter) {
-                    final selected = cubit.selectedReciter.id == reciter.id;
-                    return ListTile(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      selected: selected,
-                      selectedTileColor: palette.highlight,
-                      leading: QuranReciterAvatar(reciter: reciter, size: 42),
-                      title: Text(
-                        reciter.nameArabic,
-                        style: TextStyle(
-                          color: palette.text,
-                          fontWeight:
-                              selected ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Text(
-                        reciter.nameEnglish,
-                        textDirection: TextDirection.ltr,
-                        style: TextStyle(color: palette.muted, fontSize: 12),
-                      ),
-                      trailing: Icon(
-                        selected
-                            ? Icons.radio_button_checked_rounded
-                            : Icons.radio_button_off_rounded,
-                        color: selected ? palette.accent : palette.muted,
-                      ),
-                      onTap: () async {
-                        Navigator.of(sheetContext).pop();
-                        await cubit.selectReciter(reciter);
-                      },
-                    );
-                  }),
+                  ...QuranReciter.orderedByCountry.map((reciter) {
+                          final selected =
+                              cubit.selectedReciter.id == reciter.id;
+                          return ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            selected: selected,
+                            selectedTileColor: palette.highlight,
+                            leading: QuranReciterAvatar(
+                              reciter: reciter,
+                              size: 42,
+                            ),
+                            title: Text(
+                              reciter.nameArabic,
+                              style: TextStyle(
+                                color: palette.text,
+                                fontWeight:
+                                    selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              reciter.nameEnglish,
+                              textDirection: TextDirection.ltr,
+                              style: TextStyle(
+                                color: palette.muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                            trailing: Icon(
+                              selected
+                                  ? Icons.radio_button_checked_rounded
+                                  : Icons.radio_button_off_rounded,
+                              color: selected ? palette.accent : palette.muted,
+                            ),
+                            onTap: () async {
+                              Navigator.of(sheetContext).pop();
+                              await cubit.selectReciter(reciter);
+                            },
+                          );
+                        }),
                 ],
               ),
             ),

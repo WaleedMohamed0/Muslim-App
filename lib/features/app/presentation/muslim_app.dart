@@ -14,6 +14,7 @@ import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
 import 'package:muslim/features/app/presentation/cubit/app_state.dart';
 import 'package:muslim/core/storage/cache_helper.dart';
 import 'package:muslim/core/widgets/app_snackbar.dart';
+import 'package:muslim/core/widgets/dismiss_keyboard_on_outside_tap.dart';
 import 'package:muslim/core/theme/app_colors.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/features/app/presentation/pages/app_entry_screen.dart';
@@ -22,10 +23,12 @@ import 'package:muslim/features/prayer_times/presentation/pages/prayer_adhan_set
 import 'package:muslim/features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
 import 'package:muslim/features/quran/presentation/pages/home_screen.dart';
 import 'package:muslim/features/quran/presentation/pages/surah_screen.dart';
+import 'package:muslim/features/app/data/services/kahf_reminder_service.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_background_colors.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/prayer_times_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/elazan_screen.dart';
 import 'package:muslim/features/qibla/presentation/pages/qibla_compass_screen.dart';
+import 'package:muslim/features/khatmah/presentation/pages/khatmah_screen.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 const MethodChannel _notificationNavigationChannel = MethodChannel(
@@ -198,6 +201,15 @@ class _AppRouteObserver extends NavigatorObserver {
         page: const AzkarAndHadeethScreen(index: 1),
       ),
       'daily_wird' => (routeName: '/quran-home', page: const HomeScreen()),
+      'salawat' => (routeName: '/home', page: const StartUpScreen()),
+      KahfReminderService.route => (
+        routeName: '/quran-reader/18',
+        page: const SurahScreen(surahNumber: 18),
+      ),
+      KahfReminderService.khatmahRoute => (
+        routeName: '/khatmah',
+        page: const KhatmahScreen(),
+      ),
     _ => null,
   };
 }
@@ -294,6 +306,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         _openNotificationRoute(route);
       }
     });
+    final kahfReminder = KahfReminderService.instance;
+    kahfReminder.onNotificationTap = _openNotificationRoute;
+    kahfReminder.consumePendingLaunch();
     // A widget tap can arrive after main() consumed the cold-start Intent but
     // before this MethodChannel handler was installed. MainActivity retains
     // that request; consume it again now so the route cannot be lost in that
@@ -461,13 +476,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final page = destination.page;
     final isDailyReminderDestination =
         routeName.startsWith('/azkar-category-') ||
-        routeName == '/quran-home';
+        routeName == '/quran-home' ||
+        routeName == '/khatmah' ||
+        routeName == '/home' ||
+        routeName == '/quran-reader/18';
     // A reminder is a direct entry point. Rebuild the stack even if an older
     // copy of its route is already present; Home may have been pushed above
     // that copy during startup or while the app was backgrounded.
     if (isDailyReminderDestination) {
       if (routeName.startsWith('/azkar-category-') ||
-          routeName == '/quran-home') {
+          routeName == '/quran-home' ||
+          routeName == '/khatmah') {
         navigator.pushAndRemoveUntil<void>(
           MaterialPageRoute<void>(
             settings: const RouteSettings(name: '/home'),
@@ -475,9 +494,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ),
           (_) => false,
         );
-        // Wait until the replacement Home route is installed before pushing
-        // the reminder destination. The notification can arrive while the
-        // app entry route is still transitioning during a cold start.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || appNavigatorKey.currentState != navigator) return;
           if (_appRouteObserver.currentRouteName == routeName) return;
@@ -640,11 +656,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         QuranReaderBackgroundColors.defaultFor(isDark)
                             .toARGB32(),
                   )
+                  : quranCubit.quranSoundActive
+                  ? theme.colorScheme.surface
                   : theme.scaffoldBackgroundColor;
               return ColoredBox(
                 color: insetColor,
-                child: SafeArea(
-                  child: AnnotatedRegion<SystemUiOverlayStyle>(
+                child: DismissKeyboardOnOutsideTap(
+                  child: SafeArea(
+                    child: AnnotatedRegion<SystemUiOverlayStyle>(
                     value: SystemUiOverlayStyle(
                       statusBarColor: insetColor,
                       statusBarIconBrightness:
@@ -657,7 +676,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       systemNavigationBarDividerColor: insetColor,
                       systemNavigationBarContrastEnforced: false,
                     ),
-                    child: child ?? const SizedBox.shrink(),
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               );

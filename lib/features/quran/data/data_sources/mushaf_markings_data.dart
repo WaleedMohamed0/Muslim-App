@@ -40,12 +40,12 @@ const mushafMarkings = <MushafMarking>[
   ),
   MushafMarking(
     symbol: '۩', name: 'موضع سجدة التلاوة', category: MushafMarkingCategory.recitation,
-    meaning: 'تشير إلى موضع آية سجدة. حكم سجود التلاوة عند قراءتها أو سماعها له تفصيل فقهي، والعلامة نفسها تحدد الموضع.',
+    meaning: 'تشير إلى موضع آيَة سجدة. حكم سجود التلاوة عند قراءتها أو سماعها له تفصيل فقهي، والعلامة نفسها تحدد الموضع.',
     example: '﴿وَخَرَّ رَاكِعًا وَأَنَابَ۩﴾ — ص: ٢٤',
   ),
   MushafMarking(
-    symbol: '۝', name: 'نهاية الآية ورقمها', category: MushafMarkingCategory.recitation,
-    meaning: 'تفصل بين الآيات، ويُكتب داخل العلامة رقم الآية. الوقف على رؤوس الآي له أحكامه، وقد يتصل المعنى بما بعدها.',
+    symbol: '۝', name: 'نهاية الْآيَة ورقمها', category: MushafMarkingCategory.recitation,
+    meaning: 'تفصل بين الآيات، ويُكتب داخل العلامة رقم الْآيَة. الوقف على رؤوس الآي له أحكامه، وقد يتصل المعنى بما بعدها.',
     example: '﴿بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝١﴾ — الفاتحة: ١',
   ),
   MushafMarking(
@@ -66,7 +66,7 @@ const mushafMarkings = <MushafMarking>[
   MushafMarking(
     symbol: 'ۨ', name: 'النون الصغيرة', category: MushafMarkingCategory.notation,
     meaning: 'تدل في كلمات مخصوصة على نون منطوقة لم تُكتب نونًا كاملة في الرسم.',
-    example: '﴿نُـۨجِي الْمُؤْمِنِينَ﴾ — الأنبياء: ٨٨',
+    example: '﴿نُـۨجِي الْمُؤْمِنِينَ﴾ — الْأَنْبِيَاء: ٨٨',
   ),
   MushafMarking(
     symbol: 'صۜ', name: 'السين الصغيرة فوق الصاد', category: MushafMarkingCategory.notation,

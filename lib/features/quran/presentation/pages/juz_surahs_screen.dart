@@ -87,7 +87,7 @@ class _JuzSurahsScreenState extends State<JuzSurahsScreen> {
                       ? toArabicIndicDigits(lastAyah)
                       : '$lastAyah';
                   final rangeLabel = isArabic
-                      ? 'الآيات $firstLabel–$lastLabel'
+                      ? 'الْآيَات $firstLabel–$lastLabel'
                       : 'Ayahs $firstLabel–$lastLabel';
 
                   return SurahListTile(

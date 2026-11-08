@@ -38,7 +38,7 @@ class AzkarSectionHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isHadith ? 'من هدي النبي' : 'اذكر الله بقلبٍ حاضر',
+                    isHadith ? 'من هدي النَّبِيّ' : 'اذكر اللَّه بقلبٍ حاضر',
                     textDirection: TextDirection.rtl,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
@@ -59,7 +59,7 @@ class AzkarSectionHeader extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     isHadith
-                        ? 'عدد الأحاديث المتاحة: ${toArabicIndicDigits(totalCount)}'
+                        ? 'عدد الْأَحَادِيث المتاحة: ${toArabicIndicDigits(totalCount)}'
                         : 'المتاح في هذا القسم: ${toArabicIndicDigits(totalCount)}',
                     textDirection: TextDirection.rtl,
                     style: theme.textTheme.bodySmall?.copyWith(

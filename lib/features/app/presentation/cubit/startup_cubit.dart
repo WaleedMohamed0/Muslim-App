@@ -31,6 +31,22 @@ class StartupCubit extends Cubit<void> {
         }
       }
 
+      if (!isMounted()) return;
+      if (!await _permissions.exactAlarmDecisionMade()) {
+        if (await _permissions.exactAlarmsGranted()) {
+          await _permissions.markExactAlarmDecisionMade();
+        } else {
+          final accepted = await explainPermission(
+            'المنبهات والتذكيرات',
+            'نحتاج إلى هذا الإذن لجدولة إشعارات الصلاة والأذان بدقة، وضبط تذكيراتك في مواعيدها. يمكنك تفعيله لاحقًا من صلاحيات الجهاز.',
+          );
+          // Record the choice before opening Android settings so it is not
+          // requested again on the next app launch if the user skips or denies.
+          await _permissions.markExactAlarmDecisionMade();
+          if (accepted && isMounted()) await _permissions.requestExactAlarms();
+        }
+      }
+
       if (!isMounted() || await _permissions.locationDecisionMade()) return;
       if (await _permissions.locationPermissionAlreadyGranted()) {
         await _permissions.markLocationDecisionMade();
