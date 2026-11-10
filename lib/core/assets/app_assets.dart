@@ -17,18 +17,13 @@ class AppAssets {
 
   static String adhanBackgroundForPrayer(String prayer) =>
       switch (prayer.trim()) {
-        'الْفَجْر' => adhanFajrBackground,
-        'الظُّهْر' => adhanDhuhrBackground,
-        'الْعَصْر' => adhanAsrBackground,
-        'الْمَغْرِب' => adhanMaghribBackground,
-        'الْعِشَاء' => adhanIshaBackground,
+        'fajr' || 'الفجر' || 'الْفَجْر' => adhanFajrBackground,
+        'dhuhr' || 'الظهر' || 'الظُّهْر' => adhanDhuhrBackground,
+        'asr' || 'العصر' || 'الْعَصْر' => adhanAsrBackground,
+        'maghrib' || 'المغرب' || 'الْمَغْرِب' => adhanMaghribBackground,
+        'isha' || 'العشاء' || 'الْعِشَاء' => adhanIshaBackground,
         _ => adhanIshaBackground,
       };
   static const azkarData = 'assets/features/azkar/data/azkar.json';
-  static const storiesData = 'assets/features/stories/stories.json';
-  static const prophetsCardBackground =
-      'assets/features/prayer_times/images/Masjid.webp';
-  static const seerahCardBackground =
-      'assets/features/prayer_times/images/MasjidElnabwy.webp';
   static const allahNamesData = 'assets/features/asmaa_allah/asmaa_allah.json';
 }

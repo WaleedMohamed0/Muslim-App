@@ -1,96 +1,33 @@
 import '../../domain/entities/mushaf_marking.dart';
 
-/// Offline descriptions for common marks in the Madani Mushaf (Hafs).
-/// Some marks and their placement differ between editions and narrations.
 const mushafMarkings = <MushafMarking>[
-  MushafMarking(
-    symbol: 'مـ', name: 'الوقف اللازم', category: MushafMarkingCategory.waqf,
-    meaning: 'يُوقف هنا؛ لأن وصل الكلام بما بعده قد يوهم معنى غير المراد.',
-    example: '﴿وَلَا يَحْزُنكَ قَوْلُهُمْۘ إِنَّ الْعِزَّةَ لِلَّهِ جَمِيعًا﴾ — يونس: ٦٥',
-  ),
-  MushafMarking(
-    symbol: 'لا', name: 'علامة لا تقف', category: MushafMarkingCategory.waqf,
-    meaning: 'لا يُختار الوقف على الكلمة؛ لتعلّقها بما بعدها. إن اضطررت للوقف، فابدأ بما يصحّ به المعنى. مواضعها وظهورها تختلف باختلاف الطبعات.',
-    example: '﴿الَّذِينَ تَتَوَفَّاهُمُ الْمَلَائِكَةُ طَيِّبِينَۙ يَقُولُونَ سَلَامٌ عَلَيْكُمُ﴾ — النحل: ٣٢',
-  ),
-  MushafMarking(
-    symbol: 'ج', name: 'الوقف الجائز', category: MushafMarkingCategory.waqf,
-    meaning: 'يجوز الوقف والوصل، ولا أولوية ظاهرة لأحدهما.',
-    example: '﴿نَحْنُ نَقُصُّ عَلَيْكَ نَبَأَهُم بِالْحَقِّۚ إِنَّهُمْ فِتْيَةٌ﴾ — الكهف: ١٣',
-  ),
-  MushafMarking(
-    symbol: 'صلى', name: 'الوصل أولى', category: MushafMarkingCategory.waqf,
-    meaning: 'يجوز الوقف، لكن وصل القراءة بما بعدها أولى.',
-    example: '﴿أُولَٰئِكَ عَلَىٰ هُدًى مِّن رَّبِّهِمْۖ وَأُولَٰئِكَ هُمُ الْمُفْلِحُونَ﴾ — البقرة: ٥',
-  ),
-  MushafMarking(
-    symbol: 'قلى', name: 'الوقف أولى', category: MushafMarkingCategory.waqf,
-    meaning: 'يجوز الوصل، لكن الوقف هنا أولى لاكتمال المعنى.',
-    example: '﴿ذُرِّيَّةً بَعْضُهَا مِن بَعْضٍۗ وَاللَّهُ سَمِيعٌ عَلِيمٌ﴾ — آل عمران: ٣٤',
-  ),
-  MushafMarking(
-    symbol: '∴  ∴', name: 'تعانق الوقف (المعانقة)', category: MushafMarkingCategory.waqf,
-    meaning: 'علامتان متقابلتان؛ تقف عند واحدة منهما فقط، ولا تقف عند الموضعين معًا.',
-    example: '﴿لَا رَيْبَۛ فِيهِۛ هُدًى لِّلْمُتَّقِينَ﴾ — البقرة: ٢',
-  ),
-  MushafMarking(
-    symbol: 'س', name: 'السكتة اللطيفة', category: MushafMarkingCategory.waqf,
-    meaning: 'سكتة قصيرة بلا تنفّس ثم متابعة القراءة. في رواية حفص من طريق الشاطبية لها مواضع مشهورة، منها هذه الكلمة.',
-    example: '﴿عِوَجًاۜ قَيِّمًا﴾ — الكهف: ١–٢',
-  ),
-  MushafMarking(
-    symbol: '۩', name: 'موضع سجدة التلاوة', category: MushafMarkingCategory.recitation,
-    meaning: 'تشير إلى موضع آيَة سجدة. حكم سجود التلاوة عند قراءتها أو سماعها له تفصيل فقهي، والعلامة نفسها تحدد الموضع.',
-    example: '﴿وَخَرَّ رَاكِعًا وَأَنَابَ۩﴾ — ص: ٢٤',
-  ),
-  MushafMarking(
-    symbol: '۝', name: 'نهاية الْآيَة ورقمها', category: MushafMarkingCategory.recitation,
-    meaning: 'تفصل بين الآيات، ويُكتب داخل العلامة رقم الْآيَة. الوقف على رؤوس الآي له أحكامه، وقد يتصل المعنى بما بعدها.',
-    example: '﴿بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝١﴾ — الفاتحة: ١',
-  ),
-  MushafMarking(
-    symbol: 'ٓ', name: 'علامة المد', category: MushafMarkingCategory.recitation,
-    meaning: 'تدل على مدّ الحرف، ومقدار المد ونوعه يُعرفان من سبب المد والرواية؛ لا تعني أن كل موضع يُمدّ بالمقدار نفسه.',
-    example: '﴿وَلَا الضَّآلِّينَ﴾ — الفاتحة: ٧',
-  ),
-  MushafMarking(
-    symbol: 'ۜ', name: 'علامة السكت', category: MushafMarkingCategory.recitation,
-    meaning: 'تدل في مواضع مخصوصة في رواية حفص على سكت يسير بلا تنفّس. مواضع السكت وعددها مرتبطان بالطريق والرواية.',
-    example: '﴿عِوَجًاۜ قَيِّمًا﴾ — الكهف: ١–٢',
-  ),
-  MushafMarking(
-    symbol: 'مّ', name: 'الميم الصغيرة (الإقلاب)', category: MushafMarkingCategory.notation,
-    meaning: 'إذا جاءت فوق النون الساكنة أو التنوين قبل الباء، تُقلب النون ميمًا مخفاة مع الغنة عند التلاوة.',
-    example: '﴿مِنۢ بَعْدِ﴾ — البقرة: ٢٧',
-  ),
-  MushafMarking(
-    symbol: 'ۨ', name: 'النون الصغيرة', category: MushafMarkingCategory.notation,
-    meaning: 'تدل في كلمات مخصوصة على نون منطوقة لم تُكتب نونًا كاملة في الرسم.',
-    example: '﴿نُـۨجِي الْمُؤْمِنِينَ﴾ — الْأَنْبِيَاء: ٨٨',
-  ),
-  MushafMarking(
-    symbol: 'صۜ', name: 'السين الصغيرة فوق الصاد', category: MushafMarkingCategory.notation,
-    meaning: 'علامة قراءة خاصة في كلمات معدودة في رواية حفص؛ تُقرأ سينًا في هذا الموضع.',
-    example: '﴿وَاللَّهُ يَقْبِضُ وَيَبْصُۜطُ وَإِلَيْهِ تُرْجَعُونَ﴾ — البقرة: ٢٤٥ (تُقرأ: وَيَبْسُطُ)',
-  ),
-  MushafMarking(
-    symbol: 'ْ', name: 'السكون', category: MushafMarkingCategory.notation,
-    meaning: 'يدل على أن الحرف ساكن، أي لا حركة قصيرة عليه. وتُعرف أحكام النون أو الميم الساكنتين من الحرف التالي أيضًا.',
-    example: '﴿أَنْعَمْتَ﴾ — الفاتحة: ٧',
-  ),
-  MushafMarking(
-    symbol: 'ّ', name: 'الشدة', category: MushafMarkingCategory.notation,
-    meaning: 'تعني أن الحرف مشدد، وأصله حرفان: الأول ساكن والثاني متحرك.',
-    example: '﴿إِيَّاكَ نَعْبُدُ﴾ — الفاتحة: ٥',
-  ),
-  MushafMarking(
-    symbol: 'ً ٍ ٌ', name: 'التنوين', category: MushafMarkingCategory.notation,
-    meaning: 'فتحتان أو كسرتان أو ضمتان في آخر الاسم، وتُنطق نونًا ساكنة عند الوصل. وللتنوين أحكام تجويد بحسب الحرف التالي.',
-    example: '﴿هُدًى لِّلْمُتَّقِينَ﴾ — البقرة: ٢',
-  ),
-  MushafMarking(
-    symbol: 'ٱ', name: 'همزة الوصل', category: MushafMarkingCategory.notation,
-    meaning: 'تُنطق عند البدء بالكلمة، وتسقط عند وصلها بما قبلها.',
-    example: '﴿ٱلْحَمْدُ لِلَّهِ﴾ — الفاتحة: ٢',
-  ),
+  MushafMarking(symbol: 'ۖ', name: 'ربطة صاد مع لام مع ألف مقصورة صغيرة فوقية', category: MushafMarkingCategory.waqf, meaning: 'تفيد بأن الوصل أولى مع جواز الوقف', example: 'أُوْلَٰٓئِكَ عَلَىٰ هُدٗى مِّن رَّبِّهِمۡۖ وَأُوْلَٰٓئِكَ هُمُ ٱلۡمُفۡلِحُونَ', reference: 'سورة البقرة، الآية ٥'),
+  MushafMarking(symbol: 'ۗ', name: 'ربطة قاف مع لام مع ألف مقصورة صغيرة فوقية', category: MushafMarkingCategory.waqf, meaning: 'تفيد بأن الوقف أولى مع جواز الوصل', example: 'وَإِذۡ قُلۡتُمۡ يَٰمُوسَىٰ لَن نَّصۡبِرَ عَلَىٰ طَعَامࣲ وَٰحِدࣲ فَٱدۡعُ لَنَا رَبَّكَ يُخۡرِجۡ لَنَا مِمَّا تُنۢبِتُ ٱلۡأَرۡضُ مِنۢ بَقۡلِهَا وَقِثَّآئِهَا وَفُومِهَا وَعَدَسِهَا وَبَصَلِهَاۖ قَالَ أَتَسۡتَبۡدِلُونَ ٱلَّذِي هُوَ أَدۡنَىٰ بِٱلَّذِي هُوَ خَيۡرٌۚ ٱهۡبِطُواْ مِصۡرࣰا فَإِنَّ لَكُم مَّا سَأَلۡتُمۡۗ وَضُرِبَتۡ عَلَيۡهِمُ ٱلذِّلَّةُ وَٱلۡمَسۡكَنَةُ وَبَآءُو بِغَضَبࣲ مِّنَ ٱللَّهِۚ ذَٰلِكَ بِأَنَّهُمۡ كَانُواْ يَكۡفُرُونَ بِـَٔايَٰتِ ٱللَّهِ وَيَقۡتُلُونَ ٱلنَّبِيِّـۧنَ بِغَيۡرِ ٱلۡحَقِّۚ ذَٰلِكَ بِمَا عَصَواْ وَّكَانُواْ يَعۡتَدُونَ', reference: 'سورة البقرة، الآية ٦١'),
+  MushafMarking(symbol: 'ۘ', name: 'شكل ميم صغيرة فوقية بدئي', category: MushafMarkingCategory.waqf, meaning: 'تفيد لزوم الوقف', example: 'وَلَا يَحۡزُنكَ قَوۡلُهُمۡۘ إِنَّ ٱلۡعِزَّةَ لِلَّهِ جَمِيعًاۚ هُوَ ٱلسَّمِيعُ ٱلۡعَلِيمُ', reference: 'سورة يونس، الآية ٦٥'),
+  MushafMarking(symbol: 'ۙ', name: 'لام-ألف صغيرة فوقية', category: MushafMarkingCategory.waqf, meaning: 'تفيد النهي عن الوقف', example: 'إِنَّ ٱلَّذِينَ ٱرۡتَدُّواْ عَلَىٰٓ أَدۡبَٰرِهِم مِّنۢ بَعۡدِ مَا تَبَيَّنَ لَهُمُ ٱلۡهُدَى ۙ ٱلشَّيۡطَٰنُ سَوَّلَ لَهُمۡ وَأَمۡلَىٰ لَهُمۡ', reference: 'سورة محمد، الآية ٢٥'),
+  MushafMarking(symbol: 'ۚ', name: 'جيم صغيرة فوقية', category: MushafMarkingCategory.waqf, meaning: 'تفيد جواز الوقف', example: 'وَإِذۡ نَجَّيۡنَٰكُم مِّنۡ ءَالِ فِرۡعَوۡنَ يَسُومُونَكُمۡ سُوٓءَ ٱلۡعَذَابِ يُذَبِّحُونَ أَبۡنَآءَكُمۡ وَيَسۡتَحۡيُونَ نِسَآءَكُمۡۚ وَفِي ذَٰلِكُم بَلَآءࣱ مِّن رَّبِّكُمۡ عَظِيمࣱ', reference: 'سورة البقرة، الآية ٤٩'),
+  MushafMarking(symbol: 'ۛ', name: 'ثلاث نقط صغيرة فوقية', category: MushafMarkingCategory.waqf, meaning: 'تفيد جواز الوقف في أحد الموضعين وليس في كليهما، وهو ما يسمى بوقف المعانقة', example: 'ذَٰلِكَ ٱلۡكِتَٰبُ لَا رَيۡبَۛ فِيهِۛ هُدٗى لِّلۡمُتَّقِينَ', reference: 'سورة البقرة، الآية ٢'),
+  MushafMarking(symbol: 'ۜ', name: 'سين صغيرة فوقية', category: MushafMarkingCategory.notation, meaning: 'إذا وقعت السين أعلى الصاد، فهي للدلالة على وجوب النطق بالسين بدل الصاد', example: 'وَٱللَّهُ يَقۡبِضُ وَيَبۡصُۜطُ وَإِلَيۡهِ تُرۡجَعُونَ', reference: 'سورة البقرة، الآية ٢٤٥'),
+  MushafMarking(symbol: 'ۣ', name: 'سين صغيرة تحتية', category: MushafMarkingCategory.notation, meaning: 'إذا وضعت السين أسفل الصاد؛ فهي للدلالة على وجوب النطق بالصاد بدل السين', example: 'أَمۡ عِندَهُمۡ خَزَآئِنُ رَبِّكَ أَمۡ هُمُ ٱلۡمُصَۣيۡطِرُونَ', reference: 'سورة الطور، الآية ٣٧'),
+  MushafMarking(symbol: '۠', name: 'صفر مستطيل قائم صغير فوقي', category: MushafMarkingCategory.notation, meaning: 'للدلالة على زيادة الحرف وعدم النطق به حين الوصل فقط', example: 'لَّٰكِنَّا۠ هُوَ ٱللَّهُ رَبِّي وَلَآ أُشۡرِكُ بِرَبِّيٓ أَحَدࣰا', reference: 'سورة الكهف، الآية ٣٨'),
+  MushafMarking(symbol: 'ۡ', name: 'رأس خاء صغير فوقي بلا نقطة', category: MushafMarkingCategory.notation, meaning: 'للدلالة على سكون الحرف', example: 'قُلۡ أَعُوذُ بِرَبِّ ٱلۡفَلَقِ', reference: 'سورة الفلق، الآية ١'),
+  MushafMarking(symbol: 'ۢ', name: 'شكل ميم صغيرة فوقية معزول', category: MushafMarkingCategory.notation, meaning: 'للدلالة على وجوب الإقلاب', example: 'وَعَلَّمَ ءَادَمَ ٱلۡأَسۡمَآءَ كُلَّهَا ثُمَّ عَرَضَهُمۡ عَلَى ٱلۡمَلَٰٓئِكَةِ فَقَالَ أَنۢبِـُٔونِي بِأَسۡمَآءِ هَٰٓؤُلَآءِ إِن كُنتُمۡ صَٰدِقِينَ', reference: 'سورة البقرة، الآية ٣١'),
+  MushafMarking(symbol: 'ۤ', name: 'مدة صغيرة فوقية', category: MushafMarkingCategory.recitation, meaning: 'للدلالة على وجود مد فوق مقدار المد الطبيعي', example: 'إِنَّ ٱلَّذِينَ عِندَ رَبِّكَ لَا يَسۡتَكۡبِرُونَ عَنۡ عِبَادَتِهِۦ وَيُسَبِّحُونَهُۥ وَلَهُۥ يَسۡجُدُونَۤ۩', reference: 'سورة الأعراف، الآية ٢٠٦'),
+  MushafMarking(symbol: 'ۥ', name: 'واو صغيرة', category: MushafMarkingCategory.notation, meaning: 'إذا وقعت الواو مفردة صغيرة، دل ذلك على وجوب النطق بها كأنها كبيرة', example: 'إِنَّ رَبَّكَ يَبۡسُطُ ٱلرِّزۡقَ لِمَن يَشَآءُ وَيَقۡدِرُۚ إِنَّهُۥ كَانَ بِعِبَادِهِۦ خَبِيرَۢا بَصِيرࣰا', reference: 'سورة الإسراء، الآية ٣٠'),
+  MushafMarking(symbol: 'ۦ', name: 'ياء صغيرة', category: MushafMarkingCategory.notation, meaning: 'إذا وقعت الياء مفردة صغيرة، دل ذلك على وجوب النطق بها كأنها كبيرة', example: 'إِنَّ رَبَّكَ يَبۡسُطُ ٱلرِّزۡقَ لِمَن يَشَآءُ وَيَقۡدِرُۚ إِنَّهُۥ كَانَ بِعِبَادِهِۦ خَبِيرَۢا بَصِيرࣰا', reference: 'سورة الإسراء، الآية ٣٠'),
+  MushafMarking(symbol: 'ۨ', name: 'نون صغيرة فوقية', category: MushafMarkingCategory.notation, meaning: 'إذا وقعت النون مفردة صغيرة، دل ذلك على وجوب النطق بها', example: 'فَٱسۡتَجَبۡنَا لَهُۥ وَنَجَّيۡنَٰهُ مِنَ ٱلۡغَمِّۚ وَكَذَٰلِكَ نُـۨجِي ٱلۡمُؤۡمِنِينَ', reference: 'سورة الأنبياء، الآية ٨٨'),
+  MushafMarking(symbol: 'ۭ', name: 'ميم صغيرة تحتية', category: MushafMarkingCategory.notation, meaning: '', example: 'وَءَامِنُواْ بِمَآ أَنزَلۡتُ مُصَدِّقࣰا لِّمَا مَعَكُمۡ وَلَا تَكُونُوٓاْ أَوَّلَ كَافِرِۭ بِهِۦۖ وَلَا تَشۡتَرُواْ بِـَٔايَٰتِي ثَمَنࣰا قَلِيلࣰا وَإِيَّٰيَ فَٱتَّقُونِ', reference: 'سورة البقرة، الآية ٤١'),
+  MushafMarking(symbol: '۩', name: 'موضع سجدة', category: MushafMarkingCategory.recitation, meaning: 'للدلالة على موضع سجود، أما كلمة وجوب السجود فقد وضع فوقها خط', example: 'فَٱسۡجُدُواْۤ لِلَّهِۤ وَٱعۡبُدُواْ۩', reference: 'سورة النجم، الآية ٦٢'),
+  MushafMarking(symbol: '۝', name: 'نهاية آية', category: MushafMarkingCategory.recitation, meaning: 'للدلالة على نهاية الآية ورقمها', example: 'هَٰذَا بَلَٰغࣱ لِّلنَّاسِ وَلِيُنذَرُواْ بِهِۦ وَلِيَعۡلَمُوٓاْ أَنَّمَا هُوَ إِلَٰهࣱ وَٰحِدࣱ وَلِيَذَّكَّرَ أُوْلُواْ ٱلۡأَلۡبَٰبِ ۝٥٢', reference: 'سورة إبراهيم، الآية ٥٢'),
+  MushafMarking(symbol: '۞', name: 'بداية ربع حزب', category: MushafMarkingCategory.recitation, meaning: 'للدلالة على بداية الأجزاء والأحزاب وأنصافها وأرباعها', example: '۞ إِنَّ ٱللَّهَ لَا يَسۡتَحۡيِۦٓ أَن يَضۡرِبَ مَثَلࣰا مَّا بَعُوضَةࣰ فَمَا فَوۡقَهَاۚ فَأَمَّا ٱلَّذِينَ ءَامَنُواْ فَيَعۡلَمُونَ أَنَّهُ ٱلۡحَقُّ مِن رَّبِّهِمۡۖ وَأَمَّا ٱلَّذِينَ كَفَرُواْ فَيَقُولُونَ مَاذَآ أَرَادَ ٱللَّهُ بِهَٰذَا مَثَلࣰاۘ يُضِلُّ بِهِۦ كَثِيرࣰا وَيَهۡدِي بِهِۦ كَثِيرࣰاۚ وَمَا يُضِلُّ بِهِۦٓ إِلَّا ٱلۡفَٰسِقِينَ', reference: 'سورة البقرة، الآية ٢٦'),
+  MushafMarking(symbol: 'ً', name: 'تنوين الفتح المتراكب', category: MushafMarkingCategory.notation, meaning: 'للدلالة على إظهار التنوين', example: 'وَلَمۡ يَكُن لَّهُۥ كُفُوًا أَحَدُۢ', reference: 'سورة الإخلاص، الآية ٤'),
+  MushafMarking(symbol: 'ٌ', name: 'تنوين الضم المتراكب', category: MushafMarkingCategory.notation, meaning: '', example: 'قُلۡ هُوَ ٱللَّهُ أَحَدٌ', reference: 'سورة الإخلاص، الآية ١'),
+  MushafMarking(symbol: 'ٍ', name: 'تنوين الكسر المتراكب', category: MushafMarkingCategory.notation, meaning: '', example: 'وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ', reference: 'سورة الفلق، الآية ٥'),
+  MushafMarking(symbol: 'ْ', name: 'علامة السكون', category: MushafMarkingCategory.notation, meaning: 'للدلالة على سكون الحرف (في المصاحف المغربية فقط)', example: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ الٓمٓ', reference: 'سورة البقرة، الآية ١'),
+  MushafMarking(symbol: 'ࣰ', name: 'تنوين الفتح المتتابع', category: MushafMarkingCategory.notation, meaning: 'للدلالة على إدغام التنوين أو إخفائه', example: 'فِي قُلُوبِهِم مَّرَضࣱ فَزَادَهُمُ ٱللَّهُ مَرَضࣰاۖ وَلَهُمۡ عَذَابٌ أَلِيمُۢ بِمَا كَانُواْ يَكۡذِبُونَ', reference: 'سورة البقرة، الآية ١٠'),
+  MushafMarking(symbol: 'ࣱ', name: 'تنوين الضم المتتابع', category: MushafMarkingCategory.notation, meaning: 'علامة تنوين الضم، وتتابع الحركتين يدل على إدغام التنوين أو إخفائه بحسب الحرف التالي', example: 'خَتَمَ ٱللَّهُ عَلَىٰ قُلُوبِهِمۡ وَعَلَىٰ سَمۡعِهِمۡۖ وَعَلَىٰٓ أَبۡصَٰرِهِمۡ غِشَٰوَةࣱۖ وَلَهُمۡ عَذَابٌ عَظِيمࣱ', reference: 'سورة البقرة، الآية ٧'),
+  MushafMarking(symbol: 'ࣲ', name: 'تنوين الكسر المتتابع', category: MushafMarkingCategory.notation, meaning: 'علامة تنوين الكسر، وتتابع الحركتين يدل على إدغام التنوين أو إخفائه بحسب الحرف التالي', example: 'مَثَلُهُمۡ كَمَثَلِ ٱلَّذِي ٱسۡتَوۡقَدَ نَارࣰا فَلَمَّآ أَضَآءَتۡ مَا حَوۡلَهُۥ ذَهَبَ ٱللَّهُ بِنُورِهِمۡ وَتَرَكَهُمۡ فِي ظُلُمَٰتࣲ لَّا يُبۡصِرُونَ', reference: 'سورة البقرة، الآية ١٧'),
+  MushafMarking(symbol: 'َ', name: 'فتحة', category: MushafMarkingCategory.notation, meaning: 'حركة توضع فوق الحرف وتدل على فتحه', example: 'قُلۡ هُوَ ٱللَّهُ أَحَدٌ', reference: 'سورة الإخلاص، الآية ١'),
+  MushafMarking(symbol: 'ُ', name: 'ضمة', category: MushafMarkingCategory.notation, meaning: 'حركة توضع فوق الحرف وتدل على ضمه', example: 'قُلۡ هُوَ ٱللَّهُ أَحَدٌ', reference: 'سورة الإخلاص، الآية ١'),
+  MushafMarking(symbol: 'ِ', name: 'كسرة', category: MushafMarkingCategory.notation, meaning: 'حركة توضع تحت الحرف وتدل على كسره', example: 'مِن شَرِّ مَا خَلَقَ', reference: 'سورة الفلق، الآية ٢'),
 ];

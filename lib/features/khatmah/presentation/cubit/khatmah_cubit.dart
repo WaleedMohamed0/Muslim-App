@@ -7,6 +7,7 @@ import '../../domain/khatmah_plan.dart';
 class KhatmahCubit extends Cubit<KhatmahPlan?> {
   KhatmahCubit() : super(null) { load(); }
   static const _key = 'khatmah_plan_v1';
+  Future<void> _saveQueue = Future<void>.value();
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
@@ -21,16 +22,23 @@ class KhatmahCubit extends Cubit<KhatmahPlan?> {
   }
   Future<void> _save(KhatmahPlan plan) async {
     emit(plan);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(plan.toJson()));
+    final encoded = jsonEncode(plan.toJson());
+    final write = _saveQueue.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_key, encoded);
+    });
+    _saveQueue = write.then<void>((_) {}, onError: (Object _) {});
+    await write;
   }
-  Future<void> create(int days) => _save(KhatmahPlan(durationDays: days, startedAt: DateTime.now(), completedPages: <int>{}));
-  Future<void> recordPage(int page) async {
+  Future<void> create(int days) => _save(KhatmahPlan(durationDays: days, startedAt: DateTime.now(), completedPages: <int>{}, checkpointPage: 1, checkpointSurah: 1, checkpointAyah: 1));
+  Future<void> recordReadingPosition({required int page, required int surah, required int ayah}) async {
     final plan = state;
-    if (plan == null || plan.paused || page < 1 || page > 604 || plan.completedPages.contains(page)) return;
-    final updated = plan.copyWith(completedPages: {...plan.completedPages, page});
+    if (plan == null || plan.paused || page < 1 || page > 604 || surah < 1 || surah > 114 || ayah < 1) return;
+    final alreadyRead = plan.completedPages.contains(page);
+    if (alreadyRead && plan.checkpointPage == page && plan.checkpointSurah == surah && plan.checkpointAyah == ayah) return;
+    final updated = plan.copyWith(completedPages: {...plan.completedPages, page}, checkpointPage: page, checkpointSurah: surah, checkpointAyah: ayah);
     await _save(updated);
-    if (updated.reminderEnabled && updated.isDayComplete(updated.schedule[updated.currentDay - 1])) {
+    if (!alreadyRead && updated.reminderEnabled && updated.isDayComplete(updated.schedule[updated.currentDay - 1])) {
       await KahfReminderService.instance.scheduleKhatmah(enabled: true, hour: updated.reminderHour, minute: updated.reminderMinute, skipToday: true);
     }
   }

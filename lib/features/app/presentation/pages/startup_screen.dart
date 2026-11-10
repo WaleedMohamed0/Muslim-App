@@ -18,15 +18,18 @@ import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
 import 'package:muslim/features/khatmah/presentation/pages/khatmah_screen.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_audio_mini_player.dart';
 import 'package:muslim/features/app/presentation/widgets/startup_home_widgets.dart';
+import 'package:muslim/features/app/presentation/widgets/prayer_wird_home_section.dart';
 import 'package:muslim/features/app/presentation/pages/daily_reminder_settings_screen.dart';
 import 'package:muslim/features/app/presentation/pages/app_settings_screen.dart';
 import 'package:muslim/core/assets/app_assets.dart';
-import 'package:muslim/features/stories/presentation/pages/story_collection_screen.dart';
 import 'package:muslim/features/tajweed/presentation/pages/tajweed_lessons_screen.dart';
 import 'package:muslim/features/worship/presentation/pages/worship_guide_screen.dart';
 import 'package:muslim/features/travel_prayer/presentation/pages/travel_prayer_guide_screen.dart';
 import 'package:muslim/features/aqeedah/presentation/pillars_screen.dart';
 import 'package:muslim/features/app/data/data_sources/startup_permissions_data_source.dart';
+import 'package:muslim/features/app/data/data_sources/onboarding_preferences.dart';
+import 'package:muslim/features/app/data/data_sources/quran_widget_intro_preferences.dart';
+import 'package:muslim/features/app/presentation/pages/quran_widget_tutorial.dart';
 import 'package:muslim/features/app/presentation/cubit/startup_cubit.dart';
 import 'package:muslim/features/tasbeeh/presentation/pages/tasbeeh_screen.dart';
 
@@ -44,19 +47,47 @@ class _StartUpScreenState extends State<StartUpScreen> {
   // the most frequently used Azkar shortcuts first in the carousel.
   static const _azkarDisplayOrder = [0, 1, 5, 2, 3, 4, 6, 7, 8, 9, 10];
   final ValueNotifier<double> _miniPlayerHeight = ValueNotifier(0);
+  bool _widgetIntroFlowStarted = false;
 
   @override
   void initState() {
     super.initState();
     _startupCubit = StartupCubit(permissions: StartupPermissionsDataSource());
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(
-        _startupCubit.requestFirstLaunchPermissions(
+      unawaited(_startFirstLaunchFlow());
+    });
+  }
+
+  Future<void> _startFirstLaunchFlow() async {
+    // Notification launches can place Home underneath a destination reader.
+    // Wait until Home is visible before showing first-launch permission prompts.
+    while (mounted && !(ModalRoute.of(context)?.isCurrent ?? false)) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    if (!mounted) return;
+    await _startupCubit.requestFirstLaunchPermissions(
           explainPermission: _explainPermission,
           isMounted: () => mounted,
-        ),
       );
-    });
+    if (!mounted || _widgetIntroFlowStarted) return;
+    _widgetIntroFlowStarted = true;
+    if (!await const OnboardingPreferences().isWidgetIntroEligible()) return;
+    const introPreferences = QuranWidgetIntroPreferences();
+    if (await introPreferences.hasBeenShown() || !mounted) return;
+
+    // Poll the route until Home is active. This naturally waits out dialogs,
+    // permission screens, and pushed pages without racing another sheet.
+    await Future<void>.delayed(const Duration(milliseconds: 2200));
+    while (mounted && !(ModalRoute.of(context)?.isCurrent ?? false)) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    if (!mounted) return;
+    await introPreferences.markShown();
+    if (!mounted) return;
+    await showQuranWidgetIntroduction(
+      context,
+      onDismiss: introPreferences.markShown,
+    );
   }
 
   @override
@@ -223,6 +254,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                     ),
                   ),
                 ),
+                const SliverToBoxAdapter(child: PrayerWirdHomeSection()),
                 SliverPadding(
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 8),
                   sliver: SliverToBoxAdapter(
@@ -287,68 +319,6 @@ class _StartUpScreenState extends State<StartUpScreen> {
                               ),
                         );
                       },
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 6),
-                  sliver: SliverToBoxAdapter(
-                    child: const HomeSectionHeader(
-                      title: 'قصص وهدي',
-                      subtitle: 'رحلة قراءة في قصص الأنبياء والسيرة',
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 158,
-                    child: ListView(
-                      padding: const EdgeInsetsDirectional.fromSTEB(
-                        20,
-                        8,
-                        20,
-                        12,
-                      ),
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        StoryHomeCard(
-                          title: 'قصص الأنبياء',
-                          subtitle: 'عبر ودروس من القرآن',
-                          image: AppAssets.prophetsCardBackground,
-                          icon: Icons.auto_stories_rounded,
-                          onTap:
-                              () => Navigator.of(context).push<void>(
-                                MaterialPageRoute<void>(
-                                  settings: const RouteSettings(
-                                    name: '/stories/prophets',
-                                  ),
-                                  builder:
-                                      (_) => const StoryCollectionScreen(
-                                        isSeerah: false,
-                                      ),
-                                ),
-                              ),
-                        ),
-                        const SizedBox(width: 12),
-                        StoryHomeCard(
-                          title: 'السيرة النبوية',
-                          subtitle: 'مراحل من حياة النبي ﷺ',
-                          image: AppAssets.seerahCardBackground,
-                          icon: Icons.mosque_rounded,
-                          onTap:
-                              () => Navigator.of(context).push<void>(
-                                MaterialPageRoute<void>(
-                                  settings: const RouteSettings(
-                                    name: '/stories/seerah',
-                                  ),
-                                  builder:
-                                      (_) => const StoryCollectionScreen(
-                                        isSeerah: true,
-                                      ),
-                                ),
-                              ),
-                        ),
-                      ],
                     ),
                   ),
                 ),

@@ -45,17 +45,20 @@ class PrayerAdhanService {
   static const _volumeKey = 'adhan_volume';
   static const _audioIdKey = 'adhan_audio_id';
   static const _prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+  String? _lastScheduleSignature;
+  Future<void> _scheduleUpdates = Future<void>.value();
+  Set<String> triggeredOccurrences = <String>{};
+
+  Future<void> refreshTriggeredOccurrences() async {
+    final result = await _channel.invokeListMethod<dynamic>(
+      'getTriggeredPrayerOccurrences',
+    );
+    triggeredOccurrences = result?.whereType<String>().toSet() ?? <String>{};
+  }
 
   Future<PrayerAdhanSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final settings = _settingsFromPrefs(prefs);
-    // Repair native/Dart preference drift before displaying the current state.
-    try {
-      await _syncNativeSettings(settings);
-    } on PlatformException {
-      // Settings remain readable if the native channel is temporarily absent.
-    }
-    return settings;
+    return _settingsFromPrefs(prefs);
   }
 
   PrayerAdhanSettings _settingsFromPrefs(SharedPreferences prefs) =>
@@ -92,23 +95,29 @@ class PrayerAdhanService {
   }
 
   Future<void> updateSchedule(List<PrayerAlarmTime> alarms) async {
-    final prefs = await SharedPreferences.getInstance();
-    await _syncNativeSettings(_settingsFromPrefs(prefs));
-    await _channel.invokeMethod<void>('updateSchedule', {
-      'alarms': [
-        for (final alarm in alarms)
-          {
-            'id': '${alarm.prayerId}_${alarm.at.year}_${alarm.at.month}_${alarm.at.day}',
-            'prayer': alarm.prayerId,
-            'at': alarm.at.millisecondsSinceEpoch,
-            'year': alarm.at.year,
-            'month': alarm.at.month,
-            'day': alarm.at.day,
-            'hour': alarm.at.hour,
-            'minute': alarm.at.minute,
-          },
-      ],
+    final schedule = [
+      for (final alarm in alarms)
+        {
+          'id': '${alarm.prayerId}_${alarm.at.year}_${alarm.at.month}_${alarm.at.day}',
+          'prayer': alarm.prayerId,
+          'at': alarm.at.millisecondsSinceEpoch,
+          'year': alarm.at.year,
+          'month': alarm.at.month,
+          'day': alarm.at.day,
+          'hour': alarm.at.hour,
+          'minute': alarm.at.minute,
+        },
+    ];
+    final signature = schedule
+        .map((alarm) => '${alarm['id']}:${alarm['at']}')
+        .join('|');
+    final update = _scheduleUpdates.then((_) async {
+      if (signature == _lastScheduleSignature) return;
+      await _channel.invokeMethod<void>('updateSchedule', {'alarms': schedule});
+      _lastScheduleSignature = signature;
     });
+    _scheduleUpdates = update.catchError((Object _) {});
+    await update;
   }
 
   Future<Map<String, dynamic>> getPlaybackState() async =>

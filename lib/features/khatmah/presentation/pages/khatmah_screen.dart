@@ -288,12 +288,27 @@ class _Dashboard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text('${toArabicIndicDigits(today.pages)} صفحة في ورد اليوم', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onPrimaryContainer)),
                 const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: colors.surface.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(18)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('آخر موضع قراءة', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: colors.onSurfaceVariant)),
+                      const SizedBox(height: 4),
+                      Text('${_name(plan.checkpointSurah)} · الجزء ${toArabicIndicDigits(plan.checkpointJuz)}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('صفحة ${toArabicIndicDigits(plan.checkpointPage)} · آية ${toArabicIndicDigits(plan.checkpointAyah)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: plan.paused ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SurahScreen(surahNumber: today.startSurah, initialAyah: today.startAyah))),
+                    onPressed: plan.paused ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SurahScreen(surahNumber: plan.checkpointSurah, initialAyah: plan.checkpointAyah, initialPageNumber: plan.checkpointPage, trackKhatmahProgress: true))),
                     icon: const Icon(Icons.menu_book_rounded),
-                    label: Text(plan.pagesRead > 0 ? 'أكمل القراءة' : 'ابدأ القراءة'),
+                    label: Text(plan.checkpointPage > 1 || plan.checkpointAyah > 1 ? 'أكمل القراءة' : 'ابدأ القراءة'),
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                   ),
                 ),

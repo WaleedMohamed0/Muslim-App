@@ -22,6 +22,22 @@ class AppEntryNavigation {
   }) {
     if (ModalRoute.of(context)?.isCurrent != true) return;
     final navigator = Navigator.of(context);
+    if (routeName == '/daily-wird') {
+      navigator.pushAndRemoveUntil<void>(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: '/home'),
+          builder: (_) => const StartUpScreen(),
+        ),
+        (_) => false,
+      );
+      navigator.push<void>(
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: routeName),
+          builder: (_) => destination,
+        ),
+      );
+      return;
+    }
     if (routeName?.startsWith('/quran-reader/') == true) {
       navigator.pushAndRemoveUntil<void>(
         MaterialPageRoute<void>(

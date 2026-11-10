@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:muslim/features/prayer_times/domain/entities/prayer_times.dart'
     as prayer_model;
+import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/prayer_times/domain/entities/next_prayer.dart'
+    as prayer_logic;
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
 import 'package:muslim/features/prayer_times/presentation/models/prayer_schedule_item.dart';
 import 'package:muslim/features/prayer_times/presentation/widgets/prayer_time_tile.dart';
@@ -15,8 +18,16 @@ class PrayerTimesContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final prayers = _buildPrayers(state.prayerTimes, state.displayTimes);
     final now = DateTime.now();
-    final nextPrayerIndex = _nextPrayerIndex(prayers, now);
-    final nextPrayerTime = _timeForPrayer(prayers, nextPrayerIndex, now);
+    final upcoming = prayer_logic.nextPrayerAfter(
+      state.prayerTimes,
+      now,
+      triggeredOccurrences: PrayerAdhanService.instance.triggeredOccurrences,
+    );
+    final nextPrayerIndex = upcoming == null
+        ? null
+        : const ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
+            .indexOf(upcoming.id);
+    final nextPrayerTime = upcoming?.at;
 
     return Center(
       child: ConstrainedBox(
@@ -96,39 +107,5 @@ class PrayerTimesContent extends StatelessWidget {
     );
   }
 
-  int? _nextPrayerIndex(List<PrayerScheduleItem> prayers, DateTime now) {
-    if (prayers.isEmpty) return null;
-    for (var index = 0; index < prayers.length; index++) {
-      final prayerTime = _timeForPrayer(prayers, index, now)!;
-      if (prayerTime.isAfter(now)) return index;
-    }
-    return 0;
-  }
-
-  DateTime? _timeForPrayer(
-    List<PrayerScheduleItem> prayers,
-    int? index,
-    DateTime now,
-  ) {
-    if (index == null || prayers.isEmpty) return null;
-    final time = prayers[index].time;
-    final isNextDay = index == 0 && prayers.every((prayer) {
-      final today = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        prayer.time.hour,
-        prayer.time.minute,
-      );
-      return !today.isAfter(now);
-    });
-    return DateTime(
-      now.year,
-      now.month,
-      now.day + (isNextDay ? 1 : 0),
-      time.hour,
-      time.minute,
-    );
-  }
 }
 

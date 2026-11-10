@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/core/widgets/info_hint_card.dart';
+import 'package:muslim/core/widgets/external_link_button.dart';
 import '../../data/data_sources/mushaf_markings_data.dart';
 import '../../domain/entities/mushaf_marking.dart';
 import '../widgets/mushaf_marking_widgets.dart';
@@ -38,7 +39,7 @@ class _MushafMarkingsScreenState extends State<MushafMarkingsScreen> {
           SliverToBoxAdapter(child: Padding(
             padding: const EdgeInsetsDirectional.fromSTEB(18, 14, 18, 12),
             child: const InfoHintCard(
-              text: 'دليل مبسّط للعلامات الشائعة في مصحف المدينة برواية حفص. قد تختلف بعض الرموز أو مواضعها بين الطبعات والروايات.',
+              text: 'علامات ضبط المصحف',
             ),
           )),
           SliverToBoxAdapter(child: SizedBox(height: 50, child: ListView(
@@ -79,8 +80,10 @@ class _MushafMarkingsScreenState extends State<MushafMarkingsScreen> {
             ),
           const SliverToBoxAdapter(child: Padding(
             padding: EdgeInsetsDirectional.fromSTEB(18, 0, 18, 28),
-            child: Text('مرجع الضبط: مصحف المدينة النبوية ومباحث علامات الضبط في رواية حفص. تعلّم الأداء والتجويد بالمشافهة على قارئ متقن.',
-              textDirection: TextDirection.rtl, textAlign: TextAlign.center),
+            child: ExternalLinkButton(
+              url: 'https://alitkaan.com/%D8%A3%D8%A8%D8%B1%D8%B2-%D8%B9%D9%84%D8%A7%D9%85%D8%A7%D8%AA-%D8%A7%D9%84%D8%B6%D8%A8%D8%B7/',
+              label: 'المصدر: دليل الإتقان — أبرز علامات الضبط',
+            ),
           )),
         ],
       )),

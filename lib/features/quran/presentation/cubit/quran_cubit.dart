@@ -492,7 +492,18 @@ class QuranCubit extends Cubit<QuranState> {
         }
         return;
       }
-      if (_ayahTimings.isEmpty) return;
+      // Timing metadata is fetched from the network and may be unavailable
+      // during offline playback. The source player still has an authoritative
+      // duration and position, so keep time-based seeking available in that
+      // case instead of leaving the slider in ayah-selection mode.
+      if (_ayahTimings.isEmpty) {
+        try {
+          await _audioPlayer.player.seek(targetPosition);
+        } catch (_) {
+          AppSnackBar.show(message: 'تعذر الانتقال إلى موضع التلاوة');
+        }
+        return;
+      }
       QuranAyahTiming? selectedTiming;
       for (final timing in _ayahTimings) {
         if (timing.ayah < 1) continue;

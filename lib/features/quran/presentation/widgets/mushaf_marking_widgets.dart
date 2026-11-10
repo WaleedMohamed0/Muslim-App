@@ -56,6 +56,16 @@ class MushafMarkingCard extends StatelessWidget {
                 ),
                 child: _buildExample(context, marking),
               ),
+              if (marking.reference != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  marking.reference!,
+                  textDirection: TextDirection.rtl,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
           ],
         ),

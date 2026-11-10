@@ -5,6 +5,7 @@ import 'package:muslim/features/asmaa_allah/domain/entities/allah_name.dart';
 import 'package:muslim/features/asmaa_allah/presentation/cubit/allah_names_cubit.dart';
 import 'package:muslim/features/asmaa_allah/presentation/cubit/allah_names_state.dart';
 import '../../../../core/widgets/app_widgets.dart';
+import '../../../../core/widgets/external_link_button.dart';
 import 'package:muslim/features/asmaa_allah/presentation/widgets/asmaa_allah_widgets.dart';
 
 class AsmaaAllahScreen extends StatefulWidget {
@@ -133,6 +134,17 @@ class _AsmaaAllahScreenState extends State<AsmaaAllahScreen> {
                 );
               }),
             ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(bottom: 20),
+              child: Center(
+                child: ExternalLinkButton(
+                  url: 'https://www.islambook.com/app/ar/azkr/25',
+                  label: 'المصدر',
+                ),
+              ),
+            ),
+          ),
         ],
       );
     });

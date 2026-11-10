@@ -104,7 +104,7 @@ class ReaderControlsOverlay extends StatelessWidget {
                           _ReaderIconButton(icon: bookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, tooltip: bookmarked ? 'إزالة علامة الصفحة' : 'حفظ الصفحة', palette: palette, onPressed: onBookmark),
                         ]),
                         Row(children: [
-                          _ReaderIconButton(icon: Icons.remove, tooltip: 'تصغير الخط', palette: palette, size: 36, onPressed: fontSize > 16 ? onFontDecrease : null),
+                          _ReaderIconButton(icon: Icons.remove, tooltip: 'تصغير الخط', palette: palette, size: 36, onPressed: fontSize > 22 ? onFontDecrease : null),
                           Padding(padding: const EdgeInsetsDirectional.symmetric(horizontal: 12), child: Text('حجم الخط  ${fontSize.round()}', style: TextStyle(color: palette.text, fontSize: 12, fontWeight: FontWeight.w600))),
                           _ReaderIconButton(icon: Icons.add, tooltip: 'تكبير الخط', palette: palette, size: 36, onPressed: fontSize < 32 ? onFontIncrease : null),
                           const Spacer(),

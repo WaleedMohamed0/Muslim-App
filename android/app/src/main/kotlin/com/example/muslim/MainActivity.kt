@@ -131,6 +131,11 @@ class MainActivity: AudioServiceActivity() {
                     "saveSettings" -> saveSettings(call.arguments as? Map<*, *>, result)
                     "updateSchedule" -> updateSchedule(call.arguments as? Map<*, *>, result)
                     "getAdhanPlaybackState" -> result.success(PrayerAdhanPlaybackService.playbackState())
+                    "getTriggeredPrayerOccurrences" -> result.success(
+                        getSharedPreferences(PrayerAdhanStorage.PREFS, MODE_PRIVATE)
+                            .getStringSet(PrayerAdhanStorage.TRIGGERED_OCCURRENCES, emptySet())
+                            ?.toList() ?: emptyList<String>(),
+                    )
                     "getDailyReminders" -> result.success(DailyAzkarReminderScheduler.getSettings(this))
                     "saveDailyReminders" -> saveDailyReminders(call.arguments as? List<*>, result)
                     "previewAudio" -> {

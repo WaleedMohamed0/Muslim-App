@@ -7,6 +7,7 @@ import '../../data/worship_lesson_content.dart';
 import '../../data/worship_ui_strings.dart';
 import '../../domain/entities/worship_step.dart';
 import '../widgets/worship_lesson_widgets.dart';
+import '../widgets/quiz_intro_dialog.dart';
 import 'prayer_quiz_screen.dart';
 import 'wudu_quiz_screen.dart';
 
@@ -81,22 +82,8 @@ class _WorshipGuideScreenState extends State<WorshipGuideScreen> {
       {
         final startQuiz = await showDialog<bool>(
           context: context,
-          builder: (dialogContext) => AlertDialog(
-            icon: Icon(Icons.quiz_rounded, color: Theme.of(dialogContext).colorScheme.primary),
-            title: Text(_lesson == 'wudu' ? WorshipUiStrings.wuduLessonCompleteTitle : WorshipUiStrings.prayerLessonCompleteTitle),
-            content: Text(_lesson == 'wudu' ? WorshipUiStrings.wuduLessonCompletePrompt : WorshipUiStrings.prayerLessonCompletePrompt),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text(WorshipUiStrings.quizLater),
-              ),
-              FilledButton.icon(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text(WorshipUiStrings.quizStartNow),
-              ),
-            ],
-          ),
+          barrierDismissible: false,
+          builder: (dialogContext) => QuizIntroDialog(isWudu: _lesson == 'wudu'),
         );
         if (startQuiz == true && mounted) _openLessonQuiz();
       }

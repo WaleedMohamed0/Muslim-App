@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/core/widgets/app_back_arrow.dart';
+import 'package:muslim/features/app/domain/entities/prayer_wird_period.dart';
+import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
-import 'package:muslim/features/prayer_times/domain/entities/prayer_times.dart';
+import 'package:muslim/features/prayer_times/domain/entities/next_prayer.dart'
+    as prayer_logic;
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 
 class PrayerExperienceCard extends StatefulWidget {
@@ -23,7 +26,6 @@ class PrayerExperienceCard extends StatefulWidget {
   @override
   State<PrayerExperienceCard> createState() => _PrayerExperienceCardState();
 }
-
 class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     with WidgetsBindingObserver {
   Timer? _ticker;
@@ -37,6 +39,7 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(context.read<PrayerTimesCubit>().loadCachedPrayerTimes());
+    unawaited(_refreshTriggeredOccurrences());
     _startUpdates();
     unawaited(_refreshPlaybackState());
   }
@@ -65,11 +68,19 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     _playbackPoller?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
+      unawaited(_refreshTriggeredOccurrences());
     });
     _playbackPoller = Timer.periodic(
       const Duration(seconds: 2),
       (_) => unawaited(_refreshPlaybackState()),
     );
+  }
+
+  Future<void> _refreshTriggeredOccurrences() async {
+    try {
+      await PrayerAdhanService.instance.refreshTriggeredOccurrences();
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   Future<void> _refreshPlaybackState() async {
@@ -80,6 +91,17 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
       if (!mounted) return;
       final isPlaying = state['playing'] == true;
       final prayer = isPlaying ? state['prayer'] as String? : null;
+      if (isPlaying && !_isPlaying) {
+        final period = prayerWirdPeriodKey(
+          context.read<PrayerTimesCubit>().state.prayerTimes,
+          DateTime.now(),
+        );
+        if (period != null) {
+          unawaited(
+            context.read<AzkarCubit>().resetPostPrayerSessionForAdhan(period),
+          );
+        }
+      }
       if (_isPlaying != isPlaying || _playingPrayer != prayer) {
         setState(() {
           _isPlaying = isPlaying;
@@ -104,21 +126,25 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     final colors = theme.colorScheme;
     final subtitleStyle = theme.textTheme.bodySmall;
     final times = context.watch<PrayerTimesCubit>().state.prayerTimes;
-    final next = _nextPrayer(times, DateTime.now());
+    final upcoming = prayer_logic.nextPrayerAfter(
+      times,
+      DateTime.now(),
+      triggeredOccurrences: PrayerAdhanService.instance.triggeredOccurrences,
+    );
     final playingName = _prayerName(_playingPrayer);
     final isPlaying = _isPlaying && playingName != null;
     final title =
         isPlaying
             ? 'حان الآن وقت صَلَاة $playingName'
-            : next == null
+            : upcoming == null
             ? 'مواقيت الصَّلَاة'
-            : 'الصَّلَاة القادمة: ${next.name}';
+            : 'الصَّلَاة القادمة: ${_prayerName(upcoming.id)}';
     final subtitle =
         isPlaying
             ? 'الأذان يعمل الآن'
-            : next == null
+            : upcoming == null
             ? 'اضغط لعرض مواقيت الصَّلَاة'
-            : 'متبقي ${_formatRemaining(next.at.difference(DateTime.now()))}';
+            : 'متبقي ${_formatRemaining(upcoming.at.difference(DateTime.now()))}';
     final foregroundColor =
         widget.onDarkBackground
             ? Colors.white
@@ -216,40 +242,6 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     );
   }
 
-  _NextPrayer? _nextPrayer(PrayerTimes? times, DateTime now) {
-    if (times == null) return null;
-    const prayers = <(String, String)>[
-      ('الْفَجْر', 'fajr'),
-      ('الظُّهْر', 'dhuhr'),
-      ('الْعَصْر', 'asr'),
-      ('الْمَغْرِب', 'maghrib'),
-      ('الْعِشَاء', 'isha'),
-    ];
-    final prayerTimes = [
-      times.fajr,
-      times.dhuhr,
-      times.asr,
-      times.maghrib,
-      times.isha,
-    ];
-    for (var index = 0; index < prayerTimes.length; index++) {
-      final time = prayerTimes[index];
-      final today = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        time.hour,
-        time.minute,
-      );
-      if (today.isAfter(now)) return _NextPrayer(prayers[index].$1, today);
-    }
-    final fajr = prayerTimes.first;
-    return _NextPrayer(
-      prayers.first.$1,
-      DateTime(now.year, now.month, now.day + 1, fajr.hour, fajr.minute),
-    );
-  }
-
   String? _prayerName(String? prayer) => switch (prayer) {
     'fajr' => 'الْفَجْر',
     'dhuhr' => 'الظُّهْر',
@@ -270,11 +262,4 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
             : '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     return toArabicIndicDigits(value);
   }
-}
-
-class _NextPrayer {
-  const _NextPrayer(this.name, this.at);
-
-  final String name;
-  final DateTime at;
 }

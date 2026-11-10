@@ -1,21 +1,123 @@
-import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/hadeeth_entry.dart';
 
 class HadeethRemoteDataSource {
-  Future<List<HadeethEntry>> fetch() async {
-    final ids = <String>[];
-    for (var page = 1; page <= 2; page++) {
-      final response = await DioHelper.getHadeeth(endPoint: 'hadeeths/list', query: {
-        'language': 'ar', 'category_id': 1, 'page': page,
-      });
-      ids.addAll((response.data['data'] as List).map((item) => item['id'].toString()));
-    }
-    return Future.wait(ids.map((id) async {
-      final response = await DioHelper.getHadeeth(endPoint: 'hadeeths/one', query: {
-        'language': 'ar', 'id': id,
-      });
-      final data = response.data as Map<String, dynamic>;
-      return HadeethEntry(text: data['hadeeth'] as String, explanation: data['explanation'] as String);
-    }));
-  }
+  Future<List<HadeethEntry>> fetch() async => const [
+    HadeethEntry(
+      text: '«الدِّينُ النَّصِيحَةُ» قُلْنَا: لِمَنْ؟ قَالَ: «لِلهِ وَلِكِتَابِهِ وَلِرَسُولِهِ وَلِأَئِمَّةِ الْمُسْلِمِينَ وَعَامَّتِهِمْ».',
+      explanation: 'عن تميم الداري رضي الله عنه أن النبي صلى الله عليه وسلم قال هذا الحديث.',
+      narrator: 'تميم الداري رضي الله عنه',
+      source: 'صحيح مسلم',
+      number: '55',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/4309',
+    ),
+    HadeethEntry(
+      text: 'الْمُسْلِمُ مَنْ سَلِمَ الْمُسْلِمُونَ مِنْ لِسَانِهِ وَيَدِهِ، وَالْمُهَاجِرُ مَنْ هَجَرَ مَا نَهَى اللَّهُ عَنْهُ.',
+      explanation: 'عن عبد الله بن عمرو رضي الله عنهما عن النبي صلى الله عليه وسلم قال هذا الحديث.',
+      narrator: 'عبد الله بن عمرو رضي الله عنهما',
+      source: 'صحيح البخاري',
+      number: '10',
+      grade: 'صحيح متفق عليه',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/10101',
+    ),
+    HadeethEntry(
+      text: 'لَا يُؤْمِنُ أَحَدُكُمْ، حَتَّى يُحِبَّ لِأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ.',
+      explanation: 'عن أنس رضي الله عنه عن النبي صلى الله عليه وسلم قال هذا الحديث.',
+      narrator: 'أنس رضي الله عنه',
+      source: 'صحيح البخاري',
+      number: '13',
+      grade: 'صحيح متفق عليه',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/4717',
+    ),
+    HadeethEntry(
+      text: 'أَنَّ رَجُلًا سَأَلَ رَسُولَ اللهِ صَلَّى اللهُ عَلَيْهِ وَسَلَّمَ، فَقَالَ: أَرَأَيْتَ إِذَا صَلَّيْتُ الصَّلَوَاتِ الْمَكْتُوبَاتِ، وَصُمْتُ رَمَضَانَ، وَأَحْلَلْتُ الْحَلَالَ، وَحَرَّمْتُ الْحَرَامَ، وَلَمْ أَزِدْ عَلَى ذَلِكَ شَيْئًا، أَأَدْخُلُ الْجَنَّةَ؟ قَالَ: نَعَمْ. قَالَ: وَاللهِ لَا أَزِيدُ عَلَى ذَلِكَ شَيْئًا.',
+      explanation: 'عن جابر رضي الله عنه. نص الحديث وتخريجه كما وردا في المرجع.',
+      narrator: 'جابر رضي الله عنه',
+      source: 'صحيح مسلم',
+      number: '15',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/65003',
+    ),
+    HadeethEntry(
+      text: 'مَنْ نَزَلَ مَنْزِلًا ثُمَّ قَالَ: أَعُوذُ بِكَلِمَاتِ اللهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ، لَمْ يَضُرَّهُ شَيْءٌ حَتَّى يَرْتَحِلَ مِنْ مَنْزِلِهِ ذَلِكَ.',
+      explanation: 'عن خولة بنت حكيم السلمية رضي الله عنها أنها سمعت رسول الله صلى الله عليه وسلم يقول هذا الحديث.',
+      narrator: 'خولة بنت حكيم السلمية رضي الله عنها',
+      source: 'صحيح مسلم',
+      number: '2708',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/5932',
+    ),
+    HadeethEntry(
+      text: 'قَدْ أَفْلَحَ مَن أَسْلَمَ، وَرُزِقَ كَفَافًا، وَقَنَّعَهُ اللَّهُ بما آتَاهُ.',
+      explanation: 'عن عبد الله بن عمرو بن العاص رضي الله عنهما أن رسول الله صلى الله عليه وسلم قال هذا الحديث.',
+      narrator: 'عبد الله بن عمرو بن العاص رضي الله عنهما',
+      source: 'صحيح مسلم',
+      number: '1054',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/5814',
+    ),
+    HadeethEntry(
+      text: 'خلَّفَ رسولُ الله صلى الله عليه وسلم عليَّ بن أبي طالب في غزوة تبوك، فقال: يا رسول الله، تُخلِّفُني في النساء والصبيان؟ فقال: أما ترضى أن تكون مني بمنزلة هارون من موسى؟ غير أنه لا نبي بعدي.',
+      explanation: 'عن سعد بن أبي وقاص رضي الله عنه. أرقام التخريج وفق المرجع.',
+      narrator: 'سعد بن أبي وقاص رضي الله عنه',
+      source: 'صحيح البخاري وصحيح مسلم',
+      number: '4416 و2404',
+      grade: 'صحيح متفق عليه',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/65843',
+    ),
+    HadeethEntry(
+      text: 'الصَّلَوَاتُ الْخَمْسُ، وَالْجُمُعَةُ إِلَى الْجُمُعَةِ، وَرَمَضَانُ إِلَى رَمَضَانَ، مُكَفِّرَاتٌ مَا بَيْنَهُنَّ إِذَا اجْتَنَبَ الْكَبَائِرَ.',
+      explanation: 'عن أبي هريرة رضي الله عنه أن رسول الله صلى الله عليه وسلم كان يقول هذا الحديث.',
+      narrator: 'أبو هريرة رضي الله عنه',
+      source: 'صحيح مسلم',
+      number: '233',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/3591',
+    ),
+    HadeethEntry(
+      text: 'كَانَ النَّبِيُّ صَلَّى اللهُ عَلَيْهِ وَسَلَّمَ يَذْكُرُ اللهَ عَلَى كُلِّ أَحْيَانِهِ.',
+      explanation: 'عن عائشة رضي الله عنها قالت هذا الحديث.',
+      narrator: 'عائشة رضي الله عنها',
+      source: 'صحيح مسلم',
+      number: '373',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/8402',
+    ),
+    HadeethEntry(
+      text: 'لَأَنْ أَقُولَ: سُبْحَانَ اللهِ، وَالْحَمْدُ لِلهِ، وَلَا إِلَهَ إِلَّا اللهُ، وَاللهُ أَكْبَرُ، أَحَبُّ إِلَيَّ مِمَّا طَلَعَتْ عَلَيْهِ الشَّمْسُ.',
+      explanation: 'عن أبي هريرة رضي الله عنه قال: قال رسول الله صلى الله عليه وسلم هذا الحديث.',
+      narrator: 'أبو هريرة رضي الله عنه',
+      source: 'صحيح مسلم',
+      number: '2695',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/6211',
+    ),
+    HadeethEntry(
+      text: 'مَنْ قَالَ: سُبْحَانَ اللهِ وَبِحَمْدِهِ، فِي يَوْمٍ مِائَةَ مَرَّةٍ، حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ.',
+      explanation: 'عن أبي هريرة رضي الله عنه أن رسول الله صلى الله عليه وسلم قال هذا الحديث.',
+      narrator: 'أبو هريرة رضي الله عنه',
+      source: 'صحيح البخاري وصحيح مسلم',
+      number: '6405 و2691',
+      grade: 'صحيح متفق عليه',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/5516',
+    ),
+    HadeethEntry(
+      text: 'إِذَا أُقِيمَتِ الصَّلَاةُ فَلَا صَلَاةَ إلَّا المَكْتُوبَةُ.',
+      explanation: 'عن أبي هريرة رضي الله عنه عن النبي صلى الله عليه وسلم قال هذا الحديث.',
+      narrator: 'أبو هريرة رضي الله عنه',
+      source: 'صحيح مسلم',
+      number: '710',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/65739',
+    ),
+    HadeethEntry(
+      text: 'لَا تَدْخُلُونَ الْجَنَّةَ حَتَّى تُؤْمِنُوا، وَلَا تُؤْمِنُوا حَتَّى تَحَابُّوا، أَوَلَا أَدُلُّكُمْ عَلَى شَيْءٍ إِذَا فَعَلْتُمُوهُ تَحَابَبْتُمْ؟ أَفْشُوا السَّلَامَ بَيْنَكُمْ.',
+      explanation: 'عن أبي هريرة رضي الله عنه قال: قال رسول الله صلى الله عليه وسلم هذا الحديث.',
+      narrator: 'أبو هريرة رضي الله عنه',
+      source: 'صحيح مسلم',
+      number: '54',
+      grade: 'صحيح',
+      referenceUrl: 'https://hadeethenc.com/ar/browse/hadith/3361',
+    ),
+  ];
 }

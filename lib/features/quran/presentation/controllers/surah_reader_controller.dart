@@ -14,8 +14,14 @@ class SurahReaderController extends ChangeNotifier {
     required int initialSurah,
     int? initialAyah,
     int? initialPageNumber,
-    ValueChanged<int>? onPageRead,
+    void Function(int page, int surah, int ayah)? onPageRead,
+    bool saveGeneralCheckpoint = true,
+    int? minimumPageNumber,
+    int? maximumPageNumber,
   }) : _onPageRead = onPageRead {
+    _saveGeneralCheckpoint = saveGeneralCheckpoint;
+    _minimumPageNumber = minimumPageNumber;
+    _maximumPageNumber = maximumPageNumber;
     _readerOnlyDuringOtherPlayback = false;
     final savedReaderPosition = cubit.lastReaderAyahForSurah(initialSurah);
     final savedPlaybackPosition = cubit.lastAyahForSurah(initialSurah);
@@ -66,11 +72,14 @@ class SurahReaderController extends ChangeNotifier {
   }
 
   static const _fontSizePreferenceKey = 'quran_reader_font_size';
-  static const _minimumFontSize = 16.0;
+  static const _minimumFontSize = 22.0;
   static const _maximumFontSize = 32.0;
 
   final QuranCubit cubit;
-  final ValueChanged<int>? _onPageRead;
+  final void Function(int page, int surah, int ayah)? _onPageRead;
+  late final bool _saveGeneralCheckpoint;
+  late final int? _minimumPageNumber;
+  late final int? _maximumPageNumber;
   late final PageController pageController;
   late final TransformationController zoomController;
   late final StreamSubscription<QuranState> _audioStateSubscription;
@@ -99,8 +108,8 @@ class SurahReaderController extends ChangeNotifier {
   double get fontSize => _fontSize;
   double get zoomScale => _zoomScale;
   bool get controlsVisible => _controlsVisible;
-  bool get isFirstPage => _pageIndex == 0;
-  bool get isLastPage => _pageIndex >= quran.totalPagesCount - 1;
+  bool get isFirstPage => _pageIndex == (_minimumPageNumber ?? 1) - 1;
+  bool get isLastPage => _pageIndex >= (_maximumPageNumber ?? quran.totalPagesCount) - 1;
   bool get isCurrentPageBookmarked => cubit.pageBookmarks.contains(pageNumber);
 
   int? get bookmarkAyahForPlayback {
@@ -134,7 +143,8 @@ class SurahReaderController extends ChangeNotifier {
 
   void turnPage({required bool next}) {
     final target = _pageIndex + (next ? 1 : -1);
-    if (target < 0 || target >= quran.totalPagesCount) return;
+    if (target < (_minimumPageNumber ?? 1) - 1 ||
+        target > (_maximumPageNumber ?? quran.totalPagesCount) - 1) return;
     pageController.animateToPage(
       target,
       duration: const Duration(milliseconds: 300),
@@ -186,8 +196,8 @@ class SurahReaderController extends ChangeNotifier {
       surahNumber: surahNumber,
       ayahNumber: verseNumber,
     );
-    _onPageRead?.call(index + 1);
-    cubit.saveReaderPosition(surahNumber, verseNumber);
+    _onPageRead?.call(index + 1, surahNumber, verseNumber);
+    if (_saveGeneralCheckpoint) cubit.saveReaderPosition(surahNumber, verseNumber);
     _scheduleControlsHide();
   }
 
@@ -279,7 +289,7 @@ class SurahReaderController extends ChangeNotifier {
           surahNumber: surahNumber,
           ayahNumber: ayahNumber,
         );
-        cubit.saveReaderPosition(surahNumber, ayahNumber);
+        if (_saveGeneralCheckpoint) cubit.saveReaderPosition(surahNumber, ayahNumber);
         if (pageController.hasClients &&
             pageController.page?.round() != targetPage) {
           pageController.jumpToPage(targetPage);

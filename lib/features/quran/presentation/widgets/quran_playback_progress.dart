@@ -24,8 +24,7 @@ class QuranPlaybackProgress extends StatelessWidget {
     initialData: cubit.audioDuration,
     builder: (context, durationState) {
       final duration = durationState.data;
-      if ((cubit.hasAyahTimings || cubit.isSingleAyahPlayback) &&
-          duration != null &&
+      if (duration != null &&
           duration.inMilliseconds > 0) {
         return StreamBuilder<Duration>(
           stream: cubit.audioPositionStream,

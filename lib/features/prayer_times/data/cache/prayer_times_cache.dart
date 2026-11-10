@@ -47,7 +47,6 @@ class PrayerTimesCache {
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
       final dateKey = _dateKey(date);
-      if (json['date'] != dateKey) return null;
       final alarms = (json['alarms'] as List<dynamic>? ?? const [])
           .map((item) {
             final alarm = item as Map<String, dynamic>;
@@ -57,9 +56,26 @@ class PrayerTimesCache {
             );
           })
           .toList(growable: false);
-      DateTime prayerTime(String key) => DateTime.parse(
-        '${dateKey}T${json[key] as String}:00',
-      );
+      final latitude = (json['latitude'] as num).toDouble();
+      final longitude = (json['longitude'] as num).toDouble();
+      if (!latitude.isFinite || !longitude.isFinite ||
+          latitude < -90 || latitude > 90 ||
+          longitude < -180 || longitude > 180) {
+        return null;
+      }
+      final dayAlarms = alarms.where((alarm) =>
+          alarm.at.year == date.year &&
+          alarm.at.month == date.month &&
+          alarm.at.day == date.day).toList(growable: false);
+      DateTime prayerTime(String key) {
+        final matchingAlarm = dayAlarms.where((alarm) => alarm.prayerId == key);
+        if (matchingAlarm.isNotEmpty) return matchingAlarm.first.at;
+        if (json['date'] != dateKey) {
+          throw const FormatException('No cached prayer times for this date');
+        }
+        return DateTime.parse('${dateKey}T${json[key] as String}:00');
+      }
+      if (json['date'] != dateKey && dayAlarms.length < 5) return null;
       return CachedPrayerTimes(
         times: PrayerTimes(
           fajr: prayerTime('fajr'),
@@ -70,8 +86,8 @@ class PrayerTimesCache {
           alarmTimes: alarms,
         ),
         dateKey: dateKey,
-        latitude: (json['latitude'] as num).toDouble(),
-        longitude: (json['longitude'] as num).toDouble(),
+        latitude: latitude,
+        longitude: longitude,
       );
     } catch (_) {
       return null;
@@ -84,6 +100,11 @@ class PrayerTimesCache {
     double longitude,
     PrayerTimes times,
   ) async {
+    if (!latitude.isFinite || !longitude.isFinite ||
+        latitude < -90 || latitude > 90 ||
+        longitude < -180 || longitude > 180) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final value = jsonEncode({
       'date': _dateKey(date),

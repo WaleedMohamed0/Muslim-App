@@ -7,7 +7,7 @@ class AzkarState {
     this.favoriteEntryIds = const {},
     this.revision = 0,
     this.isLoading = false,
-    this.error,
+    this.error
   });
 
   final List<int> counters;

@@ -11,7 +11,6 @@ class AzkarTextCard extends StatelessWidget {
     this.counter,
     this.onTap,
     this.onIncrement,
-    this.onReset,
     this.isFavorite = false,
     this.onFavorite,
     this.onShare,
@@ -25,7 +24,6 @@ class AzkarTextCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback onCopy;
   final VoidCallback? onIncrement;
-  final VoidCallback? onReset;
   final bool isFavorite;
   final VoidCallback? onFavorite;
   final VoidCallback? onShare;
@@ -48,7 +46,7 @@ class AzkarTextCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
-                    sectionLabel!,
+                    toArabicIndicDigits(sectionLabel!),
                     textDirection: TextDirection.rtl,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
@@ -59,17 +57,20 @@ class AzkarTextCard extends StatelessWidget {
               ),
             ],
             Text(
-              text,
+              toArabicIndicDigits(text),
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(height: 1.9),
+              ).textTheme.titleMedium?.copyWith(
+                fontSize: (Theme.of(context).textTheme.titleMedium?.fontSize ?? 16) + 2,
+                height: 1.9,
+              ),
             ),
             if (instructions != null && instructions!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                instructions!,
+                toArabicIndicDigits(instructions!),
                 textDirection: TextDirection.rtl,
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -81,7 +82,7 @@ class AzkarTextCard extends StatelessWidget {
             if (reference != null && reference!.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
-                'المصدر: $reference',
+                toArabicIndicDigits('المصدر: $reference'),
                 textDirection: TextDirection.rtl,
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -122,13 +123,13 @@ class AzkarTextCard extends StatelessWidget {
                   Expanded(
                     child: SizedBox(
                       height: 48,
-                      child: Row(
-                        textDirection: TextDirection.rtl,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Expanded(
-                            child: Center(
-                              child: _TasbeehActionButton(
+                          Row(
+                            textDirection: TextDirection.rtl,
+                            children: [
+                              _TasbeehActionButton(
                                 onPressed: onIncrement,
                                 tooltip: 'زيادة العداد',
                                 icon: Icons.add_rounded,
@@ -137,47 +138,45 @@ class AzkarTextCard extends StatelessWidget {
                                 foregroundColor:
                                     Theme.of(context).colorScheme.onPrimaryContainer,
                               ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Center(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  '${toArabicIndicDigits(counter!)}${repetitionCount == null ? '' : ' / ${toArabicIndicDigits(repetitionCount!)}'}',
-                                  textAlign: TextAlign.center,
-                                  textDirection: TextDirection.rtl,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Center(
-                              child: _TasbeehActionButton(
-                                onPressed: onReset,
-                                tooltip: 'تصفير العداد',
-                                icon: Icons.restart_alt_rounded,
+                              const Spacer(),
+                              _TasbeehActionButton(
+                                onPressed: onCopy,
+                                tooltip: 'نسخ الذِّكْر',
+                                icon: Icons.content_copy_rounded,
                                 backgroundColor:
-                                    Theme.of(context).colorScheme.errorContainer,
+                                    Theme.of(context).colorScheme.primaryContainer,
                                 foregroundColor:
-                                    Theme.of(context).colorScheme.onErrorContainer,
+                                    Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ],
+                          ),
+                          IgnorePointer(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                toArabicIndicDigits(
+                                  '$counter${repetitionCount == null ? '' : ' / $repetitionCount'}',
+                                ),
+                                textAlign: TextAlign.center,
+                                textDirection: TextDirection.rtl,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontSize: (Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.fontSize ??
+                                              16) +
+                                          2,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _TasbeehActionButton(
-                    onPressed: onCopy,
-                    tooltip: 'نسخ الذِّكْر',
-                    icon: Icons.content_copy_rounded,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    foregroundColor:
-                        Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                 ] else ...[
                   if (repetitionCount != null) ...[
@@ -214,7 +213,7 @@ class AzkarTextCard extends StatelessWidget {
               ],
             ),
             if (counter != null && repetitionCount != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Text(

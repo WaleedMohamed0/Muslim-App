@@ -29,6 +29,7 @@ import 'package:muslim/features/prayer_times/presentation/pages/prayer_times_scr
 import 'package:muslim/features/prayer_times/presentation/pages/elazan_screen.dart';
 import 'package:muslim/features/qibla/presentation/pages/qibla_compass_screen.dart';
 import 'package:muslim/features/khatmah/presentation/pages/khatmah_screen.dart';
+import 'package:muslim/features/app/presentation/pages/daily_wird_reader_screen.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 const MethodChannel _notificationNavigationChannel = MethodChannel(
@@ -200,7 +201,7 @@ class _AppRouteObserver extends NavigatorObserver {
         routeName: '/azkar-category-1',
         page: const AzkarAndHadeethScreen(index: 1),
       ),
-      'daily_wird' => (routeName: '/quran-home', page: const HomeScreen()),
+      'daily_wird' => (routeName: '/daily-wird', page: const DailyWirdReaderScreen()),
       'salawat' => (routeName: '/home', page: const StartUpScreen()),
       KahfReminderService.route => (
         routeName: '/quran-reader/18',
@@ -477,6 +478,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final isDailyReminderDestination =
         routeName.startsWith('/azkar-category-') ||
         routeName == '/quran-home' ||
+        routeName == '/daily-wird' ||
         routeName == '/khatmah' ||
         routeName == '/home' ||
         routeName == '/quran-reader/18';
@@ -486,6 +488,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (isDailyReminderDestination) {
       if (routeName.startsWith('/azkar-category-') ||
           routeName == '/quran-home' ||
+          routeName == '/daily-wird' ||
           routeName == '/khatmah') {
         navigator.pushAndRemoveUntil<void>(
           MaterialPageRoute<void>(
@@ -707,6 +710,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             if (initialDestination != null &&
                 (initialDestination.routeName.startsWith('/azkar-category-') ||
                     initialDestination.routeName == '/quran-home' ||
+                    initialDestination.routeName == '/daily-wird' ||
                     initialDestination.routeName.startsWith('/quran-reader/'))) ...[
               MaterialPageRoute<void>(
                 settings: const RouteSettings(name: '/home'),

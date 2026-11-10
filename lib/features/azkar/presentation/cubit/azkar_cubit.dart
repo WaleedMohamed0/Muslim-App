@@ -36,6 +36,8 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
   static const _progressDateKey = 'azkar_progress_local_date';
   static const _progressKeyPrefix = 'azkar_progress_';
   static const _favoriteEntryIdsKey = 'azkar_favorite_entry_ids';
+  static const _postPrayerPeriodKey = 'azkar_post_prayer_period_v1';
+  static const _lastAdhanResetKey = 'azkar_post_prayer_last_adhan_reset_v1';
   static const MethodChannel _shareChannel = MethodChannel('com.muslim/quran_share');
   bool isOnline = false;
   void setConnectivity(bool connected) => isOnline = connected;
@@ -163,6 +165,46 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
       return 0;
     }
     return _progress[entry.id] ?? 0;
+  }
+
+  /// Starts the post-prayer session, clearing only that category when its
+  /// prayer period changes. Other adhkar and tasbeeh progress stay untouched.
+  Future<void> beginPostPrayerSession(String period) async {
+    if (isClosed) return;
+    await loadContent();
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getString(_postPrayerPeriodKey) == period) return;
+    await _resetPostPrayerEntries(preferences);
+    await preferences.setString(_postPrayerPeriodKey, period);
+  }
+
+  /// Clears post-prayer counters once when a new adhan starts, even if the
+  /// user already opened the post-prayer session during this prayer period.
+  Future<void> resetPostPrayerSessionForAdhan(String period) async {
+    if (isClosed) return;
+    await loadContent();
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getString(_lastAdhanResetKey) == period) return;
+    await _resetPostPrayerEntries(preferences);
+    await preferences.setString(_lastAdhanResetKey, period);
+    await preferences.setString(_postPrayerPeriodKey, period);
+  }
+
+  Future<void> _resetPostPrayerEntries(SharedPreferences preferences) async {
+    final entries = entriesFor(4);
+    for (final entry in entries) {
+      _progress[entry.id] = 0;
+      await preferences.remove(_progressKey(entry.id));
+    }
+    _emitProgress();
+  }
+
+  bool isPostPrayerSessionComplete() {
+    final entries = entriesFor(4);
+    return entries.isNotEmpty && entries.every((entry) {
+      final required = entry.repetitionCount ?? 1;
+      return progressFor(entry) >= required;
+    });
   }
 
   bool isFavorite(AzkarEntry entry) => _favoriteEntryIds.contains(entry.id);

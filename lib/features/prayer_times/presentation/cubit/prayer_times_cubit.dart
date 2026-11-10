@@ -21,6 +21,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   bool gotPrayerTimes = false;
   bool isOnline = false;
   bool _isLoadingPrayerTimes = false;
+  PrayerTimesErrorType? lastRefreshErrorType;
 
   Future<void> loadCachedPrayerTimes() async {
     if (state.prayerTimes != null) return;
@@ -46,19 +47,19 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       unawaited(getPrayerTime());
     }
   }
-  Future<void> getPrayerTime({bool forceRefresh = false}) async {
-    if (_isLoadingPrayerTimes) return;
+  Future<bool> getPrayerTime({bool forceRefresh = false}) async {
+    if (_isLoadingPrayerTimes) return state.status == PrayerTimesStatus.loaded;
+    if (forceRefresh) lastRefreshErrorType = null;
     _isLoadingPrayerTimes = true;
     try {
       final today = DateTime.now();
-      // Validate fresh OS permission/service state before even presenting a
-      // cached location-specific result. Permission revocation in Android
-      // Settings must not be hidden by today's cache.
-      await _getPrayerTimes.verifyLocationAccess();
       final cached = await _getPrayerTimes.getCached(today);
       if (cached != null) {
         _publishPrayerTimes(cached);
-        if (!isOnline) return;
+        if (!isOnline && !forceRefresh) return true;
+        // A cached schedule is already the result for the persistent cached
+        // location. Device location is read only on an explicit refresh.
+        if (!forceRefresh) return true;
       }
       if (cached == null || forceRefresh) {
         if (cached == null) {
@@ -66,16 +67,18 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
         }
         final times = await _getPrayerTimes(today, forceRefresh: forceRefresh);
         _publishPrayerTimes(times);
+        return true;
       } else {
         // Cache is already visible. This background check validates the current
         // location and fetches only if today's cache belongs to another place.
         final times = await _getPrayerTimes(today);
         _publishPrayerTimes(times);
+        return true;
       }
     } catch (error) {
+      if (forceRefresh) lastRefreshErrorType = _errorType(error);
       // Keep a valid cached day visible when refresh/location lookup fails.
-      if (state.status != PrayerTimesStatus.loaded ||
-          error is PrayerLocationException) {
+      if (state.status != PrayerTimesStatus.loaded) {
         final errorType = _errorType(error);
         emit(PrayerTimesState(
           error: _localizedError(error),
@@ -83,6 +86,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
           status: PrayerTimesStatus.failure,
         ));
       }
+      return false;
     } finally {
       _isLoadingPrayerTimes = false;
     }
@@ -139,6 +143,21 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
 
   void _publishPrayerTimes(PrayerTimes times) {
     prayerTimesModel = times;
+    // final testTime = DateTime.now().add(const Duration(seconds: 10));
+    //
+    // if (times.alarmTimes.length > 2) {
+    //   unawaited(
+    //     PrayerAdhanService.instance
+    //         .updateSchedule([
+    //       PrayerAlarmTime(
+    //         prayerId: times.alarmTimes[1].prayerId,
+    //         at: testTime,
+    //       ),
+    //     ])
+    //         .catchError((Object _) {}),
+    //   );
+    // }
+
     unawaited(
       PrayerAdhanService.instance
           .updateSchedule(times.alarmTimes)

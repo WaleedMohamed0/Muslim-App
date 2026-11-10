@@ -12,6 +12,8 @@ import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
 import 'package:muslim/features/quran/presentation/pages/quran_downloads_screen.dart';
 import 'package:muslim/features/quran/presentation/pages/quran_reader_background_screen.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reciter_picker.dart';
+import 'package:muslim/features/app/presentation/pages/quran_widget_tutorial.dart';
+import 'package:muslim/features/app/presentation/pages/daily_wird_settings_screen.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({super.key});
@@ -79,6 +81,35 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             const SizedBox(height: 24),
             _SectionTitle(title: 'إعدادات الْقُرْآن الكريم'),
             const SizedBox(height: 10),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                leading: const _SettingsLeadingIcon(icon: Icons.menu_book_rounded),
+                title: const Text('الورد اليومي'),
+                subtitle: const Text('تحديد نطاق صفحات وردك اليومي بشكل مستقل'),
+                trailing: const _SettingsNavigationArrow(),
+                onTap: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    settings: const RouteSettings(name: '/daily-wird-settings'),
+                    builder: (_) => const DailyWirdSettingsScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                leading: const _SettingsLeadingIcon(
+                  icon: Icons.widgets_rounded,
+                ),
+                title: const Text('ويدجت القرآن'),
+                subtitle: const Text('تعرّف على طريقة إضافته للشاشة الرئيسية'),
+                trailing: const _SettingsNavigationArrow(),
+                onTap: () => showQuranWidgetTutorial(context),
+              ),
+            ),
+            const SizedBox(height: 8),
             Card(
               clipBehavior: Clip.antiAlias,
               child: StreamBuilder<QuranState>(

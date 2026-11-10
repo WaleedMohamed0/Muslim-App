@@ -31,6 +31,7 @@ import java.util.Calendar
 internal object PrayerAdhanStorage {
     const val PREFS = "prayer_adhan_native"
     const val ALARMS = "alarms_json"
+    const val TRIGGERED_OCCURRENCES = "triggered_prayer_occurrences"
     const val ENABLED = "enabled"
     const val VOLUME = "volume"
     const val AUDIO_ID = "audio_id"
@@ -406,6 +407,7 @@ internal object PrayerAlarmScheduler {
                 putExtra("id", id)
                 putExtra("prayer", item.optString("prayer"))
                 putExtra("exact", isExact)
+                putExtra("scheduled_at", at)
             }
             return PendingIntent.getBroadcast(
                 context,
@@ -487,13 +489,56 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         if (!prefs.getBoolean("prayer_$prayer", true)) return
 
         val id = intent.getStringExtra("id") ?: return
-        val lastId = prefs.getString("last_alarm_id", null)
-        val lastAt = prefs.getLong("last_alarm_at", 0L)
-        if (lastId == id && System.currentTimeMillis() - lastAt < 120_000L) return
-        prefs.edit()
-            .putString("last_alarm_id", id)
-            .putLong("last_alarm_at", System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        val scheduledAt = intent.getLongExtra("scheduled_at", 0L).takeIf { it > 0L }
+            ?: runCatching {
+                val alarms = JSONArray(prefs.getString(PrayerAdhanStorage.ALARMS, "[]"))
+                (0 until alarms.length())
+                    .asSequence()
+                    .mapNotNull { alarms.optJSONObject(it) }
+                    .firstOrNull { it.optString("id") == id }
+                    ?.optLong("at")
+                    ?: 0L
+            }.getOrDefault(0L)
+        if (scheduledAt > now) {
+            val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
+            try {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    scheduledAt,
+                    PendingIntent.getBroadcast(
+                        context,
+                        0,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                )
+            } catch (_: SecurityException) {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    scheduledAt,
+                    PendingIntent.getBroadcast(
+                        context,
+                        0,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                )
+            }
+            return
+        }
+        val triggered = prefs.getStringSet(
+            PrayerAdhanStorage.TRIGGERED_OCCURRENCES,
+            emptySet(),
+        ).orEmpty()
+        if (id in triggered) return
+        // Persist before playback/notification so dismissal, process death, or
+        // a concurrent receiver cannot make this occurrence eligible again.
+        if (!prefs.edit().putStringSet(
+                PrayerAdhanStorage.TRIGGERED_OCCURRENCES,
+                triggered + id,
+            ).commit()
+        ) return
 
         if (isPhoneCallActive(context)) {
             showCallReminder(context, prayer)
@@ -537,7 +582,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             )
         }
         val message = if (exact) {
-            "بدأ الأذان الآن"
+            "حان وقت الصلاة"
         } else {
             "حان وقت الصلاة. يلزم السماح بالمنبهات الدقيقة لتشغيل الأذان صوتيًا."
         }
@@ -823,14 +868,12 @@ class PrayerAdhanPlaybackService : Service() {
         } else {
             PrayerAdhanStorage.CHANNEL_ALERT
         }
-        val message = if (prayer.isBlank()) null else "بدأ الأذان الآن"
         val builder = NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.mipmap.launcher_icon)
             .setContentTitle(
-                if (prayer.isBlank()) "اختبار الأذان"
+                if (prayer.isBlank()) "الأذان"
                 else "أذان صلاة ${prayerNameArabic(prayer)}",
             )
-            .setContentText(message)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_ALARM)

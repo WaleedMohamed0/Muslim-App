@@ -58,6 +58,8 @@ class _MushafPageContent extends StatelessWidget {
       final isFatihaOpening = pageNumber == 1 && firstSurah == 1;
       final isBaqarahOpening = pageNumber == 2 && firstSurah == 2;
       final isSurahOpening = isFatihaOpening || isBaqarahOpening;
+      final horizontalInset = constraints.maxWidth < 380 ? 8.0 : 12.0;
+      const verseLineHeight = 1.55;
 
       if (isSurahOpening) {
         pageText.add(
@@ -69,9 +71,7 @@ class _MushafPageContent extends StatelessWidget {
         );
         pageText.add(const SizedBox(height: 14));
         if (isBaqarahOpening) {
-          pageText.add(
-            _MushafBasmala(palette: palette, fontSize: fontSize),
-          );
+          pageText.add(_MushafBasmala(palette: palette, fontSize: fontSize));
           pageText.add(const SizedBox(height: 12));
         } else {
           pageText.add(const SizedBox(height: 8));
@@ -89,11 +89,11 @@ class _MushafPageContent extends StatelessWidget {
                 endVerse: verse,
                 palette: palette,
                 fontSize: fontSize,
+                lineHeight: verseLineHeight,
                 highlightedSurahNumber: highlightedSurahNumber,
                 highlightedAyahNumber: highlightedAyahNumber,
                 bookmarkedAyahKeys: bookmarkedAyahKeys,
-                separateBasmala: isBaqarahOpening &&
-                    surahNumber == firstSurah,
+                separateBasmala: isBaqarahOpening && surahNumber == firstSurah,
                 textAlign: TextAlign.center,
                 onAyahLongPress: onAyahLongPress,
               ),
@@ -130,6 +130,7 @@ class _MushafPageContent extends StatelessWidget {
               endVerse: endVerse,
               palette: palette,
               fontSize: fontSize,
+              lineHeight: verseLineHeight,
               highlightedSurahNumber: highlightedSurahNumber,
               highlightedAyahNumber: highlightedAyahNumber,
               bookmarkedAyahKeys: bookmarkedAyahKeys,
@@ -141,7 +142,6 @@ class _MushafPageContent extends StatelessWidget {
         }
       }
 
-      final horizontalInset = constraints.maxWidth < 380 ? 8.0 : 12.0;
       return Container(
         width: constraints.maxWidth,
         height: constraints.maxHeight,
@@ -167,8 +167,31 @@ class _MushafPageContent extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: LayoutBuilder(
-                    builder: (context, bodyConstraints) => ClipRect(
-                      child: SingleChildScrollView(
+                    builder: (context, bodyConstraints) {
+                      final content = Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _MushafRunningHeader(
+                            surahName: _arabicSurahName(firstSurah),
+                            juzNumber: juzNumber,
+                            palette: palette,
+                          ),
+                          const SizedBox(height: 12),
+                          ...pageText,
+                          const Spacer(),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Center(
+                              child: _MushafPageNumber(
+                                pageNumber: pageNumber,
+                                palette: palette,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                      return SingleChildScrollView(
                         clipBehavior: Clip.hardEdge,
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
@@ -177,33 +200,12 @@ class _MushafPageContent extends StatelessWidget {
                           child: IntrinsicHeight(
                             child: SizedBox(
                               width: bodyConstraints.maxWidth,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _MushafRunningHeader(
-                                    surahName: _arabicSurahName(firstSurah),
-                                    juzNumber: juzNumber,
-                                    palette: palette,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ...pageText,
-                                  const Spacer(),
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Center(
-                                      child: _MushafPageNumber(
-                                        pageNumber: pageNumber,
-                                        palette: palette,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              child: content,
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -254,12 +256,36 @@ String _normalizeBasmalaWord(String word) => word
 
 class _MushafRunningHeader extends StatelessWidget {
   static const _arabicJuzOrdinals = [
-    'الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع',
-    'الثامن', 'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر', 'الثالث عشر',
-    'الرابع عشر', 'الخامس عشر', 'السادس عشر', 'السابع عشر', 'الثامن عشر',
-    'التاسع عشر', 'العشرون', 'الحادي والعشرون', 'الثاني والعشرون',
-    'الثالث والعشرون', 'الرابع والعشرون', 'الخامس والعشرون', 'السادس والعشرون',
-    'السابع والعشرون', 'الثامن والعشرون', 'التاسع والعشرون', 'الثلاثون',
+    'الأول',
+    'الثاني',
+    'الثالث',
+    'الرابع',
+    'الخامس',
+    'السادس',
+    'السابع',
+    'الثامن',
+    'التاسع',
+    'العاشر',
+    'الحادي عشر',
+    'الثاني عشر',
+    'الثالث عشر',
+    'الرابع عشر',
+    'الخامس عشر',
+    'السادس عشر',
+    'السابع عشر',
+    'الثامن عشر',
+    'التاسع عشر',
+    'العشرون',
+    'الحادي والعشرون',
+    'الثاني والعشرون',
+    'الثالث والعشرون',
+    'الرابع والعشرون',
+    'الخامس والعشرون',
+    'السادس والعشرون',
+    'السابع والعشرون',
+    'الثامن والعشرون',
+    'التاسع والعشرون',
+    'الثلاثون',
   ];
 
   const _MushafRunningHeader({
@@ -297,4 +323,3 @@ class _MushafRunningHeader extends StatelessWidget {
     ],
   );
 }
-

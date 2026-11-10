@@ -7,6 +7,7 @@ class _PageVerseText extends StatefulWidget {
     required this.endVerse,
     required this.palette,
     required this.fontSize,
+    this.lineHeight = 1.55,
     required this.highlightedSurahNumber,
     required this.highlightedAyahNumber,
     required this.bookmarkedAyahKeys,
@@ -20,6 +21,7 @@ class _PageVerseText extends StatefulWidget {
   final int endVerse;
   final QuranReaderPalette palette;
   final double fontSize;
+  final double lineHeight;
   final int? highlightedSurahNumber;
   final int? highlightedAyahNumber;
   final Set<String> bookmarkedAyahKeys;
@@ -59,38 +61,40 @@ class _PageVerseTextState extends State<_PageVerseText> {
         verseNumber,
         separateBasmala: widget.separateBasmala,
       );
-      final basmalaStyle = widget.surahNumber == 1 && verseNumber == 1
-          ? TextStyle(
-              fontSize: widget.fontSize * 1.1,
-              fontWeight: FontWeight.w700,
-            )
-          : null;
-      final verseChildren = basmalaStyle != null &&
-              verseText.startsWith(_mushafBasmala)
-          ? <InlineSpan>[
-              TextSpan(text: _mushafBasmala, style: basmalaStyle),
-              TextSpan(text: verseText.substring(_mushafBasmala.length)),
-            ]
-          : null;
+      final basmalaStyle =
+          widget.surahNumber == 1 && verseNumber == 1
+              ? TextStyle(
+                fontSize: widget.fontSize * 1.1,
+                fontWeight: FontWeight.w700,
+              )
+              : null;
+      final verseChildren =
+          basmalaStyle != null && verseText.startsWith(_mushafBasmala)
+              ? <InlineSpan>[
+                TextSpan(text: _mushafBasmala, style: basmalaStyle),
+                TextSpan(text: verseText.substring(_mushafBasmala.length)),
+              ]
+              : null;
       spans.add(
         TextSpan(
           text: verseChildren == null ? verseText : null,
           children: verseChildren,
           recognizer: recognizer,
-          style: isHighlighted || isBookmarked
-              ? TextStyle(
-                  backgroundColor: isHighlighted
-                      ? widget.palette.activeAyahHighlight.withValues(
-                          alpha: .52,
-                        )
-                      : widget.palette.bookmarkHighlight,
-                  decoration: isBookmarked ? TextDecoration.underline : null,
-                  decorationColor: isBookmarked
-                      ? widget.palette.bookmarkBorder
-                      : null,
-                  decorationThickness: isBookmarked ? 1.1 : null,
-                )
-              : null,
+          style:
+              isHighlighted || isBookmarked
+                  ? TextStyle(
+                    backgroundColor:
+                        isHighlighted
+                            ? widget.palette.activeAyahHighlight.withValues(
+                              alpha: .52,
+                            )
+                            : widget.palette.bookmarkHighlight,
+                    decoration: isBookmarked ? TextDecoration.underline : null,
+                    decorationColor:
+                        isBookmarked ? widget.palette.bookmarkBorder : null,
+                    decorationThickness: isBookmarked ? 1.1 : null,
+                  )
+                  : null,
         ),
       );
       // A WidgetSpan is bidi-neutral in its parent paragraph. Surround it
@@ -105,10 +109,7 @@ class _PageVerseTextState extends State<_PageVerseText> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onLongPress:
-                  () => widget.onAyahLongPress(
-                    widget.surahNumber,
-                    verseNumber,
-                  ),
+                  () => widget.onAyahLongPress(widget.surahNumber, verseNumber),
               child: _VerseMarker(
                 number: _markerVerseNumber(widget.surahNumber, verseNumber),
                 palette: widget.palette,
@@ -146,11 +147,12 @@ class _PageVerseTextState extends State<_PageVerseText> {
             FontFeature.enable('mkmk'),
           ],
           fontSize: widget.fontSize,
-          fontWeight: Theme.of(context).brightness == Brightness.dark
-              ? FontWeight.w500
-              : FontWeight.w600,
-          height: 1.55,
-          wordSpacing: -4 * (widget.fontSize / 19),
+          fontWeight:
+              Theme.of(context).brightness == Brightness.dark
+                  ? FontWeight.w500
+                  : FontWeight.w600,
+          height: widget.lineHeight,
+          wordSpacing: -1.5 * (widget.fontSize / 19),
         ),
         children: spans,
       ),
@@ -175,4 +177,3 @@ int _markerVerseNumber(int surahNumber, int verseNumber) {
   if (surahNumber == 3 && verseNumber == 2) return 1;
   return verseNumber;
 }
-

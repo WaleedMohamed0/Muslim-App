@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
-import 'package:muslim/core/widgets/app_action_dialog.dart';
 import 'package:muslim/features/tasbeeh/data/repositories/tasbeeh_repository.dart';
 import 'package:muslim/features/tasbeeh/domain/entities/tasbeeh_state.dart';
 import 'package:muslim/features/tasbeeh/presentation/cubit/tasbeeh_cubit.dart';
 
 class TasbeehScreen extends StatelessWidget {
   const TasbeehScreen({super.key});
-  static const _azkar = ['سُبْحَانَ اللَّهِ', 'الْحَمْدُ لِلَّهِ', 'اللَّهُ أَكْبَرُ', 'أَسْتَغْفِرُ اللَّهَ', 'لَا إِلَهَ إِلَّا اللَّهُ'];
+  static const _azkar = ['سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ ، وَاللَّهُ أَكْبَرُ.'];
 
   @override
   Widget build(BuildContext context) => BlocProvider(
@@ -31,19 +30,6 @@ class _TasbeehView extends StatelessWidget {
     if (value != null && value > 0) await cubit.setTarget(value);
   }
 
-  Future<void> _confirmReset(BuildContext context) async {
-    final cubit = context.read<TasbeehCubit>();
-    await showAppActionDialog(
-      context: context,
-      icon: Icons.restart_alt_rounded,
-      title: 'إعادة العداد؟',
-      message: 'سيتم تصفير العدد الحالي لهذا الذكر.',
-      primaryLabel: 'إعادة التصفير', primaryIcon: Icons.restart_alt_rounded,
-      onPrimary: cubit.reset,
-      secondaryLabel: 'إلغاء', onSecondary: () {},
-    );
-  }
-
   @override
   Widget build(BuildContext context) => Directionality(
     textDirection: TextDirection.rtl,
@@ -59,13 +45,13 @@ class _TasbeehView extends StatelessWidget {
             const SizedBox(height: 8),
             Text('وِردُكَ الآن', textAlign: TextAlign.center, style: theme.textTheme.labelLarge?.copyWith(color: colors.onSurfaceVariant, letterSpacing: .5)),
             const SizedBox(height: 8),
-            AnimatedSwitcher(duration: const Duration(milliseconds: 220), child: Text(state.dhikr, key: ValueKey(state.dhikr), textAlign: TextAlign.center, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, height: 1.7, color: colors.primary))),
+            AnimatedSwitcher(duration: const Duration(milliseconds: 220), child: Text(state.dhikr, key: ValueKey(state.dhikr), textAlign: TextAlign.center, style: theme.textTheme.headlineSmall?.copyWith(fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 24) + 2, fontWeight: FontWeight.w800, height: 1.7, color: colors.primary))),
             const SizedBox(height: 8),
             SizedBox(height: diameter + 16, child: Center(child: Semantics(button: true, label: 'التسبيح، العدد ${state.count} من ${state.target}', child: SizedBox(
               width: diameter, height: diameter, child: Stack(alignment: Alignment.center, children: [
                 TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: state.progress), duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic, builder: (context, progress, _) => SizedBox.expand(child: CircularProgressIndicator(value: progress, strokeWidth: 5, strokeCap: StrokeCap.round, backgroundColor: colors.primary.withValues(alpha: .10), color: state.isComplete ? colors.tertiary : colors.primary))),
                 Padding(padding: const EdgeInsets.all(15), child: Material(color: colors.primaryContainer, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: state.isLoading ? null : () { HapticFeedback.selectionClick(); context.read<TasbeehCubit>().increment(); }, child: SizedBox.expand(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text(toArabicIndicDigits(state.count), style: theme.textTheme.displayMedium?.copyWith(fontWeight: FontWeight.w800, color: colors.onPrimaryContainer, fontFeatures: const [FontFeature.tabularFigures()]), textScaler: const TextScaler.linear(.94)),
+                  Text(toArabicIndicDigits(state.count), style: theme.textTheme.displayMedium?.copyWith(fontWeight: FontWeight.w800, color: colors.onPrimaryContainer, fontFeatures: const [FontFeature.tabularFigures()]), textScaler: const TextScaler.linear(1)),
                   const SizedBox(height: 2),
                   Text('من ${toArabicIndicDigits(state.target)}', style: theme.textTheme.titleSmall?.copyWith(color: colors.onPrimaryContainer.withValues(alpha: .72))),
                   const SizedBox(height: 13),
@@ -78,7 +64,6 @@ class _TasbeehView extends StatelessWidget {
             if (state.isComplete) Padding(padding: const EdgeInsets.only(top: 2), child: Text('تقبّل الله منك', textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: colors.tertiary, fontWeight: FontWeight.w600))),
             const SizedBox(height: 16),
             Row(children: [
-              _RoundAction(icon: Icons.restart_alt_rounded, label: 'تصفير', onTap: state.count > 0 ? () => _confirmReset(context) : null),
               const Spacer(),
               TextButton(
                 onPressed: () => _chooseTarget(context, state),
@@ -177,12 +162,6 @@ class _TasbeehTargetDialogState extends State<_TasbeehTargetDialog> {
       ],
     ),
   );
-}
-
-class _RoundAction extends StatelessWidget {
-  const _RoundAction({required this.icon, required this.label, required this.onTap});
-  final IconData icon; final String label; final VoidCallback? onTap;
-  @override Widget build(BuildContext context) { final colors = Theme.of(context).colorScheme; return Semantics(button: true, enabled: onTap != null, label: label, child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(30), child: Padding(padding: const EdgeInsetsDirectional.fromSTEB(0, 10, 0, 10), child: Row(mainAxisSize: MainAxisSize.min, children: [Text(label, style: TextStyle(color: onTap == null ? colors.onSurfaceVariant.withValues(alpha: .4) : colors.onSurfaceVariant, fontWeight: FontWeight.w600)), const SizedBox(width: 5), Icon(icon, size: 19, color: onTap == null ? colors.onSurfaceVariant.withValues(alpha: .4) : colors.onSurfaceVariant)])))); }
 }
 
 class _TargetPill extends StatelessWidget {

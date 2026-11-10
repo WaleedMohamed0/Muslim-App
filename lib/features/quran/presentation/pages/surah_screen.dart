@@ -20,12 +20,22 @@ class SurahScreen extends StatefulWidget {
     this.initialAyah,
     this.initialPageNumber,
     this.highlightAyah = false,
+    this.trackKhatmahProgress = false,
+    this.saveGeneralCheckpoint = true,
+    this.onPageRead,
+    this.minimumPageNumber,
+    this.maximumPageNumber,
   });
 
   final int surahNumber;
   final int? initialAyah;
   final int? initialPageNumber;
   final bool highlightAyah;
+  final bool trackKhatmahProgress;
+  final bool saveGeneralCheckpoint;
+  final void Function(int page, int surah, int ayah)? onPageRead;
+  final int? minimumPageNumber;
+  final int? maximumPageNumber;
 
   @override
   State<SurahScreen> createState() => _SurahScreenState();
@@ -54,7 +64,12 @@ class _SurahScreenState extends State<SurahScreen> {
       initialSurah: widget.surahNumber,
       initialAyah: widget.initialAyah,
       initialPageNumber: widget.initialPageNumber,
-      onPageRead: (page) => context.read<KhatmahCubit>().recordPage(page),
+      saveGeneralCheckpoint: widget.saveGeneralCheckpoint,
+      minimumPageNumber: widget.minimumPageNumber,
+      maximumPageNumber: widget.maximumPageNumber,
+      onPageRead: widget.trackKhatmahProgress
+          ? (page, surah, ayah) => context.read<KhatmahCubit>().recordReadingPosition(page: page, surah: surah, ayah: ayah)
+          : widget.onPageRead,
     )..addListener(_handleReaderChanged);
   }
 
