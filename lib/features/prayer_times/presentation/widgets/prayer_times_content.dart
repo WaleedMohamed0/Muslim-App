@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:muslim/features/prayer_times/domain/entities/prayer_times.dart'
     as prayer_model;
-import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import 'package:muslim/features/prayer_times/domain/entities/next_prayer.dart'
     as prayer_logic;
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
@@ -18,11 +17,7 @@ class PrayerTimesContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final prayers = _buildPrayers(state.prayerTimes, state.displayTimes);
     final now = DateTime.now();
-    final upcoming = prayer_logic.nextPrayerAfter(
-      state.prayerTimes,
-      now,
-      triggeredOccurrences: PrayerAdhanService.instance.triggeredOccurrences,
-    );
+    final upcoming = prayer_logic.nextPrayerAfter(state.prayerTimes, now);
     final nextPrayerIndex = upcoming == null
         ? null
         : const ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']

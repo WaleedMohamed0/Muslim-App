@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/prayer_times/domain/entities/prayer_alarm_time.dart';
 import '../../domain/entities/prayer_times.dart';
 import '../../domain/use_cases/get_prayer_times.dart';
 import '../../data/data_sources/prayer_location_data_source.dart';
@@ -12,8 +13,10 @@ import 'prayer_times_state.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   PrayerTimesCubit({GetPrayerTimes? getPrayerTimes})
-      : _getPrayerTimes = getPrayerTimes ?? GetPrayerTimes(PrayerTimesRepositoryImpl(PrayerLocationDataSource())),
-        super(const PrayerTimesState());
+    : _getPrayerTimes =
+          getPrayerTimes ??
+          GetPrayerTimes(PrayerTimesRepositoryImpl(PrayerLocationDataSource())),
+      super(const PrayerTimesState());
 
   final GetPrayerTimes _getPrayerTimes;
 
@@ -47,6 +50,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       unawaited(getPrayerTime());
     }
   }
+
   Future<bool> getPrayerTime({bool forceRefresh = false}) async {
     if (_isLoadingPrayerTimes) return state.status == PrayerTimesStatus.loaded;
     if (forceRefresh) lastRefreshErrorType = null;
@@ -80,11 +84,13 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       // Keep a valid cached day visible when refresh/location lookup fails.
       if (state.status != PrayerTimesStatus.loaded) {
         final errorType = _errorType(error);
-        emit(PrayerTimesState(
-          error: _localizedError(error),
-          errorType: errorType,
-          status: PrayerTimesStatus.failure,
-        ));
+        emit(
+          PrayerTimesState(
+            error: _localizedError(error),
+            errorType: errorType,
+            status: PrayerTimesStatus.failure,
+          ),
+        );
       }
       return false;
     } finally {
@@ -143,38 +149,38 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
 
   void _publishPrayerTimes(PrayerTimes times) {
     prayerTimesModel = times;
-    // final testTime = DateTime.now().add(const Duration(seconds: 10));
-    //
+    // final testTime = DateTime.now().add(const Duration(seconds: 5));
     // if (times.alarmTimes.length > 2) {
     //   unawaited(
-    //     PrayerAdhanService.instance
-    //         .updateSchedule([
-    //       PrayerAlarmTime(
-    //         prayerId: times.alarmTimes[1].prayerId,
-    //         at: testTime,
-    //       ),
-    //     ])
-    //         .catchError((Object _) {}),
-    //   );
+    //       PrayerAdhanService.instance
+    //           .updateSchedule([
+    //             PrayerAlarmTime(
+    //               prayerId: times.alarmTimes[3].prayerId,
+    //               at: testTime,
+    //             ),
+    //           ])
+    //           .catchError((Object _) {}),
+    //     );
     // }
-
     unawaited(
       PrayerAdhanService.instance
           .updateSchedule(times.alarmTimes)
           .catchError((Object _) {}),
     );
     gotPrayerTimes = true;
-    emit(PrayerTimesState(
-      prayerTimes: times,
-      status: PrayerTimesStatus.loaded,
-      displayTimes: [
-        _display('الفَجرِ', times.fajr, true),
-        _display('الظُّهرِ', times.dhuhr, true),
-        _display('العَصرِ', times.asr, false),
-        _display('المغرِب', times.maghrib, false),
-        _display('العِشَاءِ', times.isha, false),
-      ],
-    ));
+    emit(
+      PrayerTimesState(
+        prayerTimes: times,
+        status: PrayerTimesStatus.loaded,
+        displayTimes: [
+          _display('الفَجرِ', times.fajr, true),
+          _display('الظُّهرِ', times.dhuhr, true),
+          _display('العَصرِ', times.asr, false),
+          _display('المغرِب', times.maghrib, false),
+          _display('العِشَاءِ', times.isha, false),
+        ],
+      ),
+    );
   }
 
   PrayerDisplayTime _display(String name, DateTime time, bool morning) {

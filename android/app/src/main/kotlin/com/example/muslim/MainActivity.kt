@@ -14,8 +14,10 @@ import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.Executors
 
 class MainActivity: AudioServiceActivity() {
+    private val prayerAlarmExecutor = Executors.newSingleThreadExecutor()
     private val shareChannel = "com.muslim/quran_share"
     private val adhanChannel = "com.muslim/prayer_adhan"
     private val notificationNavigationChannel = "com.muslim/notification_navigation"
@@ -131,11 +133,6 @@ class MainActivity: AudioServiceActivity() {
                     "saveSettings" -> saveSettings(call.arguments as? Map<*, *>, result)
                     "updateSchedule" -> updateSchedule(call.arguments as? Map<*, *>, result)
                     "getAdhanPlaybackState" -> result.success(PrayerAdhanPlaybackService.playbackState())
-                    "getTriggeredPrayerOccurrences" -> result.success(
-                        getSharedPreferences(PrayerAdhanStorage.PREFS, MODE_PRIVATE)
-                            .getStringSet(PrayerAdhanStorage.TRIGGERED_OCCURRENCES, emptySet())
-                            ?.toList() ?: emptyList<String>(),
-                    )
                     "getDailyReminders" -> result.success(DailyAzkarReminderScheduler.getSettings(this))
                     "saveDailyReminders" -> saveDailyReminders(call.arguments as? List<*>, result)
                     "previewAudio" -> {
@@ -324,8 +321,13 @@ class MainActivity: AudioServiceActivity() {
             .remove("audio_path")
             .remove("audio_name")
         editor.apply()
-        PrayerAlarmScheduler.restore(this, reinterpretLocalTimes = false)
         result.success(null)
+        // AlarmManager cancellation/rescheduling can take long enough to drop
+        // Flutter frames. Persist the setting above, then do scheduler work off
+        // the platform thread.
+        prayerAlarmExecutor.execute {
+            PrayerAlarmScheduler.restore(this, reinterpretLocalTimes = false)
+        }
     }
 
     private fun updateSchedule(arguments: Map<*, *>?, result: MethodChannel.Result) {
@@ -337,8 +339,10 @@ class MainActivity: AudioServiceActivity() {
             values.forEach { (key, value) -> if (key != null && value != null) json.put(key.toString(), value) }
             alarms.put(json)
         }
-        PrayerAlarmScheduler.replaceSchedule(this, alarms)
         result.success(null)
+        prayerAlarmExecutor.execute {
+            PrayerAlarmScheduler.replaceSchedule(this, alarms)
+        }
     }
 
     private fun saveDailyReminders(arguments: List<*>?, result: MethodChannel.Result) {

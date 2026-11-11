@@ -31,7 +31,6 @@ import java.util.Calendar
 internal object PrayerAdhanStorage {
     const val PREFS = "prayer_adhan_native"
     const val ALARMS = "alarms_json"
-    const val TRIGGERED_OCCURRENCES = "triggered_prayer_occurrences"
     const val ENABLED = "enabled"
     const val VOLUME = "volume"
     const val AUDIO_ID = "audio_id"
@@ -379,7 +378,9 @@ internal object PrayerAlarmScheduler {
             if (!prefs.getBoolean("prayer_$prayer", true)) continue
             val at = if (reinterpretLocalTimes) localWallTime(item) else item.optLong("at")
             if (at <= now) continue
-            scheduleOne(context, item, at, canScheduleExactAlarms(context))
+            // Prayer alerts need exact delivery during Doze without presenting
+            // themselves as a system alarm clock to the user.
+            if (canScheduleExactAlarms(context)) scheduleOne(context, item, at)
         }
     }
 
@@ -397,16 +398,16 @@ internal object PrayerAlarmScheduler {
         return calendar.timeInMillis
     }
 
-    private fun scheduleOne(context: Context, item: JSONObject, at: Long, exact: Boolean) {
+    private fun scheduleOne(context: Context, item: JSONObject, at: Long) {
         val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
         val id = item.optString("id")
-        fun alarmPendingIntent(isExact: Boolean): PendingIntent {
+        fun alarmPendingIntent(): PendingIntent {
             val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
                 action = ACTION_ALARM
                 data = Uri.parse("muslimadhan://prayer/$id")
                 putExtra("id", id)
                 putExtra("prayer", item.optString("prayer"))
-                putExtra("exact", isExact)
+                putExtra("exact", true)
                 putExtra("scheduled_at", at)
             }
             return PendingIntent.getBroadcast(
@@ -417,28 +418,34 @@ internal object PrayerAlarmScheduler {
             )
         }
         try {
-            if (exact) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    at,
-                    alarmPendingIntent(isExact = true),
-                )
-            } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    at,
-                    alarmPendingIntent(isExact = false),
-                )
-            }
-        } catch (_: SecurityException) {
-            // A rejected exact alarm must carry the inexact marker too. Otherwise
-            // the receiver attempts a background playback service that Android
-            // will reject because only exact alarms qualify for that exemption.
-            alarmManager.setAndAllowWhileIdle(
+            alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 at,
-                alarmPendingIntent(isExact = false),
+                alarmPendingIntent(),
             )
+        } catch (_: SecurityException) {
+            // Exact access may have been revoked between the permission check
+            // and scheduling. Do not silently degrade to a delayed alarm.
+        }
+    }
+
+    fun rescheduleEarly(context: Context, intent: Intent, prayer: String, at: Long) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
+        if (!canScheduleExactAlarms(context)) return
+        val pending = PendingIntent.getBroadcast(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        try {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                at,
+                pending,
+            )
+        } catch (_: SecurityException) {
+            // Permission can be revoked after the check; never fire early.
         }
     }
 
@@ -489,56 +496,18 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         if (!prefs.getBoolean("prayer_$prayer", true)) return
 
         val id = intent.getStringExtra("id") ?: return
-        val now = System.currentTimeMillis()
-        val scheduledAt = intent.getLongExtra("scheduled_at", 0L).takeIf { it > 0L }
-            ?: runCatching {
-                val alarms = JSONArray(prefs.getString(PrayerAdhanStorage.ALARMS, "[]"))
-                (0 until alarms.length())
-                    .asSequence()
-                    .mapNotNull { alarms.optJSONObject(it) }
-                    .firstOrNull { it.optString("id") == id }
-                    ?.optLong("at")
-                    ?: 0L
-            }.getOrDefault(0L)
-        if (scheduledAt > now) {
-            val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
-            try {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    scheduledAt,
-                    PendingIntent.getBroadcast(
-                        context,
-                        0,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    ),
-                )
-            } catch (_: SecurityException) {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    scheduledAt,
-                    PendingIntent.getBroadcast(
-                        context,
-                        0,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    ),
-                )
-            }
+        val scheduledAt = intent.getLongExtra("scheduled_at", 0L)
+        if (scheduledAt > 0L && System.currentTimeMillis() < scheduledAt) {
+            PrayerAlarmScheduler.rescheduleEarly(context, intent, prayer, scheduledAt)
             return
         }
-        val triggered = prefs.getStringSet(
-            PrayerAdhanStorage.TRIGGERED_OCCURRENCES,
-            emptySet(),
-        ).orEmpty()
-        if (id in triggered) return
-        // Persist before playback/notification so dismissal, process death, or
-        // a concurrent receiver cannot make this occurrence eligible again.
-        if (!prefs.edit().putStringSet(
-                PrayerAdhanStorage.TRIGGERED_OCCURRENCES,
-                triggered + id,
-            ).commit()
-        ) return
+        val lastId = prefs.getString("last_alarm_id", null)
+        val lastAt = prefs.getLong("last_alarm_at", 0L)
+        if (lastId == id && System.currentTimeMillis() - lastAt < 120_000L) return
+        prefs.edit()
+            .putString("last_alarm_id", id)
+            .putLong("last_alarm_at", System.currentTimeMillis())
+            .apply()
 
         if (isPhoneCallActive(context)) {
             showCallReminder(context, prayer)

@@ -114,7 +114,14 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       return;
     }
     if (_enablingAdhan) return;
-    setState(() => _enablingAdhan = true);
+    final previousSettings = _settings;
+    var enabledSuccessfully = false;
+    // Reflect the tap immediately; permission checks and system dialogs can
+    // take noticeably longer than the switch animation.
+    setState(() {
+      _settings = _settings.copyWith(enabled: true);
+      _enablingAdhan = true;
+    });
     try {
       final currentPermissions = await _service.permissionStatus();
       if (mounted) setState(() => _permissions = currentPermissions);
@@ -138,14 +145,21 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
         }
       }
 
-      if (_permissions['exactAlarms'] != true) {
+      if (currentPermissions['exactAlarms'] != true) {
         final accepted = await _explainPermission(
           'السماح بالمنبهات الدقيقة',
           'هذا الإذن مطلوب لتشغيل صوت الأذان تلقائيًا في الخلفية عند دخول وقت الصَّلَاة. إذا لم تسمح به، سيصلك إشعار الصَّلَاة من دون تشغيل الصوت.',
         );
-        if (accepted) await _service.requestExactAlarmPermission();
+        if (!accepted) return;
+        await _service.requestExactAlarmPermission();
+        // Android opens a settings screen here; its result completes before
+        // the user makes a choice. The lifecycle observer refreshes the
+        // permission state on return. Keep Azan disabled until the user retries
+        // and exact-alarm access is confirmed.
+        return;
       }
       await _save(_settings.copyWith(enabled: true));
+      enabledSuccessfully = true;
       await _refreshPermissions();
     } catch (_) {
       if (mounted) {
@@ -154,7 +168,12 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
         );
       }
     } finally {
-      if (mounted) setState(() => _enablingAdhan = false);
+      if (mounted) {
+        setState(() {
+          if (!enabledSuccessfully) _settings = previousSettings;
+          _enablingAdhan = false;
+        });
+      }
     }
   }
 

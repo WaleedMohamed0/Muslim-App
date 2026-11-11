@@ -47,15 +47,6 @@ class PrayerAdhanService {
   static const _prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
   String? _lastScheduleSignature;
   Future<void> _scheduleUpdates = Future<void>.value();
-  Set<String> triggeredOccurrences = <String>{};
-
-  Future<void> refreshTriggeredOccurrences() async {
-    final result = await _channel.invokeListMethod<dynamic>(
-      'getTriggeredPrayerOccurrences',
-    );
-    triggeredOccurrences = result?.whereType<String>().toSet() ?? <String>{};
-  }
-
   Future<PrayerAdhanSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     return _settingsFromPrefs(prefs);

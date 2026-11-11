@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,7 +6,6 @@ import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
 import 'package:muslim/features/prayer_times/presentation/widgets/prayer_times_content.dart';
-import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 
 class PrayerTimes extends StatefulWidget {
   const PrayerTimes({super.key});
@@ -18,7 +15,6 @@ class PrayerTimes extends StatefulWidget {
 }
 
 class _PrayerTimesState extends State<PrayerTimes> {
-  Timer? _occurrencePoller;
   Future<void> _showRefreshFailure(PrayerTimesCubit cubit) async {
     switch (cubit.lastRefreshErrorType) {
       case PrayerTimesErrorType.locationServicesDisabled:
@@ -91,23 +87,10 @@ class _PrayerTimesState extends State<PrayerTimes> {
     super.initState();
     final cubit = context.read<PrayerTimesCubit>();
     cubit.getPrayerTime();
-    unawaited(_refreshTriggeredOccurrences());
-    _occurrencePoller = Timer.periodic(
-      const Duration(seconds: 2),
-      (_) => unawaited(_refreshTriggeredOccurrences()),
-    );
-  }
-
-  Future<void> _refreshTriggeredOccurrences() async {
-    try {
-      await PrayerAdhanService.instance.refreshTriggeredOccurrences();
-      if (mounted) setState(() {});
-    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _occurrencePoller?.cancel();
     super.dispose();
   }
 

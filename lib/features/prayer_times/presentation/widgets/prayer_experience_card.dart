@@ -39,7 +39,6 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(context.read<PrayerTimesCubit>().loadCachedPrayerTimes());
-    unawaited(_refreshTriggeredOccurrences());
     _startUpdates();
     unawaited(_refreshPlaybackState());
   }
@@ -68,19 +67,11 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     _playbackPoller?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
-      unawaited(_refreshTriggeredOccurrences());
     });
     _playbackPoller = Timer.periodic(
       const Duration(seconds: 2),
       (_) => unawaited(_refreshPlaybackState()),
     );
-  }
-
-  Future<void> _refreshTriggeredOccurrences() async {
-    try {
-      await PrayerAdhanService.instance.refreshTriggeredOccurrences();
-      if (mounted) setState(() {});
-    } catch (_) {}
   }
 
   Future<void> _refreshPlaybackState() async {
@@ -126,11 +117,7 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     final colors = theme.colorScheme;
     final subtitleStyle = theme.textTheme.bodySmall;
     final times = context.watch<PrayerTimesCubit>().state.prayerTimes;
-    final upcoming = prayer_logic.nextPrayerAfter(
-      times,
-      DateTime.now(),
-      triggeredOccurrences: PrayerAdhanService.instance.triggeredOccurrences,
-    );
+    final upcoming = prayer_logic.nextPrayerAfter(times, DateTime.now());
     final playingName = _prayerName(_playingPrayer);
     final isPlaying = _isPlaying && playingName != null;
     final title =
