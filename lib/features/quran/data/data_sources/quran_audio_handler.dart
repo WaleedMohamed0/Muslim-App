@@ -7,6 +7,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:just_audio/just_audio.dart' as ja;
 import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 
 import '../../domain/entities/quran_reciter.dart';
 
@@ -187,11 +188,17 @@ class QuranAudioHandler extends BaseAudioHandler
   Future<void> play() async {
     final action = onPlayAction;
     if (action != null) {
-      developer.log('Play received; forwarding to bound Quran Cubit', name: 'QuranAudioHandler');
+      developer.log(
+        'Play received; forwarding to bound Quran Cubit',
+        name: 'QuranAudioHandler',
+      );
       await action();
       return;
     }
-    developer.log('Play received without a bound Cubit; restoring the saved source', name: 'QuranAudioHandler');
+    developer.log(
+      'Play received without a bound Cubit; restoring the saved source',
+      name: 'QuranAudioHandler',
+    );
     if (_standaloneRestorePending) return;
     _standaloneRestorePending = true;
     try {
@@ -207,12 +214,18 @@ class QuranAudioHandler extends BaseAudioHandler
   /// play an empty source or opening the Activity.
   Future<void> _resumeOrRestoreSavedSession() async {
     if (player.playing) {
-      developer.log('Player is already playing; no-op', name: 'QuranAudioHandler');
+      developer.log(
+        'Player is already playing; no-op',
+        name: 'QuranAudioHandler',
+      );
       return;
     }
     if (mediaItem.value != null &&
         player.processingState != ja.ProcessingState.idle) {
-      developer.log('Resuming prepared source at ${player.position}', name: 'QuranAudioHandler');
+      developer.log(
+        'Resuming prepared source at ${player.position}',
+        name: 'QuranAudioHandler',
+      );
       await startPlayer();
       return;
     }
@@ -227,22 +240,26 @@ class QuranAudioHandler extends BaseAudioHandler
     final fullSurahUrl = reciter.surahUrl(surahNumber);
     final sourceKey = 'quran_audio_source_${reciter.id}_$surahNumber';
     final savedSourceUrl = preferences.getString(sourceKey);
-    final ayahUrlPrefix = reciter.ayahAudioDirectory == null
-        ? null
-        : 'https://everyayah.com/data/${reciter.ayahAudioDirectory}/'
-              '${surahNumber.toString().padLeft(3, '0')}';
-    final audioUrl = savedSourceUrl == fullSurahUrl ||
-            (ayahUrlPrefix != null &&
-                savedSourceUrl != null &&
-                savedSourceUrl.startsWith(ayahUrlPrefix) &&
-                savedSourceUrl.endsWith('.mp3'))
-        ? savedSourceUrl!
-        : fullSurahUrl;
-    developer.log('Restoring surah=$surahNumber reciter=${reciter.id} source=$audioUrl', name: 'QuranAudioHandler');
+    final ayahUrlPrefix =
+        reciter.ayahAudioDirectory == null
+            ? null
+            : 'https://everyayah.com/data/${reciter.ayahAudioDirectory}/'
+                '${surahNumber.toString().padLeft(3, '0')}';
+    final audioUrl =
+        savedSourceUrl == fullSurahUrl ||
+                (ayahUrlPrefix != null &&
+                    savedSourceUrl != null &&
+                    savedSourceUrl.startsWith(ayahUrlPrefix) &&
+                    savedSourceUrl.endsWith('.mp3'))
+            ? savedSourceUrl!
+            : fullSurahUrl;
+    developer.log(
+      'Restoring surah=$surahNumber reciter=${reciter.id} source=$audioUrl',
+      name: 'QuranAudioHandler',
+    );
     final positionKey = 'quran_audio_position_${reciter.id}_$surahNumber';
-    final savedPositionMs = (preferences.getInt(positionKey) ?? 0)
-        .clamp(0, 0x7fffffff)
-        .toInt();
+    final savedPositionMs =
+        (preferences.getInt(positionKey) ?? 0).clamp(0, 0x7fffffff).toInt();
 
     final cachedFile = await DefaultCacheManager()
         .getFileFromCache(audioUrl)
@@ -255,16 +272,20 @@ class QuranAudioHandler extends BaseAudioHandler
     await preferences.setString(sourceKey, audioUrl);
 
     final durationMs = player.duration?.inMilliseconds ?? 0;
-    final safePositionMs = durationMs > 0
-        ? savedPositionMs.clamp(0, durationMs).toInt()
-        : savedPositionMs;
+    final safePositionMs =
+        durationMs > 0
+            ? savedPositionMs.clamp(0, durationMs).toInt()
+            : savedPositionMs;
     await player.seek(Duration(milliseconds: safePositionMs));
-    developer.log('Restored seek position=${player.position}', name: 'QuranAudioHandler');
+    developer.log(
+      'Restored seek position=${player.position}',
+      name: 'QuranAudioHandler',
+    );
 
-    final savedAyah = preferences.getInt('quran_last_played_ayah_$surahNumber') ?? 1;
-    final ayahNumber = savedAyah
-        .clamp(1, quran.getVerseCount(surahNumber))
-        .toInt();
+    final savedAyah =
+        preferences.getInt('quran_last_played_ayah_$surahNumber') ?? 1;
+    final ayahNumber =
+        savedAyah.clamp(1, quran.getVerseCount(surahNumber)).toInt();
     final rawSurahName = quran.getSurahNameArabic(surahNumber);
     final surahName = rawSurahName == 'اللهب' ? 'المسد' : rawSurahName;
     final item = MediaItem(
@@ -279,7 +300,10 @@ class QuranAudioHandler extends BaseAudioHandler
       extras: {
         'surahName': surahName,
         'surahNumber': surahNumber,
-        'mushafPageNumber': quran.getPageNumber(surahNumber, ayahNumber),
+        'mushafPageNumber': MushafLineLayoutData.pageNumber(
+          surahNumber,
+          ayahNumber,
+        ),
         'reciterName': reciter.nameArabic,
         'reciterId': reciter.id,
         'sourceUrl': audioUrl,
@@ -290,7 +314,10 @@ class QuranAudioHandler extends BaseAudioHandler
     queue.add([item]);
     _publishState(player.playerState);
     await startPlayer();
-    developer.log('Restored source sent to player; state=${player.playerState}', name: 'QuranAudioHandler');
+    developer.log(
+      'Restored source sent to player; state=${player.playerState}',
+      name: 'QuranAudioHandler',
+    );
   }
 
   @override
@@ -321,11 +348,17 @@ class QuranAudioHandler extends BaseAudioHandler
   Future<void> stop() async {
     final action = onStopAction;
     if (action != null) {
-      developer.log('Stop received; forwarding to bound Quran Cubit', name: 'QuranAudioHandler');
+      developer.log(
+        'Stop received; forwarding to bound Quran Cubit',
+        name: 'QuranAudioHandler',
+      );
       await action();
       return;
     }
-    developer.log('Stop received without a bound Cubit; stopping shared player', name: 'QuranAudioHandler');
+    developer.log(
+      'Stop received without a bound Cubit; stopping shared player',
+      name: 'QuranAudioHandler',
+    );
     await stopPlayer();
     clearMediaItem();
   }
@@ -336,8 +369,10 @@ class QuranAudioHandler extends BaseAudioHandler
     try {
       final preferences = await SharedPreferences.getInstance();
       await preferences.reload();
-      final current = mediaItem.value?.extras?['surahNumber'] as int? ??
-          preferences.getInt('quran_last_played_surah') ?? 1;
+      final current =
+          mediaItem.value?.extras?['surahNumber'] as int? ??
+          preferences.getInt('quran_last_played_surah') ??
+          1;
       final next = (current + delta).clamp(1, 114);
       final reciter = QuranReciter.byId(
         preferences.getString('quran_audio_reciter_id'),
@@ -367,7 +402,7 @@ class QuranAudioHandler extends BaseAudioHandler
         extras: {
           'surahName': surahName,
           'surahNumber': next,
-          'mushafPageNumber': quran.getPageNumber(next, 1),
+          'mushafPageNumber': MushafLineLayoutData.pageNumber(next, 1),
           'reciterName': reciter.nameArabic,
           'reciterId': reciter.id,
           'sourceUrl': sourceUrl,

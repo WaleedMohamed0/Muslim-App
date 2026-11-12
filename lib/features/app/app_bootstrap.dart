@@ -13,9 +13,11 @@ import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:muslim/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 import 'package:muslim/features/quran/data/data_sources/quran_audio_handler.dart';
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/features/quran/data/data_sources/uthmani_quran_text.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
+
 const MethodChannel _notificationNavigationChannel = MethodChannel(
   'com.muslim/notification_navigation',
 );
@@ -23,6 +25,7 @@ const MethodChannel _notificationNavigationChannel = MethodChannel(
 Future<void> runMuslimApp() async {
   WidgetsFlutterBinding.ensureInitialized();
   await UthmaniQuranText.initialize();
+  await MushafLineLayoutData.initialize();
   final quranAudioHandler = await initializeQuranAudioService();
   String? initialKahfRoute;
   try {
@@ -43,9 +46,10 @@ Future<void> runMuslimApp() async {
       providers: [
         BlocProvider(create: (_) => KhatmahCubit()),
         BlocProvider(
-          create: (_) => QuranCubit(
-            audioHandler: quranAudioHandler as QuranAudioHandler,
-          ),
+          create:
+              (_) => QuranCubit(
+                audioHandler: quranAudioHandler as QuranAudioHandler,
+              ),
         ),
         BlocProvider(create: (_) => PrayerTimesCubit()),
         BlocProvider(create: (_) => AzkarCubit()..loadContent()),
@@ -80,4 +84,3 @@ Future<String?> _readInitialNotificationRoute() async {
     return null;
   }
 }
-

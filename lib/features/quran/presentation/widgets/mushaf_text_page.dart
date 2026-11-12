@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/quran/data/data_sources/uthmani_quran_text.dart';
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
 import 'package:muslim/features/quran/presentation/widgets/surah_name_header.dart';
 part 'mushaf_page_layout.dart';
@@ -117,4 +118,3 @@ class MushafTextPageState extends State<MushafTextPage> {
         ),
   );
 }
-

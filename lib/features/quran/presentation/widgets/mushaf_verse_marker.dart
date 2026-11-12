@@ -14,9 +14,7 @@ class _VerseMarker extends StatelessWidget {
   final bool isBookmarked;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsetsDirectional.only(start: 1, end: 3),
-    child: SizedBox(
+  Widget build(BuildContext context) => SizedBox(
       width: 29,
       height: 29,
       child: CustomPaint(
@@ -37,8 +35,7 @@ class _VerseMarker extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  );
+    );
 }
 
 class _VerseMarkerPainter extends CustomPainter {

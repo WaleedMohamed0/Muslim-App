@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
@@ -14,169 +15,184 @@ class SavedBookmarksDialog {
 
   static Future<void> show(BuildContext context, QuranCubit cubit) async {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final pageItems = cubit.pageBookmarks.reversed.map((pageNumber) {
-      final pageData = quran.getPageData(pageNumber).cast<Map>();
-      if (pageData.isEmpty) return null;
-      final first = pageData.first;
-      final surahNumber = (first['surah'] as num).toInt();
-      final firstAyah = (first['start'] as num).toInt();
-      final rawName = quran.getSurahNameArabic(surahNumber);
-      final surahName = isArabic
-          ? (rawName == 'اللهب' ? 'المسد' : rawName)
-          : quran.getSurahNameEnglish(surahNumber);
-      final pageLabel = isArabic
-          ? toArabicIndicDigits(pageNumber)
-          : '$pageNumber';
-      return _SavedBookmarkRowData(
-        title: isArabic
-            ? 'سورة $surahName — الصفحة $pageLabel'
-            : 'Surah $surahName — Page $pageLabel',
-        typeLabel: isArabic ? 'صفحة' : 'Page',
-        icon: Icons.auto_stories_rounded,
-        onTap: (dialogContext) => _openSavedPage(
-          context,
-          dialogContext,
-          cubit,
-          surahNumber,
-          firstAyah,
-          rawName == 'اللهب' ? 'المسد' : rawName,
-        ),
-      );
-    }).whereType<_SavedBookmarkRowData>().toList(growable: false);
+    final pageItems = cubit.pageBookmarks.reversed
+        .map((pageNumber) {
+          final pageData = MushafLineLayoutData.pageData(pageNumber);
+          if (pageData.isEmpty) return null;
+          final first = pageData.first;
+          final surahNumber = (first['surah'] as num).toInt();
+          final firstAyah = (first['start'] as num).toInt();
+          final rawName = quran.getSurahNameArabic(surahNumber);
+          final surahName =
+              isArabic
+                  ? (rawName == 'اللهب' ? 'المسد' : rawName)
+                  : quran.getSurahNameEnglish(surahNumber);
+          final pageLabel =
+              isArabic ? toArabicIndicDigits(pageNumber) : '$pageNumber';
+          return _SavedBookmarkRowData(
+            title:
+                isArabic
+                    ? 'سورة $surahName — الصفحة $pageLabel'
+                    : 'Surah $surahName — Page $pageLabel',
+            typeLabel: isArabic ? 'صفحة' : 'Page',
+            icon: Icons.auto_stories_rounded,
+            onTap:
+                (dialogContext) => _openSavedPage(
+                  context,
+                  dialogContext,
+                  cubit,
+                  surahNumber,
+                  firstAyah,
+                  rawName == 'اللهب' ? 'المسد' : rawName,
+                ),
+          );
+        })
+        .whereType<_SavedBookmarkRowData>()
+        .toList(growable: false);
 
-    final ayahItems = cubit.ayahBookmarks.map((key) {
-      final parts = key.split(':');
-      if (parts.length != 2) return null;
-      final surahNumber = int.tryParse(parts.first);
-      final ayahNumber = int.tryParse(parts.last);
-      if (surahNumber == null ||
-          ayahNumber == null ||
-          surahNumber < 1 ||
-          surahNumber > quran.totalSurahCount ||
-          ayahNumber < 1 ||
-          ayahNumber > quran.getVerseCount(surahNumber)) {
-        return null;
-      }
-      final rawName = quran.getSurahNameArabic(surahNumber);
-      final surahName = isArabic
-          ? (rawName == 'اللهب' ? 'المسد' : rawName)
-          : quran.getSurahNameEnglish(surahNumber);
-      final ayahLabel = isArabic
-          ? toArabicIndicDigits(ayahNumber)
-          : '$ayahNumber';
-      return _SavedBookmarkRowData(
-        title: isArabic
-            ? 'سورة $surahName — الآية $ayahLabel'
-            : 'Surah $surahName — Ayah $ayahLabel',
-        typeLabel: isArabic ? 'آية' : 'Ayah',
-        icon: Icons.menu_book_rounded,
-        onTap: (dialogContext) => _openSavedAyah(
-          context,
-          dialogContext,
-          cubit,
-          surahNumber,
-          ayahNumber,
-          rawName == 'اللهب' ? 'المسد' : rawName,
-        ),
-      );
-    }).whereType<_SavedBookmarkRowData>().toList(growable: false);
+    final ayahItems = cubit.ayahBookmarks
+        .map((key) {
+          final parts = key.split(':');
+          if (parts.length != 2) return null;
+          final surahNumber = int.tryParse(parts.first);
+          final ayahNumber = int.tryParse(parts.last);
+          if (surahNumber == null ||
+              ayahNumber == null ||
+              surahNumber < 1 ||
+              surahNumber > quran.totalSurahCount ||
+              ayahNumber < 1 ||
+              ayahNumber > quran.getVerseCount(surahNumber)) {
+            return null;
+          }
+          final rawName = quran.getSurahNameArabic(surahNumber);
+          final surahName =
+              isArabic
+                  ? (rawName == 'اللهب' ? 'المسد' : rawName)
+                  : quran.getSurahNameEnglish(surahNumber);
+          final ayahLabel =
+              isArabic ? toArabicIndicDigits(ayahNumber) : '$ayahNumber';
+          return _SavedBookmarkRowData(
+            title:
+                isArabic
+                    ? 'سورة $surahName — الآية $ayahLabel'
+                    : 'Surah $surahName — Ayah $ayahLabel',
+            typeLabel: isArabic ? 'آية' : 'Ayah',
+            icon: Icons.menu_book_rounded,
+            onTap:
+                (dialogContext) => _openSavedAyah(
+                  context,
+                  dialogContext,
+                  cubit,
+                  surahNumber,
+                  ayahNumber,
+                  rawName == 'اللهب' ? 'المسد' : rawName,
+                ),
+          );
+        })
+        .whereType<_SavedBookmarkRowData>()
+        .toList(growable: false);
 
     final latestPageBookmark = cubit.bookmark;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.card),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.bookmarks_rounded,
-              color: Theme.of(context).colorScheme.primary,
+      builder:
+          (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadii.card),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(isArabic ? 'العلامات المرجعية' : 'Saved bookmarks'),
-            ),
-          ],
-        ),
-        content: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * .62,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            title: Row(
               children: [
-                if (pageItems.isEmpty && ayahItems.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Text(
-                      isArabic
-                          ? 'لا توجد علامات مرجعية محفوظة بعد'
-                          : 'No saved bookmarks yet',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                Icon(
+                  Icons.bookmarks_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    isArabic ? 'العلامات المرجعية' : 'Saved bookmarks',
                   ),
-                if (pageItems.isNotEmpty) ...[
-                  _BookmarkSectionHeading(
-                    title: isArabic ? 'الصفحات' : 'Pages',
-                    count: pageItems.length,
-                    isArabic: isArabic,
-                  ),
-                  for (final item in pageItems)
-                    _SavedBookmarkTile(
-                      item: item,
-                      onTap: () => item.onTap(dialogContext),
-                    ),
-                ],
-                if (ayahItems.isNotEmpty) ...[
-                  if (pageItems.isNotEmpty)
-                    const SizedBox(height: AppSpacing.md),
-                  _BookmarkSectionHeading(
-                    title: isArabic ? 'الْآيَات' : 'Ayahs',
-                    count: ayahItems.length,
-                    isArabic: isArabic,
-                  ),
-                  for (final item in ayahItems)
-                    _SavedBookmarkTile(
-                      item: item,
-                      onTap: () => item.onTap(dialogContext),
-                    ),
-                ],
+                ),
               ],
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(isArabic ? 'البدء من جديد' : 'Start over'),
-          ),
-          if (latestPageBookmark != null) ...[
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                unawaited(_playFromBookmark(context, cubit, latestPageBookmark));
-              },
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(isArabic ? 'تشغيل من العلامة' : 'Play bookmark'),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * .62,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (pageItems.isEmpty && ayahItems.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Text(
+                          isArabic
+                              ? 'لا توجد علامات مرجعية محفوظة بعد'
+                              : 'No saved bookmarks yet',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    if (pageItems.isNotEmpty) ...[
+                      _BookmarkSectionHeading(
+                        title: isArabic ? 'الصفحات' : 'Pages',
+                        count: pageItems.length,
+                        isArabic: isArabic,
+                      ),
+                      for (final item in pageItems)
+                        _SavedBookmarkTile(
+                          item: item,
+                          onTap: () => item.onTap(dialogContext),
+                        ),
+                    ],
+                    if (ayahItems.isNotEmpty) ...[
+                      if (pageItems.isNotEmpty)
+                        const SizedBox(height: AppSpacing.md),
+                      _BookmarkSectionHeading(
+                        title: isArabic ? 'الْآيَات' : 'Ayahs',
+                        count: ayahItems.length,
+                        isArabic: isArabic,
+                      ),
+                      for (final item in ayahItems)
+                        _SavedBookmarkTile(
+                          item: item,
+                          onTap: () => item.onTap(dialogContext),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
             ),
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                unawaited(
-                  _continueReading(context, cubit, latestPageBookmark),
-                );
-              },
-              icon: const Icon(Icons.menu_book_rounded),
-              label: Text(isArabic ? 'متابعة القراءة' : 'Continue reading'),
-            ),
-          ],
-        ],
-      ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(isArabic ? 'البدء من جديد' : 'Start over'),
+              ),
+              if (latestPageBookmark != null) ...[
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    unawaited(
+                      _playFromBookmark(context, cubit, latestPageBookmark),
+                    );
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: Text(isArabic ? 'تشغيل من العلامة' : 'Play bookmark'),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    unawaited(
+                      _continueReading(context, cubit, latestPageBookmark),
+                    );
+                  },
+                  icon: const Icon(Icons.menu_book_rounded),
+                  label: Text(isArabic ? 'متابعة القراءة' : 'Continue reading'),
+                ),
+              ],
+            ],
+          ),
     );
   }
 
@@ -223,17 +239,13 @@ class SavedBookmarksDialog {
     QuranCubit cubit,
     QuranBookmark bookmark,
   ) async {
-    final pageEntries = quran.getPageData(bookmark.pageNumber).cast<Map>();
+    final pageEntries = MushafLineLayoutData.pageData(bookmark.pageNumber);
     final firstEntry = pageEntries.first;
     final surahNumber = (firstEntry['surah'] as num).toInt();
     final firstAyah = (firstEntry['start'] as num).toInt();
     final rawName = quran.getSurahNameArabic(surahNumber);
     final surahName = rawName == 'اللهب' ? 'المسد' : rawName;
-    await cubit.selectSurah(
-      surahNumber,
-      surahName,
-      online: cubit.isOnline,
-    );
+    await cubit.selectSurah(surahNumber, surahName, online: cubit.isOnline);
     cubit.setCurrentPageNumber(firstAyah);
     if (!context.mounted) return;
     navigateTo(context, SurahScreen(surahNumber: surahNumber));
@@ -244,7 +256,7 @@ class SavedBookmarksDialog {
     QuranCubit cubit,
     QuranBookmark bookmark,
   ) async {
-    final pageEntries = quran.getPageData(bookmark.pageNumber).cast<Map>();
+    final pageEntries = MushafLineLayoutData.pageData(bookmark.pageNumber);
     final firstEntry = pageEntries.first;
     final surahNumber = (firstEntry['surah'] as num).toInt();
     final firstAyah = (firstEntry['start'] as num).toInt();
@@ -288,9 +300,9 @@ class _BookmarkSectionHeading extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: 8),
           Container(
@@ -305,9 +317,9 @@ class _BookmarkSectionHeading extends StatelessWidget {
             child: Text(
               isArabic ? toArabicIndicDigits(count) : '$count',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: colors.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: colors.onPrimaryContainer,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -345,9 +357,9 @@ class _SavedBookmarkTile extends StatelessWidget {
           item.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         trailing: Container(
           padding: const EdgeInsetsDirectional.symmetric(
@@ -361,9 +373,9 @@ class _SavedBookmarkTile extends StatelessWidget {
           child: Text(
             item.typeLabel,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),

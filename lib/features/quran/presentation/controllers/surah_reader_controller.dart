@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
-import 'package:muslim/core/storage/cache_helper.dart';
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/features/quran/data/data_sources/uthmani_quran_text.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
@@ -40,7 +40,10 @@ class SurahReaderController extends ChangeNotifier {
 
     _visibleSurahNumber = initialSurah;
     _surahName = _surahNameFor(initialSurah);
-    final actualPage = quran.getPageNumber(initialSurah, initialVerse);
+    final actualPage = MushafLineLayoutData.pageNumber(
+      initialSurah,
+      initialVerse,
+    );
     final pageNumber =
         initialPageNumber == actualPage ? initialPageNumber! : actualPage;
     _pageIndex = pageNumber - 1;
@@ -59,7 +62,8 @@ class SurahReaderController extends ChangeNotifier {
       } else {
         cubit.setSurahInfo(initialSurah, _surahName);
       }
-      if (!cubit.hasActivePlaybackSession && cubit.surahNumber == initialSurah) {
+      if (!cubit.hasActivePlaybackSession &&
+          cubit.surahNumber == initialSurah) {
         cubit.setCurrentPageNumber(initialVerse);
       }
     }
@@ -68,12 +72,9 @@ class SurahReaderController extends ChangeNotifier {
       (_) => _handleAudioStateChange(),
     );
     _scheduleControlsHide();
-    unawaited(_restoreFontSizePreference());
   }
 
-  static const _fontSizePreferenceKey = 'quran_reader_font_size';
-  static const _minimumFontSize = 22.0;
-  static const _maximumFontSize = 32.0;
+  static const double _fontSize = 23.0;
 
   final QuranCubit cubit;
   final void Function(int page, int surah, int ayah)? _onPageRead;
@@ -85,7 +86,6 @@ class SurahReaderController extends ChangeNotifier {
   late final StreamSubscription<QuranState> _audioStateSubscription;
   Timer? _controlsTimer;
   bool _disposed = false;
-  bool _fontSizeChangedBeforeRestore = false;
   bool _readerOnlyDuringOtherPlayback = false;
   late int _lastPlaybackNavigationRevision;
   int? _playbackNavigationSurahOverride;
@@ -96,7 +96,6 @@ class SurahReaderController extends ChangeNotifier {
   int? _pendingInitialPageIndex;
   int? _pendingInitialAyah;
   String _surahName = '';
-  double _fontSize = 22;
   double _zoomScale = 1;
   bool _controlsVisible = true;
 
@@ -109,13 +108,14 @@ class SurahReaderController extends ChangeNotifier {
   double get zoomScale => _zoomScale;
   bool get controlsVisible => _controlsVisible;
   bool get isFirstPage => _pageIndex == (_minimumPageNumber ?? 1) - 1;
-  bool get isLastPage => _pageIndex >= (_maximumPageNumber ?? quran.totalPagesCount) - 1;
+  bool get isLastPage =>
+      _pageIndex >= (_maximumPageNumber ?? quran.totalPagesCount) - 1;
   bool get isCurrentPageBookmarked => cubit.pageBookmarks.contains(pageNumber);
 
   int? get bookmarkAyahForPlayback {
     if (cubit.pageBookmarks.contains(pageNumber)) {
-      final pageData = quran.getPageData(pageNumber).cast<Map>();
-      return (pageData.first['start'] as num).toInt();
+      final pageData = MushafLineLayoutData.pageData(pageNumber);
+      return pageData.first['start'];
     }
     if (cubit.ayahBookmarks.contains(
       '$_visibleSurahNumber:$_readerCurrentAyah',
@@ -127,10 +127,9 @@ class SurahReaderController extends ChangeNotifier {
 
   static int? _bookmarkAyahForSurah(int? mushafPage, int surahNumber) {
     if (mushafPage == null) return null;
-    for (final entry in quran.getPageData(mushafPage)) {
-      final section = entry as Map;
-      if ((section['surah'] as num).toInt() == surahNumber) {
-        return (section['start'] as num).toInt();
+    for (final section in MushafLineLayoutData.pageData(mushafPage)) {
+      if (section['surah'] == surahNumber) {
+        return section['start'];
       }
     }
     return null;
@@ -144,7 +143,8 @@ class SurahReaderController extends ChangeNotifier {
   void turnPage({required bool next}) {
     final target = _pageIndex + (next ? 1 : -1);
     if (target < (_minimumPageNumber ?? 1) - 1 ||
-        target > (_maximumPageNumber ?? quran.totalPagesCount) - 1) return;
+        target > (_maximumPageNumber ?? quran.totalPagesCount) - 1)
+      return;
     pageController.animateToPage(
       target,
       duration: const Duration(milliseconds: 300),
@@ -153,9 +153,9 @@ class SurahReaderController extends ChangeNotifier {
   }
 
   void handlePageChanged(int index, int initialSurah) {
-    final pageEntries = quran.getPageData(index + 1);
-    final first = pageEntries.first as Map;
-    final firstSurahNumber = (first['surah'] as num).toInt();
+    final pageEntries = MushafLineLayoutData.pageData(index + 1);
+    final first = pageEntries.first;
+    final firstSurahNumber = first['surah']!;
     final preserveInitialAyah =
         _pendingInitialPageIndex == index && _pendingInitialAyah != null;
     final pendingInitialAyah = _pendingInitialAyah;
@@ -167,12 +167,11 @@ class SurahReaderController extends ChangeNotifier {
     final usePlaybackOverride =
         playbackSurah != null &&
         playbackAyah != null &&
-        quran.getPageNumber(playbackSurah, playbackAyah) - 1 == index;
+        MushafLineLayoutData.pageNumber(playbackSurah, playbackAyah) - 1 ==
+            index;
     final initialSurahIsOnPage =
         preserveInitialAyah &&
-        pageEntries.any(
-          (entry) => ((entry as Map)['surah'] as num).toInt() == initialSurah,
-        );
+        pageEntries.any((entry) => entry['surah'] == initialSurah);
 
     final surahNumber =
         usePlaybackOverride
@@ -185,7 +184,7 @@ class SurahReaderController extends ChangeNotifier {
             ? playbackAyah
             : initialSurahIsOnPage
             ? pendingInitialAyah!
-            : (first['start'] as num).toInt();
+            : first['start']!;
 
     if (usePlaybackOverride) {
       _playbackNavigationSurahOverride = null;
@@ -197,7 +196,8 @@ class SurahReaderController extends ChangeNotifier {
       ayahNumber: verseNumber,
     );
     _onPageRead?.call(index + 1, surahNumber, verseNumber);
-    if (_saveGeneralCheckpoint) cubit.saveReaderPosition(surahNumber, verseNumber);
+    if (_saveGeneralCheckpoint)
+      cubit.saveReaderPosition(surahNumber, verseNumber);
     _scheduleControlsHide();
   }
 
@@ -210,16 +210,6 @@ class SurahReaderController extends ChangeNotifier {
       cubit.setCurrentPageNumber(verseNumber);
     }
     notifyListeners();
-  }
-
-  void changeFontSize(double value) {
-    final nextSize = value.clamp(_minimumFontSize, _maximumFontSize).toDouble();
-    if (nextSize == _fontSize) return;
-    _fontSizeChangedBeforeRestore = true;
-    _fontSize = nextSize;
-    notifyListeners();
-    unawaited(_persistFontSizePreference(nextSize.round()));
-    _scheduleControlsHide();
   }
 
   void syncZoomScale() {
@@ -244,8 +234,8 @@ class SurahReaderController extends ChangeNotifier {
     await cubit.togglePageBookmark(page);
     if (!_disposed) notifyListeners();
     if (wasBookmarked) return null;
-    final first = quran.getPageData(page).first as Map;
-    return (first['surah'] as num).toInt();
+    final first = MushafLineLayoutData.pageData(page).first;
+    return first['surah'];
   }
 
   Future<int?> toggleAyahBookmark(int surahNumber, int verseNumber) async {
@@ -278,7 +268,8 @@ class SurahReaderController extends ChangeNotifier {
       final surahNumber = cubit.surahPlaybackNavigationTarget;
       final ayahNumber = cubit.surahPlaybackNavigationAyah;
       if (surahNumber >= 1 && surahNumber <= quran.totalSurahCount) {
-        final targetPage = quran.getPageNumber(surahNumber, ayahNumber) - 1;
+        final targetPage =
+            MushafLineLayoutData.pageNumber(surahNumber, ayahNumber) - 1;
         _readerOnlyDuringOtherPlayback = false;
         _playbackNavigationSurahOverride =
             targetPage == _pageIndex ? null : surahNumber;
@@ -289,7 +280,8 @@ class SurahReaderController extends ChangeNotifier {
           surahNumber: surahNumber,
           ayahNumber: ayahNumber,
         );
-        if (_saveGeneralCheckpoint) cubit.saveReaderPosition(surahNumber, ayahNumber);
+        if (_saveGeneralCheckpoint)
+          cubit.saveReaderPosition(surahNumber, ayahNumber);
         if (pageController.hasClients &&
             pageController.page?.round() != targetPage) {
           pageController.jumpToPage(targetPage);
@@ -308,34 +300,6 @@ class SurahReaderController extends ChangeNotifier {
     _readerOnlyDuringOtherPlayback = false;
     cubit.setSurahInfo(_visibleSurahNumber, _surahName);
     cubit.setCurrentPageNumber(_readerCurrentAyah);
-  }
-
-  Future<void> _persistFontSizePreference(int fontSize) async {
-    try {
-      await CacheHelper.saveData(key: _fontSizePreferenceKey, value: fontSize);
-    } catch (_) {
-      // Reader preferences are optional; keep using the current in-memory size.
-    }
-  }
-
-  Future<void> _restoreFontSizePreference() async {
-    try {
-      await CacheHelper.ensureInitialized();
-      final savedSize = CacheHelper.getData(key: _fontSizePreferenceKey);
-      if (_disposed || _fontSizeChangedBeforeRestore || savedSize is! int) {
-        return;
-      }
-      final restoredSize =
-          savedSize
-              .clamp(_minimumFontSize.round(), _maximumFontSize.round())
-              .toDouble();
-      if (restoredSize != _fontSize) {
-        _fontSize = restoredSize;
-        notifyListeners();
-      }
-    } catch (_) {
-      // Fall back to the default font size when preferences cannot be read.
-    }
   }
 
   void _scheduleControlsHide() {

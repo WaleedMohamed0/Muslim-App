@@ -7,6 +7,7 @@ import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/quran/presentation/controllers/surah_reader_controller.dart';
+import 'package:muslim/features/quran/data/data_sources/mushaf_long_press_hint_preferences.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
@@ -47,6 +48,9 @@ class _SurahScreenState extends State<SurahScreen> {
   String? _lastSystemUiStyleSignature;
   late bool _searchHighlightActive;
   Timer? _searchHighlightTimer;
+  bool _showLongPressHint = false;
+  final MushafLongPressHintPreferences _hintPreferences =
+      const MushafLongPressHintPreferences();
 
   @override
   void initState() {
@@ -59,6 +63,7 @@ class _SurahScreenState extends State<SurahScreen> {
     }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _cubit = context.read<QuranCubit>();
+    unawaited(_loadLongPressHint());
     _reader = SurahReaderController(
       cubit: _cubit,
       initialSurah: widget.surahNumber,
@@ -71,6 +76,19 @@ class _SurahScreenState extends State<SurahScreen> {
           ? (page, surah, ayah) => context.read<KhatmahCubit>().recordReadingPosition(page: page, surah: surah, ayah: ayah)
           : widget.onPageRead,
     )..addListener(_handleReaderChanged);
+  }
+
+  Future<void> _loadLongPressHint() async {
+    if (await _hintPreferences.hasBeenShown() && mounted) return;
+    if (!mounted) return;
+    setState(() => _showLongPressHint = true);
+    await _hintPreferences.markShown();
+  }
+
+  void _dismissLongPressHint() {
+    if (!_showLongPressHint) return;
+    setState(() => _showLongPressHint = false);
+    unawaited(_hintPreferences.markShown());
   }
 
   void _handleReaderChanged() {
@@ -194,10 +212,10 @@ class _SurahScreenState extends State<SurahScreen> {
           searchHighlightSurah: _searchHighlightActive ? widget.surahNumber : null,
           searchHighlightAyah: _searchHighlightActive ? widget.initialAyah : null,
           palette: palette,
+          showLongPressHint: _showLongPressHint,
+          onDismissLongPressHint: _dismissLongPressHint,
           onToggleControls: _reader.toggleControls,
           onBookmark: () => unawaited(_toggleCurrentPageBookmark()),
-          onFontDecrease: () => _reader.changeFontSize(_reader.fontSize - 1),
-          onFontIncrease: () => _reader.changeFontSize(_reader.fontSize + 1),
           onPrevious:
               _reader.isFirstPage ? null : () => _reader.turnPage(next: false),
           onNext:

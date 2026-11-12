@@ -1,5 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:quran/quran.dart' as quran;
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 
 class DailyWirdSession {
   const DailyWirdSession({
@@ -57,8 +57,7 @@ class DailyWirdProgressRepository {
         await prefs.remove(_ayahKey);
       }
       // An unfinished Wird keeps its original range and exact checkpoint.
-    } else if (savedDay == today &&
-        prefs.getString(_completedKey) != today) {
+    } else if (savedDay == today && prefs.getString(_completedKey) != today) {
       // Updating the pages-per-day setting adjusts today's unfinished target.
       assignNewRange = true;
     }
@@ -71,7 +70,7 @@ class DailyWirdProgressRepository {
     await prefs.setInt(_endPageKey, end);
 
     final checkpoint = prefs.getInt(_pageKey) ?? start;
-    final first = quran.getPageData(checkpoint).first as Map;
+    final first = MushafLineLayoutData.pageData(checkpoint).first;
     final surah = prefs.getInt(_surahKey) ?? (first['surah'] as num).toInt();
     final ayah = prefs.getInt(_ayahKey) ?? (first['start'] as num).toInt();
     return DailyWirdSession(
@@ -106,5 +105,4 @@ class DailyWirdProgressRepository {
 
   int _endFor(int start, int pages) =>
       (start + pages - 1).clamp(start, 604).toInt();
-
 }

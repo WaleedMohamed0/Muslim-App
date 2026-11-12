@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /android/key.jks
+# Local Gradle caches and widget preview output
+/.gradle-local/
+**/.gradle-local/
+**/.kotlin/
+/.widget_preview/

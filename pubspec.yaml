@@ -30,6 +30,7 @@ dependencies:
   flutter_cache_manager: ^3.4.6
   path_provider: ^2.1.6
   url_launcher: ^6.3.2
+  flutter_svg: ^2.2.3
 
 
 dev_dependencies:
@@ -46,6 +47,7 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
+    - assets/data/tafsir_muyassar.json.gz
     - assets/features/app/images/quran_logo.webp
     - assets/features/asmaa_allah/
     - assets/features/azkar/data/azkar.json
@@ -53,6 +55,7 @@ flutter:
     - assets/features/prayer_times/audio/
     - assets/features/prayer_times/images/
     - assets/features/quran/data/
+    - assets/features/quran/images/surah_header_frame.svg
     - assets/images/reciters/
     # Bundles static worship lesson illustrations.
     - assets/features/worship/illustrations/

@@ -1,6 +1,7 @@
 part of 'mushaf_text_page.dart';
 
-const _mushafBasmala = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
+String _mushafBasmalaText() =>
+    UthmaniQuranText.getVerse(2, 1).split(' ').take(4).join(' ');
 
 class _MushafBasmala extends StatelessWidget {
   const _MushafBasmala({required this.palette, required this.fontSize});
@@ -10,7 +11,7 @@ class _MushafBasmala extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-    _mushafBasmala,
+    _mushafBasmalaText(),
     textDirection: TextDirection.rtl,
     textAlign: TextAlign.center,
     style: TextStyle(
@@ -19,9 +20,9 @@ class _MushafBasmala extends StatelessWidget {
         FontFeature.enable('mark'),
         FontFeature.enable('mkmk'),
       ],
-      fontSize: fontSize * 1.1,
-      fontWeight: FontWeight.w700,
-      height: 1.8,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w500,
+      height: 1.55,
       color: palette.text,
     ),
   );
@@ -49,96 +50,60 @@ class _MushafPageContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final sections = quran.getPageData(pageNumber).cast<Map>();
+      final sections = MushafLineLayoutData.pageData(pageNumber);
       final firstSection = sections.first;
       final firstSurah = (firstSection['surah'] as num).toInt();
       final firstVerse = (firstSection['start'] as num).toInt();
       final juzNumber = quran.getJuzNumber(firstSurah, firstVerse);
-      final pageText = <Widget>[];
-      final isFatihaOpening = pageNumber == 1 && firstSurah == 1;
-      final isBaqarahOpening = pageNumber == 2 && firstSurah == 2;
-      final isSurahOpening = isFatihaOpening || isBaqarahOpening;
-      final horizontalInset = constraints.maxWidth < 380 ? 8.0 : 12.0;
+      // Keep the text comfortably balanced inside the Mushaf frame while
+      // leaving enough room for long rows at the fixed font size.
+      // Leave a little extra room for the widest Arabic lines and header text
+      // on fractional-width screens, where an exact fit can round outward.
+      const horizontalInset = 8.5;
       const verseLineHeight = 1.55;
-
-      if (isSurahOpening) {
-        pageText.add(
-          SurahNameHeader(
-            surahName: _arabicSurahName(firstSurah),
-            palette: palette,
-            fontSize: fontSize + 1,
-          ),
-        );
-        pageText.add(const SizedBox(height: 14));
-        if (isBaqarahOpening) {
-          pageText.add(_MushafBasmala(palette: palette, fontSize: fontSize));
-          pageText.add(const SizedBox(height: 12));
-        } else {
-          pageText.add(const SizedBox(height: 8));
-        }
-
-        for (final section in sections) {
-          final surahNumber = (section['surah'] as num).toInt();
-          final startVerse = (section['start'] as num).toInt();
-          final endVerse = (section['end'] as num).toInt();
-          for (var verse = startVerse; verse <= endVerse; verse++) {
-            pageText.add(
-              _PageVerseText(
-                surahNumber: surahNumber,
-                startVerse: verse,
-                endVerse: verse,
+      final pageRows = <({Widget child, bool flexible})>[];
+      var openingBlankLinesToSkip = pageNumber <= 2 ? 1 : 0;
+      for (final line in MushafLineLayoutData.page(pageNumber)) {
+        switch (line.type) {
+          case MushafLayoutLineType.surahName:
+            final surahNumber = line.surahNumber!;
+            pageRows.add((
+              child: SurahNameHeader(
+                surahName: _arabicSurahName(surahNumber),
+                palette: palette,
+                fontSize: fontSize + 1,
+              ),
+              flexible: true,
+            ));
+            if (pageNumber <= 2) {
+              pageRows.add((child: const SizedBox(height: 8), flexible: false));
+            }
+          case MushafLayoutLineType.basmallah:
+            pageRows.add((
+              child: _MushafBasmala(palette: palette, fontSize: fontSize),
+              flexible: true,
+            ));
+          case MushafLayoutLineType.blank:
+            if (openingBlankLinesToSkip > 0) {
+              openingBlankLinesToSkip--;
+            } else {
+              pageRows.add((child: const SizedBox.expand(), flexible: true));
+            }
+          case MushafLayoutLineType.text:
+            pageRows.add((
+              child: _PageVerseText(
+                words: line.words,
+                isCentered: line.isCentered,
                 palette: palette,
                 fontSize: fontSize,
                 lineHeight: verseLineHeight,
                 highlightedSurahNumber: highlightedSurahNumber,
                 highlightedAyahNumber: highlightedAyahNumber,
                 bookmarkedAyahKeys: bookmarkedAyahKeys,
-                separateBasmala: isBaqarahOpening && surahNumber == firstSurah,
-                textAlign: TextAlign.center,
                 onAyahLongPress: onAyahLongPress,
               ),
-            );
-            if (verse != endVerse) pageText.add(const SizedBox(height: 5));
-          }
-        }
-      } else {
-        for (final section in sections) {
-          final surahNumber = (section['surah'] as num).toInt();
-          final startVerse = (section['start'] as num).toInt();
-          final endVerse = (section['end'] as num).toInt();
-          if (startVerse == 1) {
-            pageText.add(
-              SurahNameHeader(
-                surahName: _arabicSurahName(surahNumber),
-                palette: palette,
-                fontSize: fontSize + 1,
-              ),
-            );
-            if (surahNumber != 1 && surahNumber != 9) {
-              pageText.add(const SizedBox(height: 8));
-              pageText.add(
-                _MushafBasmala(palette: palette, fontSize: fontSize - 1),
-              );
-            }
-            pageText.add(const SizedBox(height: 10));
-          }
-
-          pageText.add(
-            _PageVerseText(
-              surahNumber: surahNumber,
-              startVerse: startVerse,
-              endVerse: endVerse,
-              palette: palette,
-              fontSize: fontSize,
-              lineHeight: verseLineHeight,
-              highlightedSurahNumber: highlightedSurahNumber,
-              highlightedAyahNumber: highlightedAyahNumber,
-              bookmarkedAyahKeys: bookmarkedAyahKeys,
-              separateBasmala:
-                  startVerse == 1 && surahNumber != 1 && surahNumber != 9,
-              onAyahLongPress: onAyahLongPress,
-            ),
-          );
+              flexible: true,
+            ));
         }
       }
 
@@ -159,17 +124,18 @@ class _MushafPageContent extends StatelessWidget {
           child: Padding(
             padding: EdgeInsetsDirectional.fromSTEB(
               horizontalInset,
-              16,
+              8,
               horizontalInset,
               6,
             ),
             child: Stack(
               children: [
                 Positioned.fill(
+                  bottom: 38,
                   child: LayoutBuilder(
                     builder: (context, bodyConstraints) {
                       final content = Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _MushafRunningHeader(
@@ -177,35 +143,43 @@ class _MushafPageContent extends StatelessWidget {
                             juzNumber: juzNumber,
                             palette: palette,
                           ),
-                          const SizedBox(height: 12),
-                          ...pageText,
-                          const Spacer(),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Center(
-                              child: _MushafPageNumber(
-                                pageNumber: pageNumber,
-                                palette: palette,
-                              ),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (final row in pageRows)
+                                  if (row.flexible)
+                                    Expanded(
+                                      child: Center(child: row.child),
+                                    )
+                                  else
+                                    row.child,
+                              ],
                             ),
                           ),
                         ],
                       );
-                      return SingleChildScrollView(
-                        clipBehavior: Clip.hardEdge,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: bodyConstraints.maxHeight,
-                          ),
-                          child: IntrinsicHeight(
-                            child: SizedBox(
-                              width: bodyConstraints.maxWidth,
-                              child: content,
-                            ),
-                          ),
-                        ),
+                      return SizedBox(
+                        width: bodyConstraints.maxWidth,
+                        height: bodyConstraints.maxHeight,
+                        child: content,
                       );
                     },
+                  ),
+                ),
+                PositionedDirectional(
+                  bottom: 0,
+                  start: 0,
+                  end: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Center(
+                      child: _MushafPageNumber(
+                        pageNumber: pageNumber,
+                        palette: palette,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -221,38 +195,6 @@ String _arabicSurahName(int surahNumber) {
   final name = UthmaniQuranText.getSurahName(surahNumber);
   return name == 'اللهب' ? 'المسد' : name;
 }
-
-String _displayVerseText(
-  int surahNumber,
-  int verseNumber, {
-  required bool separateBasmala,
-}) {
-  final verseText = UthmaniQuranText.getVerse(surahNumber, verseNumber);
-  if (!separateBasmala ||
-      verseNumber != 1 ||
-      surahNumber == 1 ||
-      surahNumber == 9) {
-    return verseText;
-  }
-  final leadingText = verseText.trimLeft();
-  final prefix = RegExp(r'^\S+\s+\S+\s+\S+\s+\S+').firstMatch(leadingText);
-  if (prefix == null) return verseText;
-  final basmalaWords = leadingText
-      .substring(0, prefix.end)
-      .split(RegExp(r'\s+'))
-      .map(_normalizeBasmalaWord)
-      .toList(growable: false);
-  const expectedWords = ['بسم', 'الله', 'الرحمن', 'الرحيم'];
-  if (basmalaWords.length != expectedWords.length) return verseText;
-  for (var index = 0; index < expectedWords.length; index++) {
-    if (basmalaWords[index] != expectedWords[index]) return verseText;
-  }
-  return leadingText.substring(prefix.end).trimLeft();
-}
-
-String _normalizeBasmalaWord(String word) => word
-    .replaceAll(RegExp(r'[\u0640\u064B-\u065F\u0670]'), '')
-    .replaceAll('ٱ', 'ا');
 
 class _MushafRunningHeader extends StatelessWidget {
   static const _arabicJuzOrdinals = [
@@ -302,22 +244,36 @@ class _MushafRunningHeader extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     textDirection: TextDirection.rtl,
     children: [
-      Text(
-        surahName,
-        style: TextStyle(
-          color: palette.metadata,
-          fontFamily: 'UthmanicHafs',
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            surahName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: palette.metadata,
+              fontFamily: 'UthmanicHafs',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ),
-      const Spacer(),
-      Text(
-        'الجزء ${_arabicJuzOrdinals[juzNumber - 1]}',
-        style: TextStyle(
-          color: palette.metadata,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'الجزء ${_arabicJuzOrdinals[juzNumber - 1]}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.left,
+            style: TextStyle(
+              color: palette.metadata,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ),
     ],

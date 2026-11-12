@@ -9,6 +9,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
 import 'package:muslim/features/app/presentation/cubit/app_state.dart';
@@ -122,10 +123,9 @@ class _AppRouteObserver extends NavigatorObserver {
   ).firstMatch(route);
   if (widgetPlayMatch != null) {
     final surahNumber = int.parse(widgetPlayMatch.group(1)!).clamp(1, 114);
-    final ayahNumber = int.parse(widgetPlayMatch.group(2)!).clamp(
-      1,
-      quran.getVerseCount(surahNumber),
-    );
+    final ayahNumber = int.parse(
+      widgetPlayMatch.group(2)!,
+    ).clamp(1, quran.getVerseCount(surahNumber));
     return (
       routeName: '/quran-reader/$surahNumber',
       page: _QuranWidgetPlaybackScreen(
@@ -140,10 +140,9 @@ class _AppRouteObserver extends NavigatorObserver {
   if (widgetMatch != null) {
     final surahNumber = int.parse(widgetMatch.group(1)!).clamp(1, 114);
     final pageNumber = int.parse(widgetMatch.group(2)!);
-    final ayahNumber = int.parse(widgetMatch.group(3)!).clamp(
-      1,
-      quran.getVerseCount(surahNumber),
-    );
+    final ayahNumber = int.parse(
+      widgetMatch.group(3)!,
+    ).clamp(1, quran.getVerseCount(surahNumber));
     return (
       routeName: '/quran-reader/$surahNumber',
       page: SurahScreen(
@@ -158,59 +157,61 @@ class _AppRouteObserver extends NavigatorObserver {
   ).firstMatch(route);
   if (legacyWidgetMatch != null) {
     final surahNumber = int.parse(legacyWidgetMatch.group(1)!).clamp(1, 114);
-    final ayahNumber = int.parse(legacyWidgetMatch.group(2)!).clamp(
-      1,
-      quran.getVerseCount(surahNumber),
-    );
+    final ayahNumber = int.parse(
+      legacyWidgetMatch.group(2)!,
+    ).clamp(1, quran.getVerseCount(surahNumber));
     return (
       routeName: '/quran-reader/$surahNumber',
       page: SurahScreen(surahNumber: surahNumber, initialAyah: ayahNumber),
     );
   }
   return switch (route) {
-      'adhan_settings' => (
-        routeName: '/adhan-settings',
-        page: const PrayerAdhanSettingsScreen(),
-      ),
-      'prayer_times' => (routeName: '/prayer-times', page: const PrayerTimes()),
-      'elazan_screen:fajr' => (
-        routeName: '/elazan-screen/fajr',
-        page: const ElAzanScreen(prayer: 'الفجر'),
-      ),
-      'elazan_screen:dhuhr' => (
-        routeName: '/elazan-screen/dhuhr',
-        page: const ElAzanScreen(prayer: 'الظهر'),
-      ),
-      'elazan_screen:asr' => (
-        routeName: '/elazan-screen/asr',
-        page: const ElAzanScreen(prayer: 'العصر'),
-      ),
-      'elazan_screen:maghrib' => (
-        routeName: '/elazan-screen/maghrib',
-        page: const ElAzanScreen(prayer: 'المغرب'),
-      ),
-      'elazan_screen:isha' => (
-        routeName: '/elazan-screen/isha',
-        page: const ElAzanScreen(prayer: 'العشاء'),
-      ),
-      'azkar_morning' => (
-        routeName: '/azkar-category-0',
-        page: const AzkarAndHadeethScreen(index: 0),
-      ),
-      'azkar_evening' => (
-        routeName: '/azkar-category-1',
-        page: const AzkarAndHadeethScreen(index: 1),
-      ),
-      'daily_wird' => (routeName: '/daily-wird', page: const DailyWirdReaderScreen()),
-      'salawat' => (routeName: '/home', page: const StartUpScreen()),
-      KahfReminderService.route => (
-        routeName: '/quran-reader/18',
-        page: const SurahScreen(surahNumber: 18),
-      ),
-      KahfReminderService.khatmahRoute => (
-        routeName: '/khatmah',
-        page: const KhatmahScreen(),
-      ),
+    'adhan_settings' => (
+      routeName: '/adhan-settings',
+      page: const PrayerAdhanSettingsScreen(),
+    ),
+    'prayer_times' => (routeName: '/prayer-times', page: const PrayerTimes()),
+    'elazan_screen:fajr' => (
+      routeName: '/elazan-screen/fajr',
+      page: const ElAzanScreen(prayer: 'الفجر'),
+    ),
+    'elazan_screen:dhuhr' => (
+      routeName: '/elazan-screen/dhuhr',
+      page: const ElAzanScreen(prayer: 'الظهر'),
+    ),
+    'elazan_screen:asr' => (
+      routeName: '/elazan-screen/asr',
+      page: const ElAzanScreen(prayer: 'العصر'),
+    ),
+    'elazan_screen:maghrib' => (
+      routeName: '/elazan-screen/maghrib',
+      page: const ElAzanScreen(prayer: 'المغرب'),
+    ),
+    'elazan_screen:isha' => (
+      routeName: '/elazan-screen/isha',
+      page: const ElAzanScreen(prayer: 'العشاء'),
+    ),
+    'azkar_morning' => (
+      routeName: '/azkar-category-0',
+      page: const AzkarAndHadeethScreen(index: 0),
+    ),
+    'azkar_evening' => (
+      routeName: '/azkar-category-1',
+      page: const AzkarAndHadeethScreen(index: 1),
+    ),
+    'daily_wird' => (
+      routeName: '/daily-wird',
+      page: const DailyWirdReaderScreen(),
+    ),
+    'salawat' => (routeName: '/home', page: const StartUpScreen()),
+    KahfReminderService.route => (
+      routeName: '/quran-reader/18',
+      page: const SurahScreen(surahNumber: 18),
+    ),
+    KahfReminderService.khatmahRoute => (
+      routeName: '/khatmah',
+      page: const KhatmahScreen(),
+    ),
     _ => null,
   };
 }
@@ -286,20 +287,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _quranWidgetStateSubscription = quranCubit.stream.listen(
       (_) => _syncQuranAudioWidget(quranCubit),
     );
-    _quranWidgetProgressTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        if (quranCubit.quranSoundActive) _syncQuranAudioWidget(quranCubit);
-      },
-    );
+    _quranWidgetProgressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (quranCubit.quranSoundActive) _syncQuranAudioWidget(quranCubit);
+    });
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _syncQuranAudioWidget(quranCubit),
     );
-    _mediaNotificationClickSubscription = AudioService.notificationClicked.listen(
-      (clicked) {
-        if (clicked) _openQuranFromMediaNotification();
-      },
-    );
+    _mediaNotificationClickSubscription = AudioService.notificationClicked
+        .listen((clicked) {
+          if (clicked) _openQuranFromMediaNotification();
+        });
     _notificationNavigationChannel.setMethodCallHandler((call) async {
       if (call.method == 'openNotificationRoute' && call.arguments is String) {
         final route = call.arguments as String;
@@ -324,12 +321,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final isQuranReaderRoute = RegExp(
       r'^quran_reader:(\d+):(?:(\d+):)?(\d+)$',
     ).hasMatch(route);
-    final routeName = isQuranReaderRoute
-        ? '/quran-reader/${RegExp(r'^quran_reader:(\d+)').firstMatch(route)!.group(1)}'
-        : null;
-    final requestedRouteName = routeName ??
-        _notificationDestination(route)?.routeName;
-    final alreadyAtRequestedDestination = requestedRouteName != null &&
+    final routeName =
+        isQuranReaderRoute
+            ? '/quran-reader/${RegExp(r'^quran_reader:(\d+)').firstMatch(route)!.group(1)}'
+            : null;
+    final requestedRouteName =
+        routeName ?? _notificationDestination(route)?.routeName;
+    final alreadyAtRequestedDestination =
+        requestedRouteName != null &&
         _appRouteObserver.currentRouteName == requestedRouteName;
     // A second read of the native pending Intent is common during startup:
     // main() consumes it before runApp, then this State checks again after its
@@ -346,7 +345,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _syncQuranAudioWidget(QuranCubit cubit) {
     final active =
-        cubit.quranSoundActive && cubit.surahNumber >= 1 && cubit.surahNumber <= 114;
+        cubit.quranSoundActive &&
+        cubit.surahNumber >= 1 &&
+        cubit.surahNumber <= 114;
     final hasTrack = cubit.surahNumber >= 1 && cubit.surahNumber <= 114;
     final widgetAyahNumber = cubit.currentAyahNumber;
     final widgetPageNumber = cubit.currentMushafPageNumber;
@@ -375,9 +376,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       'verseCount': hasTrack ? cubit.currentSurahVerseCount : 0,
       'surah': hasTrack ? cubit.surahName : '',
       'reciter': hasTrack ? cubit.displayReciter.nameArabic : '',
-      'reciterAvatarAsset': hasTrack
-          ? cubit.displayReciter.avatarAsset ?? ''
-          : '',
+      'reciterAvatarAsset':
+          hasTrack ? cubit.displayReciter.avatarAsset ?? '' : '',
       'positionMs': cubit.lastKnownAudioPositionMs,
       'durationMs': active ? cubit.audioDuration?.inMilliseconds ?? 0 : 0,
     };
@@ -401,23 +401,26 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (!mounted) return;
     final cubit = context.read<QuranCubit>();
     final savedSurah = CacheHelper.getData(key: 'quran_last_played_surah');
-    final surahNumber = cubit.surahNumber > 0
-        ? cubit.surahNumber
-        : (savedSurah is int ? savedSurah : 1).clamp(1, 114);
+    final surahNumber =
+        cubit.surahNumber > 0
+            ? cubit.surahNumber
+            : (savedSurah is int ? savedSurah : 1).clamp(1, 114);
     final savedAyah = CacheHelper.getData(
       key: 'quran_last_played_ayah_$surahNumber',
     );
-    final ayahNumber = cubit.surahNumber == surahNumber
-        ? cubit.currentAyahNumber
-        : savedAyah is int
+    final ayahNumber =
+        cubit.surahNumber == surahNumber
+            ? cubit.currentAyahNumber
+            : savedAyah is int
             ? savedAyah
             : 1;
     _openQuranReaderFromWidget(
       surahNumber,
       ayahNumber,
-      requestedPage: cubit.surahNumber == surahNumber
-          ? cubit.currentMushafPageNumber
-          : null,
+      requestedPage:
+          cubit.surahNumber == surahNumber
+              ? cubit.currentMushafPageNumber
+              : null,
     );
   }
 
@@ -442,19 +445,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final widgetMatch = RegExp(
       r'^quran_reader:(\d+):(\d+):(\d+)$',
     ).firstMatch(route);
-    final legacyWidgetMatch = widgetMatch == null
-        ? RegExp(r'^quran_reader:(\d+):(\d+)$').firstMatch(route)
-        : null;
+    final legacyWidgetMatch =
+        widgetMatch == null
+            ? RegExp(r'^quran_reader:(\d+):(\d+)$').firstMatch(route)
+            : null;
     final readerMatch = widgetMatch ?? legacyWidgetMatch;
     if (readerMatch != null) {
       final surahNumber = int.tryParse(readerMatch.group(1) ?? '');
       final hasPage = widgetMatch != null;
-      final pageNumber = hasPage
-          ? int.tryParse(readerMatch.group(2) ?? '')
-          : null;
-      final ayahNumber = int.tryParse(
-        readerMatch.group(hasPage ? 3 : 2) ?? '',
-      );
+      final pageNumber =
+          hasPage ? int.tryParse(readerMatch.group(2) ?? '') : null;
+      final ayahNumber = int.tryParse(readerMatch.group(hasPage ? 3 : 2) ?? '');
       if (surahNumber != null && ayahNumber != null) {
         _openQuranReaderFromWidget(
           surahNumber,
@@ -562,12 +563,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       return;
     }
     final surahNumber = requestedSurah.clamp(1, 114);
-    final ayahNumber = requestedAyah.clamp(
-      1,
-      quran.getVerseCount(surahNumber),
+    final ayahNumber = requestedAyah.clamp(1, quran.getVerseCount(surahNumber));
+    final correctPage = MushafLineLayoutData.pageNumber(
+      surahNumber,
+      ayahNumber,
     );
-    final correctPage = quran.getPageNumber(surahNumber, ayahNumber);
-    final pageNumber = requestedPage == correctPage ? requestedPage : correctPage;
+    final pageNumber =
+        requestedPage == correctPage ? requestedPage : correctPage;
     final routeName = '/quran-reader/$surahNumber';
     // Keep an app entry route beneath notification-launched readers so Back
     // always returns to the app instead of dismissing the Activity.
@@ -585,11 +587,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       navigator.push<void>(
         MaterialPageRoute<void>(
           settings: RouteSettings(name: routeName),
-          builder: (_) => SurahScreen(
-            surahNumber: surahNumber,
-            initialAyah: ayahNumber,
-            initialPageNumber: pageNumber,
-          ),
+          builder:
+              (_) => SurahScreen(
+                surahNumber: surahNumber,
+                initialAyah: ayahNumber,
+                initialPageNumber: pageNumber,
+              ),
         ),
       );
     });
@@ -651,50 +654,54 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         final theme =
             themeMode == ThemeMode.dark ? AppTheme.dark : AppTheme.light;
         return BlocBuilder<QuranCubit, QuranState>(
-          builder: (context, _) => AnimatedBuilder(
-            animation: _activeRouteName,
-            builder: (context, _) {
-              final isReaderRoute =
-                  _activeRouteName.value?.startsWith('/quran-reader/') ??
-                  false;
-              final quranCubit = context.read<QuranCubit>();
-              final isDark = theme.brightness == Brightness.dark;
-              final readerBackground = isDark
-                  ? quranCubit.darkReaderBackgroundColorValue
-                  : quranCubit.lightReaderBackgroundColorValue;
-              final insetColor = isReaderRoute
-                  ? Color(
-                    readerBackground ??
-                        QuranReaderBackgroundColors.defaultFor(isDark)
-                            .toARGB32(),
-                  )
-                  : quranCubit.quranSoundActive
-                  ? theme.colorScheme.surface
-                  : theme.scaffoldBackgroundColor;
-              return ColoredBox(
-                color: insetColor,
-                child: DismissKeyboardOnOutsideTap(
-                  child: SafeArea(
-                    child: AnnotatedRegion<SystemUiOverlayStyle>(
-                    value: SystemUiOverlayStyle(
-                      statusBarColor: insetColor,
-                      statusBarIconBrightness:
-                          isDark ? Brightness.light : Brightness.dark,
-                      statusBarBrightness:
-                          isDark ? Brightness.dark : Brightness.light,
-                      systemNavigationBarColor: insetColor,
-                      systemNavigationBarIconBrightness:
-                          isDark ? Brightness.light : Brightness.dark,
-                      systemNavigationBarDividerColor: insetColor,
-                      systemNavigationBarContrastEnforced: false,
+          builder:
+              (context, _) => AnimatedBuilder(
+                animation: _activeRouteName,
+                builder: (context, _) {
+                  final isReaderRoute =
+                      _activeRouteName.value?.startsWith('/quran-reader/') ??
+                      false;
+                  final quranCubit = context.read<QuranCubit>();
+                  final isDark = theme.brightness == Brightness.dark;
+                  final readerBackground =
+                      isDark
+                          ? quranCubit.darkReaderBackgroundColorValue
+                          : quranCubit.lightReaderBackgroundColorValue;
+                  final insetColor =
+                      isReaderRoute
+                          ? Color(
+                            readerBackground ??
+                                QuranReaderBackgroundColors.defaultFor(
+                                  isDark,
+                                ).toARGB32(),
+                          )
+                          : quranCubit.quranSoundActive
+                          ? theme.colorScheme.surface
+                          : theme.scaffoldBackgroundColor;
+                  return ColoredBox(
+                    color: insetColor,
+                    child: DismissKeyboardOnOutsideTap(
+                      child: SafeArea(
+                        child: AnnotatedRegion<SystemUiOverlayStyle>(
+                          value: SystemUiOverlayStyle(
+                            statusBarColor: insetColor,
+                            statusBarIconBrightness:
+                                isDark ? Brightness.light : Brightness.dark,
+                            statusBarBrightness:
+                                isDark ? Brightness.dark : Brightness.light,
+                            systemNavigationBarColor: insetColor,
+                            systemNavigationBarIconBrightness:
+                                isDark ? Brightness.light : Brightness.dark,
+                            systemNavigationBarDividerColor: insetColor,
+                            systemNavigationBarContrastEnforced: false,
+                          ),
+                          child: child ?? const SizedBox.shrink(),
+                        ),
+                      ),
                     ),
-                      child: child ?? const SizedBox.shrink(),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+                  );
+                },
+              ),
         );
       },
       scaffoldMessengerKey: AppSnackBar.messengerKey,
@@ -711,7 +718,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 (initialDestination.routeName.startsWith('/azkar-category-') ||
                     initialDestination.routeName == '/quran-home' ||
                     initialDestination.routeName == '/daily-wird' ||
-                    initialDestination.routeName.startsWith('/quran-reader/'))) ...[
+                    initialDestination.routeName.startsWith(
+                      '/quran-reader/',
+                    ))) ...[
               MaterialPageRoute<void>(
                 settings: const RouteSettings(name: '/home'),
                 builder: (_) => const StartUpScreen(),
@@ -722,9 +731,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               ),
             ] else if (initialDestination != null)
               MaterialPageRoute<void>(
-                settings: RouteSettings(
-                  name: initialDestination.routeName,
-                ),
+                settings: RouteSettings(name: initialDestination.routeName),
                 builder: (_) => initialDestination.page,
               )
             else

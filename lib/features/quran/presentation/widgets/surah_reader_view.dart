@@ -4,6 +4,7 @@ import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/widgets/mushaf_text_page.dart';
+import 'package:muslim/features/quran/presentation/widgets/mushaf_long_press_hint.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_audio_controls.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
 import 'package:muslim/features/quran/presentation/widgets/reader_controls_overlay.dart';
@@ -27,10 +28,10 @@ class SurahReaderView extends StatelessWidget {
     this.searchHighlightSurah,
     this.searchHighlightAyah,
     required this.palette,
+    this.showLongPressHint = false,
+    this.onDismissLongPressHint,
     required this.onToggleControls,
     required this.onBookmark,
-    required this.onFontDecrease,
-    required this.onFontIncrease,
     required this.onPrevious,
     required this.onNext,
     required this.onBack,
@@ -56,10 +57,10 @@ class SurahReaderView extends StatelessWidget {
   final int? searchHighlightSurah;
   final int? searchHighlightAyah;
   final QuranReaderPalette palette;
+  final bool showLongPressHint;
+  final VoidCallback? onDismissLongPressHint;
   final VoidCallback onToggleControls;
   final VoidCallback onBookmark;
-  final VoidCallback onFontDecrease;
-  final VoidCallback onFontIncrease;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final VoidCallback onBack;
@@ -80,15 +81,64 @@ class SurahReaderView extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Directionality(
-              textDirection: TextDirection.rtl,
-              child: PageView.builder(
-                controller: pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: quran.totalPagesCount,
-                onPageChanged: onPageChanged,
-                itemBuilder:
-                    (context, index) => MushafTextPage(
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      reverseDuration: const Duration(milliseconds: 180),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, -.08),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      ),
+                      child: showLongPressHint
+                          ? Padding(
+                            key: const ValueKey('mushaf-long-press-hint-wrap'),
+                            padding: const EdgeInsetsDirectional.fromSTEB(
+                              16,
+                              56,
+                              16,
+                              12,
+                            ),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 440),
+                                child: MushafLongPressHint(
+                                  key: const ValueKey('mushaf-long-press-hint'),
+                                  palette: palette,
+                                  onDismiss: onDismissLongPressHint ?? () {},
+                                ),
+                              ),
+                            ),
+                          )
+                          : const SizedBox.shrink(
+                              key: ValueKey('mushaf-long-press-hint-hidden'),
+                            ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Directionality(
+                      textDirection: TextDirection.rtl,
+                      child: PageView.builder(
+                        controller: pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: quran.totalPagesCount,
+                        onPageChanged: onPageChanged,
+                        itemBuilder:
+                            (context, index) => MushafTextPage(
                       pageNumber: index + 1,
                       zoomController: zoomController,
                       zoomScale: zoomScale,
@@ -113,9 +163,13 @@ class SurahReaderView extends StatelessWidget {
                       onAyahLongPress: onAyahLongPress,
                       onSwipeLeft: onSwipeLeft,
                       onSwipeRight: onSwipeRight,
+                            ),
+                      ),
                     ),
+                  ),
+                ],
               ),
-            ),
+              ),
             IgnorePointer(
               ignoring: !controlsVisible,
               child: AnimatedOpacity(
@@ -124,12 +178,9 @@ class SurahReaderView extends StatelessWidget {
                 child: ReaderControlsOverlay(
                   pageNumber: pageNumber,
                   pageCount: quran.totalPagesCount,
-                  fontSize: fontSize,
                   palette: palette,
                   bookmarked: bookmarked,
                   onBookmark: onBookmark,
-                  onFontDecrease: onFontDecrease,
-                  onFontIncrease: onFontIncrease,
                   onPrevious: onPrevious,
                   onNext: onNext,
                   onBack: onBack,

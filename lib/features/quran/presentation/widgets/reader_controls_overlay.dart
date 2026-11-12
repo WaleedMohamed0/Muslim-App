@@ -6,12 +6,9 @@ class ReaderControlsOverlay extends StatelessWidget {
   const ReaderControlsOverlay({
     required this.pageNumber,
     required this.pageCount,
-    required this.fontSize,
     required this.palette,
     required this.bookmarked,
     required this.onBookmark,
-    required this.onFontDecrease,
-    required this.onFontIncrease,
     required this.onPrevious,
     required this.onNext,
     required this.onBack,
@@ -20,12 +17,9 @@ class ReaderControlsOverlay extends StatelessWidget {
 
   final int pageNumber;
   final int pageCount;
-  final double fontSize;
   final QuranReaderPalette palette;
   final bool bookmarked;
   final VoidCallback onBookmark;
-  final VoidCallback onFontDecrease;
-  final VoidCallback onFontIncrease;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final VoidCallback onBack;
@@ -104,9 +98,6 @@ class ReaderControlsOverlay extends StatelessWidget {
                           _ReaderIconButton(icon: bookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, tooltip: bookmarked ? 'إزالة علامة الصفحة' : 'حفظ الصفحة', palette: palette, onPressed: onBookmark),
                         ]),
                         Row(children: [
-                          _ReaderIconButton(icon: Icons.remove, tooltip: 'تصغير الخط', palette: palette, size: 36, onPressed: fontSize > 22 ? onFontDecrease : null),
-                          Padding(padding: const EdgeInsetsDirectional.symmetric(horizontal: 12), child: Text('حجم الخط  ${fontSize.round()}', style: TextStyle(color: palette.text, fontSize: 12, fontWeight: FontWeight.w600))),
-                          _ReaderIconButton(icon: Icons.add, tooltip: 'تكبير الخط', palette: palette, size: 36, onPressed: fontSize < 32 ? onFontIncrease : null),
                           const Spacer(),
                           Text('صفحة ${toArabicIndicDigits(pageNumber)} من ${toArabicIndicDigits(pageCount)}', style: TextStyle(color: palette.muted, fontSize: 11, fontWeight: FontWeight.w600)),
                         ]),

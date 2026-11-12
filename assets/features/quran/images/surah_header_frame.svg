@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 120" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+  <g stroke-width="2.2">
+    <rect x="8" y="9" width="984" height="102" rx="10"/>
+    <rect x="17" y="17" width="966" height="86" rx="6" stroke-width="1.2"/>
+    <!-- The open central cartouche is reserved for the live Surah title. -->
+    <path d="M278 18H722Q740 18 752 31Q766 45 783 45H833V75H783Q766 75 752 89Q740 102 722 102H278Q260 102 248 89Q234 75 217 75H167V45H217Q234 45 248 31Q260 18 278 18Z"/>
+    <path d="M286 25H714Q733 25 746 40Q759 52 777 52M286 95H714Q733 95 746 80Q759 68 777 68" stroke-width="1.1"/>
+    <path d="M223 39L235 27M223 81L235 93M777 39L765 27M777 81L765 93" stroke-width="1.4"/>
+  </g>
+
+  <!-- Matched rosettes and interlaced corner panels echo printed Mushaf rules. -->
+  <g stroke-width="1.65">
+    <path d="M27 25H147Q161 25 169 37L181 60 169 83Q161 95 147 95H27M973 25H853Q839 25 831 37L819 60 831 83Q839 95 853 95H973"/>
+    <path d="M33 32H142Q154 32 161 43L170 60 161 77Q154 88 142 88H33M967 32H858Q846 32 839 43L830 60 839 77Q846 88 858 88H967" stroke-width="1"/>
+    <path d="M43 39Q57 60 43 81Q68 81 78 60Q68 39 43 39ZM957 39Q943 60 957 81Q932 81 922 60Q932 39 957 39Z"/>
+    <circle cx="111" cy="60" r="22"/><circle cx="889" cy="60" r="22"/>
+    <circle cx="111" cy="60" r="17" stroke-width="1"/><circle cx="889" cy="60" r="17" stroke-width="1"/>
+    <path d="M111 43L116 54 127 49 121 60 127 71 116 66 111 77 106 66 95 71 101 60 95 49 106 54Z"/>
+    <path d="M889 43L894 54 905 49 899 60 905 71 894 66 889 77 884 66 873 71 879 60 873 49 884 54Z"/>
+    <circle cx="111" cy="60" r="3"/><circle cx="889" cy="60" r="3"/>
+    <path d="M181 42L197 60 181 78M819 42L803 60 819 78"/>
+    <path d="M190 50L199 60 190 70M810 50L801 60 810 70" stroke-width="1"/>
+    <path d="M60 28L67 35M940 28L933 35M60 92L67 85M940 92L933 85"/>
+  </g>
+  <g fill="#000" stroke="none">
+    <circle cx="30" cy="25" r="2.3"/><circle cx="30" cy="95" r="2.3"/>
+    <circle cx="970" cy="25" r="2.3"/><circle cx="970" cy="95" r="2.3"/>
+    <circle cx="67" cy="35" r="1.8"/><circle cx="933" cy="35" r="1.8"/>
+    <circle cx="67" cy="85" r="1.8"/><circle cx="933" cy="85" r="1.8"/>
+    <circle cx="197" cy="60" r="2"/><circle cx="803" cy="60" r="2"/>
+  </g>
+</svg>

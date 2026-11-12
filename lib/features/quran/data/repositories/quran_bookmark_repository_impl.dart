@@ -1,4 +1,5 @@
 import 'package:quran/quran.dart' as quran;
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 
 import '../../../../core/storage/cache_helper.dart';
 import '../../domain/entities/quran_bookmark.dart';
@@ -50,7 +51,7 @@ class QuranBookmarkRepositoryImpl implements QuranBookmarkRepository {
       return <int>[];
     }
     final ayah = oldAyah.clamp(1, quran.getVerseCount(surah)).toInt();
-    final migratedPage = quran.getPageNumber(surah, ayah);
+    final migratedPage = MushafLineLayoutData.pageNumber(surah, ayah);
     final pages = [migratedPage];
     await savePageBookmarks(pages);
     await CacheHelper.removeData(key: 'surahName');
@@ -102,10 +103,7 @@ class QuranBookmarkRepositoryImpl implements QuranBookmarkRepository {
     if (validPages.isEmpty) {
       await CacheHelper.removeData(key: _pageBookmarkKey);
     } else {
-      await CacheHelper.saveData(
-        key: _pageBookmarkKey,
-        value: validPages.last,
-      );
+      await CacheHelper.saveData(key: _pageBookmarkKey, value: validPages.last);
     }
     await CacheHelper.removeData(key: 'surahName');
     await CacheHelper.removeData(key: 'surahNumber');
