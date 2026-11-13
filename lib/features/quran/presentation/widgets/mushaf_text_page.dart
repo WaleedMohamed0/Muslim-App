@@ -18,7 +18,6 @@ class MushafTextPage extends StatefulWidget {
     required this.pageNumber,
     required this.zoomController,
     required this.zoomScale,
-    required this.fontSize,
     required this.palette,
     required this.onAyahLongPress,
     required this.onInteractionEnd,
@@ -32,7 +31,6 @@ class MushafTextPage extends StatefulWidget {
   final int pageNumber;
   final TransformationController zoomController;
   final double zoomScale;
-  final double fontSize;
   final QuranReaderPalette palette;
   final void Function(int surahNumber, int verseNumber) onAyahLongPress;
   final VoidCallback onInteractionEnd;
@@ -105,14 +103,30 @@ class MushafTextPageState extends State<MushafTextPage> {
             // page vertically to the viewport once its full height is shown.
             boundaryMargin: const EdgeInsets.symmetric(horizontal: 28),
             onInteractionEnd: (_) => widget.onInteractionEnd(),
-            child: _MushafPageContent(
-              pageNumber: widget.pageNumber,
-              palette: widget.palette,
-              fontSize: widget.fontSize,
-              highlightedSurahNumber: widget.highlightedSurahNumber,
-              highlightedAyahNumber: widget.highlightedAyahNumber,
-              bookmarkedAyahKeys: widget.bookmarkedAyahKeys,
-              onAyahLongPress: widget.onAyahLongPress,
+            child: LayoutBuilder(
+              builder: (context, pageConstraints) {
+                const scrollable = false;
+                final page = SizedBox(
+                  width: pageConstraints.maxWidth,
+                  height: scrollable ? null : pageConstraints.maxHeight,
+                  child: _MushafPageContent(
+                    pageNumber: widget.pageNumber,
+                    palette: widget.palette,
+                    fontSize: 23.0,
+                    scrollable: scrollable,
+                    highlightedSurahNumber: widget.highlightedSurahNumber,
+                    highlightedAyahNumber: widget.highlightedAyahNumber,
+                    bookmarkedAyahKeys: widget.bookmarkedAyahKeys,
+                    onAyahLongPress: widget.onAyahLongPress,
+                  ),
+                );
+                if (!scrollable) return page;
+                return SingleChildScrollView(
+                  primary: false,
+                  physics: const ClampingScrollPhysics(),
+                  child: page,
+                );
+              },
             ),
           ),
         ),

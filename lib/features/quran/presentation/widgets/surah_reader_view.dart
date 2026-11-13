@@ -5,6 +5,7 @@ import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/widgets/mushaf_text_page.dart';
 import 'package:muslim/features/quran/presentation/widgets/mushaf_long_press_hint.dart';
+import 'package:muslim/features/quran/presentation/widgets/mushaf_zoom_hint.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_audio_controls.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
 import 'package:muslim/features/quran/presentation/widgets/reader_controls_overlay.dart';
@@ -17,7 +18,6 @@ class SurahReaderView extends StatelessWidget {
     required this.pageController,
     required this.zoomController,
     required this.pageIndex,
-    required this.fontSize,
     required this.zoomScale,
     required this.controlsVisible,
     required this.bookmarked,
@@ -30,11 +30,14 @@ class SurahReaderView extends StatelessWidget {
     required this.palette,
     this.showLongPressHint = false,
     this.onDismissLongPressHint,
+    this.showZoomHint = false,
+    this.onDismissZoomHint,
     required this.onToggleControls,
     required this.onBookmark,
     required this.onPrevious,
     required this.onNext,
     required this.onBack,
+    required this.onOpenPageSlider,
     required this.onPageChanged,
     required this.onInteractionEnd,
     required this.onAyahLongPress,
@@ -46,7 +49,6 @@ class SurahReaderView extends StatelessWidget {
   final PageController pageController;
   final TransformationController zoomController;
   final int pageIndex;
-  final double fontSize;
   final double zoomScale;
   final bool controlsVisible;
   final bool bookmarked;
@@ -59,11 +61,14 @@ class SurahReaderView extends StatelessWidget {
   final QuranReaderPalette palette;
   final bool showLongPressHint;
   final VoidCallback? onDismissLongPressHint;
+  final bool showZoomHint;
+  final VoidCallback? onDismissZoomHint;
   final VoidCallback onToggleControls;
   final VoidCallback onBookmark;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final VoidCallback onBack;
+  final VoidCallback onOpenPageSlider;
   final ValueChanged<int> onPageChanged;
   final VoidCallback onInteractionEnd;
   final void Function(int surahNumber, int verseNumber) onAyahLongPress;
@@ -142,7 +147,6 @@ class SurahReaderView extends StatelessWidget {
                       pageNumber: index + 1,
                       zoomController: zoomController,
                       zoomScale: zoomScale,
-                      fontSize: fontSize,
                       palette: palette,
                       highlightedSurahNumber: searchHighlightAyah != null
                           ? searchHighlightSurah
@@ -184,6 +188,7 @@ class SurahReaderView extends StatelessWidget {
                   onPrevious: onPrevious,
                   onNext: onNext,
                   onBack: onBack,
+                  onOpenPageSlider: onOpenPageSlider,
                   audioControls: QuranReaderAudioControls(
                     cubit: cubit,
                     palette: palette,
@@ -211,6 +216,24 @@ class SurahReaderView extends StatelessWidget {
                     style: TextStyle(
                       color: palette.muted.withValues(alpha: .72),
                       fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+            if (showZoomHint)
+              PositionedDirectional(
+                top: 12,
+                start: 16,
+                end: 16,
+                child: SafeArea(
+                  bottom: false,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 390),
+                      child: MushafZoomHint(
+                        palette: palette,
+                        onDismiss: onDismissZoomHint ?? () {},
+                      ),
                     ),
                   ),
                 ),

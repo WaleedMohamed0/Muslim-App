@@ -911,10 +911,7 @@ class QuranCubit extends Cubit<QuranState> {
 
   Future<void> loadBookmark() async {
     pageBookmarks = await _bookmarkRepository.readPageBookmarks();
-    bookmark =
-        pageBookmarks.isEmpty
-            ? null
-            : QuranBookmark(pageNumber: pageBookmarks.last);
+    bookmark = await _bookmarkRepository.read();
     ayahBookmarks = await _bookmarkRepository.readAyahBookmarks();
     emit(_nextState);
   }
@@ -1124,16 +1121,24 @@ class QuranCubit extends Cubit<QuranState> {
     emit(_nextState);
   }
 
-  Future<void> togglePageBookmark(int mushafPageNumber) async {
-    pageBookmarks = [...pageBookmarks];
-    if (!pageBookmarks.remove(mushafPageNumber)) {
-      pageBookmarks.add(mushafPageNumber);
-    }
+  Future<void> togglePageBookmark(
+    int mushafPageNumber, {
+    int? locationSurahNumber,
+    int? locationAyahNumber,
+  }) async {
+    final removing = pageBookmarks.contains(mushafPageNumber);
+    final location = removing ? null : QuranBookmark(
+      pageNumber: mushafPageNumber,
+      surahNumber: locationSurahNumber ?? surahNumber,
+      ayahNumber: locationAyahNumber ?? currentPageNumber,
+    );
+    pageBookmarks = removing ? <int>[] : <int>[mushafPageNumber];
     await _bookmarkRepository.savePageBookmarks(pageBookmarks);
+    if (location != null) await _bookmarkRepository.save(location);
     bookmark =
         pageBookmarks.isEmpty
             ? null
-            : QuranBookmark(pageNumber: pageBookmarks.last);
+            : (await _bookmarkRepository.read());
     emit(_nextState);
   }
 

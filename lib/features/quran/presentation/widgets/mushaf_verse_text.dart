@@ -66,6 +66,7 @@ class _PageVerseTextState extends State<_PageVerseText> {
               // The medallion is 29px wide; keep its layout box at that
               // width so the surrounding word gaps stay close to the print.
               width: 29,
+              isWord: false,
               build: () => GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onLongPress: recognizer.onLongPress,
@@ -118,6 +119,7 @@ class _PageVerseTextState extends State<_PageVerseText> {
         items.add(
           _MushafLineItem(
             width: painter.width,
+            isWord: true,
               build: () => GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onLongPress: recognizer.onLongPress,
@@ -145,15 +147,18 @@ class _PageVerseTextState extends State<_PageVerseText> {
         return const SizedBox.shrink();
       }
 
-      const minimumGap = 0.0;
-      final gapCount = items.length - 1;
-      final naturalWidth =
-          items.fold<double>(0, (sum, item) => sum + item.width) +
-          minimumGap * gapCount;
-      final extraGap =
-          widget.isCentered || gapCount == 0
-              ? 0.0
-              : math.max(0.0, (constraints.maxWidth - naturalWidth) / gapCount);
+      final gapWidths = _mushafWordGapWidths(
+        items,
+        widget.isCentered
+            ? 0
+            : math.max(
+                0.0,
+                constraints.maxWidth - items.fold<double>(
+                  0,
+                  (sum, item) => sum + item.width,
+                ),
+              ),
+      );
       final children = <Widget>[];
       for (var index = 0; index < items.length; index++) {
         final item = items[index];
@@ -163,8 +168,8 @@ class _PageVerseTextState extends State<_PageVerseText> {
             child: Center(child: item.build()),
           ),
         );
-        if (index < gapCount) {
-          children.add(SizedBox(width: minimumGap + extraGap));
+        if (index < items.length - 1) {
+          children.add(SizedBox(width: gapWidths[index]));
         }
       }
 
@@ -174,19 +179,12 @@ class _PageVerseTextState extends State<_PageVerseText> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: children,
       );
-
-      // Keep every Quran line at the shared Mushaf font size. The Madinah
-      // line map supplies the line breaks, so avoid scaling individual lines
-      // to compensate for a width mismatch.
       final alignment = widget.isCentered
           ? Alignment.center
           : AlignmentDirectional.centerStart;
       final lineContent = SizedBox(
         width: constraints.maxWidth,
         child: FittedBox(
-          // The Madinah line map is designed for a reference page width.
-          // On narrower or fractional-width screens, scale only the rare
-          // line that cannot fit instead of letting its Row overflow.
           fit: BoxFit.scaleDown,
           alignment: alignment,
           child: line,
@@ -210,10 +208,67 @@ class _PageVerseTextState extends State<_PageVerseText> {
 }
 
 class _MushafLineItem {
-  const _MushafLineItem({required this.width, required this.build});
+  const _MushafLineItem({
+    required this.width,
+    required this.isWord,
+    required this.build,
+  });
 
   final double width;
+  final bool isWord;
   final Widget Function() build;
+}
+
+/// Allocates spare line width only to gaps between Quran words. Verse markers
+/// keep their fixed width and never receive expansion on either side.
+List<double> _mushafWordGapWidths(
+  List<_MushafLineItem> items,
+  double availableWidth,
+) {
+  final gaps = List<double>.filled(math.max(0, items.length - 1).toInt(), 0);
+  if (availableWidth <= 0 || gaps.isEmpty) return gaps;
+
+  final eligible = <int>[];
+  final weights = <int, double>{};
+  for (var index = 0; index < gaps.length; index++) {
+    final before = items[index];
+    final after = items[index + 1];
+    if (!before.isWord || !after.isWord) continue;
+    eligible.add(index);
+    // A mild width-based weight gives larger neighboring words a little more
+    // breathing room without allowing one gap to dominate the line.
+    weights[index] = math
+        .sqrt((before.width + after.width) / 2)
+        .clamp(1.0, double.infinity)
+        .toDouble();
+  }
+  if (eligible.isEmpty) return gaps;
+
+  final averageGap = availableWidth / eligible.length;
+  final maximumGap = averageGap * 1.5;
+  var remainingWidth = availableWidth;
+  var remaining = eligible.toSet();
+  while (remaining.isNotEmpty && remainingWidth > 0) {
+    final totalWeight = remaining.fold<double>(
+      0,
+      (sum, index) => sum + weights[index]!,
+    );
+    final capped = remaining.where(
+      (index) => remainingWidth * weights[index]! / totalWeight > maximumGap,
+    ).toList();
+    if (capped.isEmpty) {
+      for (final index in remaining) {
+        gaps[index] = remainingWidth * weights[index]! / totalWeight;
+      }
+      break;
+    }
+    for (final index in capped) {
+      gaps[index] = maximumGap;
+      remainingWidth -= maximumGap;
+      remaining.remove(index);
+    }
+  }
+  return gaps;
 }
 
 final Map<(int, int), List<String>> _sourceWordCache = {};

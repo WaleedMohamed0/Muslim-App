@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/quran/presentation/controllers/surah_reader_controller.dart';
 import 'package:muslim/features/quran/data/data_sources/mushaf_long_press_hint_preferences.dart';
+import 'package:muslim/features/quran/data/data_sources/mushaf_zoom_hint_preferences.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
@@ -49,8 +51,13 @@ class _SurahScreenState extends State<SurahScreen> {
   late bool _searchHighlightActive;
   Timer? _searchHighlightTimer;
   bool _showLongPressHint = false;
+  bool _showZoomHint = false;
+  bool _zoomHintPending = false;
+  Timer? _zoomHintTimer;
   final MushafLongPressHintPreferences _hintPreferences =
       const MushafLongPressHintPreferences();
+  final MushafZoomHintPreferences _zoomHintPreferences =
+      const MushafZoomHintPreferences();
 
   @override
   void initState() {
@@ -63,7 +70,7 @@ class _SurahScreenState extends State<SurahScreen> {
     }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _cubit = context.read<QuranCubit>();
-    unawaited(_loadLongPressHint());
+    unawaited(_loadHints());
     _reader = SurahReaderController(
       cubit: _cubit,
       initialSurah: widget.surahNumber,
@@ -78,17 +85,53 @@ class _SurahScreenState extends State<SurahScreen> {
     )..addListener(_handleReaderChanged);
   }
 
-  Future<void> _loadLongPressHint() async {
-    if (await _hintPreferences.hasBeenShown() && mounted) return;
+  Future<void> _loadHints() async {
+    final longPressWasShown = await _hintPreferences.hasBeenShown();
+    final zoomWasShown = await _zoomHintPreferences.hasBeenShown();
     if (!mounted) return;
-    setState(() => _showLongPressHint = true);
-    await _hintPreferences.markShown();
+
+    if (!longPressWasShown) {
+      setState(() {
+        _showLongPressHint = true;
+        _zoomHintPending = !zoomWasShown;
+      });
+      unawaited(_hintPreferences.markShown());
+      return;
+    }
+
+    if (!zoomWasShown) _showZoomHintNow();
+  }
+
+  void _showZoomHintNow() {
+    if (!mounted) return;
+    setState(() {
+      _showZoomHint = true;
+      _zoomHintPending = false;
+    });
+    unawaited(_zoomHintPreferences.markShown());
+    _zoomHintTimer = Timer(const Duration(seconds: 5), _dismissZoomHint);
+  }
+
+  void _dismissZoomHint() {
+    _zoomHintTimer?.cancel();
+    if (!_showZoomHint) return;
+    setState(() => _showZoomHint = false);
   }
 
   void _dismissLongPressHint() {
     if (!_showLongPressHint) return;
-    setState(() => _showLongPressHint = false);
+    final showZoomNext = _zoomHintPending;
+    setState(() {
+      _showLongPressHint = false;
+      _zoomHintPending = false;
+    });
     unawaited(_hintPreferences.markShown());
+    if (showZoomNext) unawaited(_showZoomHintAfterLongPress());
+  }
+
+  Future<void> _showZoomHintAfterLongPress() async {
+    await Future<void>.delayed(const Duration(milliseconds: 220));
+    if (mounted) _showZoomHintNow();
   }
 
   void _handleReaderChanged() {
@@ -157,6 +200,7 @@ class _SurahScreenState extends State<SurahScreen> {
       ..removeListener(_handleReaderChanged)
       ..dispose();
     _searchHighlightTimer?.cancel();
+    _zoomHintTimer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -201,7 +245,6 @@ class _SurahScreenState extends State<SurahScreen> {
           pageController: _reader.pageController,
           zoomController: _reader.zoomController,
           pageIndex: _reader.pageIndex,
-          fontSize: _reader.fontSize,
           zoomScale: _reader.zoomScale,
           controlsVisible: _reader.controlsVisible,
           bookmarked: _reader.isCurrentPageBookmarked,
@@ -214,6 +257,8 @@ class _SurahScreenState extends State<SurahScreen> {
           palette: palette,
           showLongPressHint: _showLongPressHint,
           onDismissLongPressHint: _dismissLongPressHint,
+          showZoomHint: _showZoomHint,
+          onDismissZoomHint: _dismissZoomHint,
           onToggleControls: _reader.toggleControls,
           onBookmark: () => unawaited(_toggleCurrentPageBookmark()),
           onPrevious:
@@ -221,6 +266,7 @@ class _SurahScreenState extends State<SurahScreen> {
           onNext:
               _reader.isLastPage ? null : () => _reader.turnPage(next: true),
           onBack: () => Navigator.of(context).maybePop(),
+          onOpenPageSlider: () => _showPageSlider(context, palette),
           onPageChanged:
               (index) => _reader.handlePageChanged(index, widget.surahNumber),
           onInteractionEnd: _reader.syncZoomScale,
@@ -231,4 +277,62 @@ class _SurahScreenState extends State<SurahScreen> {
       );
     },
   );
+
+  void _showPageSlider(BuildContext context, QuranReaderPalette palette) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: palette.surface,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        var selectedPage = _reader.pageNumber;
+        return StatefulBuilder(
+          builder: (context, setSheetState) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'الانتقال إلى صفحة',
+                    style: TextStyle(
+                      color: palette.muted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'صفحة ${toArabicIndicDigits(selectedPage)} من ${toArabicIndicDigits(quran.totalPagesCount)}',
+                    style: TextStyle(
+                      color: palette.accent,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Slider(
+                    min: 1,
+                    max: quran.totalPagesCount.toDouble(),
+                    divisions: quran.totalPagesCount - 1,
+                    value: selectedPage.toDouble(),
+                    activeColor: palette.accent,
+                    inactiveColor: palette.muted.withValues(alpha: .25),
+                    onChanged: (value) {
+                      final page = value.round().clamp(1, quran.totalPagesCount);
+                      setSheetState(() => selectedPage = page);
+                      _reader.scrubToPage(page);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 }

@@ -43,6 +43,7 @@ class SavedBookmarksDialog {
                   cubit,
                   surahNumber,
                   firstAyah,
+                  pageNumber,
                   rawName == 'اللهب' ? 'المسد' : rawName,
                 ),
           );
@@ -165,10 +166,6 @@ class SavedBookmarksDialog {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text(isArabic ? 'البدء من جديد' : 'Start over'),
-              ),
               if (latestPageBookmark != null) ...[
                 TextButton.icon(
                   onPressed: () {
@@ -202,6 +199,7 @@ class SavedBookmarksDialog {
     QuranCubit cubit,
     int surahNumber,
     int firstAyah,
+    int pageNumber,
     String surahName,
   ) async {
     Navigator.of(dialogContext).pop();
@@ -212,7 +210,14 @@ class SavedBookmarksDialog {
       online: cubit.isOnline,
     );
     if (!context.mounted) return;
-    navigateTo(context, SurahScreen(surahNumber: surahNumber));
+    navigateTo(
+      context,
+      SurahScreen(
+        surahNumber: surahNumber,
+        initialAyah: firstAyah,
+        initialPageNumber: pageNumber,
+      ),
+    );
   }
 
   static Future<void> _openSavedAyah(
@@ -231,7 +236,10 @@ class SavedBookmarksDialog {
       online: cubit.isOnline,
     );
     if (!context.mounted) return;
-    navigateTo(context, SurahScreen(surahNumber: surahNumber));
+    navigateTo(
+      context,
+      SurahScreen(surahNumber: surahNumber, initialAyah: ayahNumber),
+    );
   }
 
   static Future<void> _continueReading(
@@ -242,7 +250,9 @@ class SavedBookmarksDialog {
     final pageEntries = MushafLineLayoutData.pageData(bookmark.pageNumber);
     final firstEntry = pageEntries.first;
     final surahNumber = (firstEntry['surah'] as num).toInt();
-    final firstAyah = (firstEntry['start'] as num).toInt();
+    final firstAyah = bookmark.surahNumber == surahNumber
+        ? (bookmark.ayahNumber ?? (firstEntry['start'] as num).toInt())
+        : (firstEntry['start'] as num).toInt();
     final rawName = quran.getSurahNameArabic(surahNumber);
     final surahName = rawName == 'اللهب' ? 'المسد' : rawName;
     await cubit.selectSurah(surahNumber, surahName, online: cubit.isOnline);
@@ -259,7 +269,9 @@ class SavedBookmarksDialog {
     final pageEntries = MushafLineLayoutData.pageData(bookmark.pageNumber);
     final firstEntry = pageEntries.first;
     final surahNumber = (firstEntry['surah'] as num).toInt();
-    final firstAyah = (firstEntry['start'] as num).toInt();
+    final firstAyah = bookmark.surahNumber == surahNumber
+        ? (bookmark.ayahNumber ?? (firstEntry['start'] as num).toInt())
+        : (firstEntry['start'] as num).toInt();
     await cubit.playFromAyahBookmark(surahNumber, firstAyah);
     if (!context.mounted) return;
     navigateTo(context, SurahScreen(surahNumber: surahNumber));

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/features/quran/data/data_sources/uthmani_quran_text.dart';
+import 'package:muslim/features/quran/domain/entities/quran_bookmark.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
 
@@ -26,7 +27,7 @@ class SurahReaderController extends ChangeNotifier {
     final savedReaderPosition = cubit.lastReaderAyahForSurah(initialSurah);
     final savedPlaybackPosition = cubit.lastAyahForSurah(initialSurah);
     final bookmarkedAyah = _bookmarkAyahForSurah(
-      cubit.bookmark?.pageNumber,
+      cubit.bookmark,
       initialSurah,
     );
     final initialVerse =
@@ -74,7 +75,9 @@ class SurahReaderController extends ChangeNotifier {
     _scheduleControlsHide();
   }
 
-  static const double _fontSize = 23.0;
+  static const double minimumZoomScale = 1.0;
+  static const double maximumZoomScale = 3.0;
+  static const double zoomStep = .25;
 
   final QuranCubit cubit;
   final void Function(int page, int surah, int ayah)? _onPageRead;
@@ -104,8 +107,9 @@ class SurahReaderController extends ChangeNotifier {
   int get visibleSurahNumber => _visibleSurahNumber;
   int get currentAyah => _readerCurrentAyah;
   String get surahName => _surahName;
-  double get fontSize => _fontSize;
   double get zoomScale => _zoomScale;
+  bool get canZoomOut => _zoomScale > minimumZoomScale;
+  bool get canZoomIn => _zoomScale < maximumZoomScale;
   bool get controlsVisible => _controlsVisible;
   bool get isFirstPage => _pageIndex == (_minimumPageNumber ?? 1) - 1;
   bool get isLastPage =>
@@ -125,9 +129,12 @@ class SurahReaderController extends ChangeNotifier {
     return null;
   }
 
-  static int? _bookmarkAyahForSurah(int? mushafPage, int surahNumber) {
-    if (mushafPage == null) return null;
-    for (final section in MushafLineLayoutData.pageData(mushafPage)) {
+  static int? _bookmarkAyahForSurah(QuranBookmark? bookmark, int surahNumber) {
+    if (bookmark == null) return null;
+    if (bookmark.surahNumber == surahNumber && bookmark.ayahNumber != null) {
+      return bookmark.ayahNumber;
+    }
+    for (final section in MushafLineLayoutData.pageData(bookmark.pageNumber)) {
       if (section['surah'] == surahNumber) {
         return section['start'];
       }
@@ -150,6 +157,22 @@ class SurahReaderController extends ChangeNotifier {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  void goToPage(int pageNumber) {
+    final target = pageNumber.clamp(1, quran.totalPagesCount).toInt() - 1;
+    if (target == _pageIndex) return;
+    pageController.animateToPage(
+      target,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void scrubToPage(int pageNumber) {
+    final target = pageNumber.clamp(1, quran.totalPagesCount).toInt() - 1;
+    if (target == _pageIndex) return;
+    pageController.jumpToPage(target);
   }
 
   void handlePageChanged(int index, int initialSurah) {
@@ -201,6 +224,16 @@ class SurahReaderController extends ChangeNotifier {
     _scheduleControlsHide();
   }
 
+  void adjustZoom(double delta) {
+    final next = (_zoomScale + delta)
+        .clamp(minimumZoomScale, maximumZoomScale)
+        .toDouble();
+    if (next == _zoomScale) return;
+    zoomController.value = Matrix4.diagonal3Values(next, next, 1);
+    _zoomScale = next;
+    notifyListeners();
+  }
+
   void selectAyah(int surahNumber, int verseNumber) {
     _surahName = _surahNameFor(surahNumber);
     _visibleSurahNumber = surahNumber;
@@ -215,7 +248,7 @@ class SurahReaderController extends ChangeNotifier {
   void syncZoomScale() {
     if (_disposed) return;
     final scale =
-        zoomController.value.getMaxScaleOnAxis().clamp(1.0, 3.0).toDouble();
+        zoomController.value.getMaxScaleOnAxis().clamp(minimumZoomScale, maximumZoomScale).toDouble();
     if ((scale - _zoomScale).abs() > .02) {
       _zoomScale = scale;
       notifyListeners();
@@ -231,7 +264,11 @@ class SurahReaderController extends ChangeNotifier {
   Future<int?> togglePageBookmark() async {
     final page = pageNumber;
     final wasBookmarked = cubit.pageBookmarks.contains(page);
-    await cubit.togglePageBookmark(page);
+    await cubit.togglePageBookmark(
+      page,
+      locationSurahNumber: _visibleSurahNumber,
+      locationAyahNumber: _readerCurrentAyah,
+    );
     if (!_disposed) notifyListeners();
     if (wasBookmarked) return null;
     final first = MushafLineLayoutData.pageData(page).first;

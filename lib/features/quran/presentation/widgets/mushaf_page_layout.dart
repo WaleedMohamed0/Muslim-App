@@ -33,6 +33,7 @@ class _MushafPageContent extends StatelessWidget {
     required this.pageNumber,
     required this.palette,
     required this.fontSize,
+    required this.scrollable,
     required this.highlightedSurahNumber,
     required this.highlightedAyahNumber,
     required this.bookmarkedAyahKeys,
@@ -42,6 +43,7 @@ class _MushafPageContent extends StatelessWidget {
   final int pageNumber;
   final QuranReaderPalette palette;
   final double fontSize;
+  final bool scrollable;
   final int? highlightedSurahNumber;
   final int? highlightedAyahNumber;
   final Set<String> bookmarkedAyahKeys;
@@ -60,9 +62,23 @@ class _MushafPageContent extends StatelessWidget {
       // Leave a little extra room for the widest Arabic lines and header text
       // on fractional-width screens, where an exact fit can round outward.
       const horizontalInset = 8.5;
-      const verseLineHeight = 1.55;
+      // Give larger reader text a little more vertical breathing room while
+      // keeping the existing row layout and its sizing behavior unchanged.
+      final verseLineHeight = (1.55 + (fontSize - 23.0) * 0.01)
+          .clamp(1.55, 1.67)
+          .toDouble();
       final pageRows = <({Widget child, bool flexible})>[];
       var openingBlankLinesToSkip = pageNumber <= 2 ? 1 : 0;
+      final openingBlankLineCount = pageNumber <= 2
+          ? MushafLineLayoutData.page(pageNumber)
+                .where((line) => line.type == MushafLayoutLineType.blank)
+                .length
+          : 0;
+      final openingBlankLinesBeforeContent =
+          openingBlankLineCount > 0
+              ? (openingBlankLineCount - openingBlankLinesToSkip) ~/ 2
+              : 0;
+      var openingBlankLinesMovedBeforeContent = 0;
       for (final line in MushafLineLayoutData.page(pageNumber)) {
         switch (line.type) {
           case MushafLayoutLineType.surahName:
@@ -86,8 +102,16 @@ class _MushafPageContent extends StatelessWidget {
           case MushafLayoutLineType.blank:
             if (openingBlankLinesToSkip > 0) {
               openingBlankLinesToSkip--;
+            } else if (openingBlankLinesMovedBeforeContent <
+                openingBlankLinesBeforeContent) {
+              openingBlankLinesMovedBeforeContent++;
             } else {
-              pageRows.add((child: const SizedBox.expand(), flexible: true));
+              pageRows.add((
+                child: scrollable
+                    ? SizedBox(height: fontSize * verseLineHeight)
+                    : const SizedBox.expand(),
+                flexible: true,
+              ));
             }
           case MushafLayoutLineType.text:
             pageRows.add((
@@ -106,10 +130,24 @@ class _MushafPageContent extends StatelessWidget {
             ));
         }
       }
+      if (openingBlankLinesMovedBeforeContent > 0) {
+        pageRows.insertAll(
+          0,
+          List.generate(
+            openingBlankLinesMovedBeforeContent,
+            (_) => (
+              child: scrollable
+                  ? SizedBox(height: fontSize * verseLineHeight)
+                  : const SizedBox.expand(),
+              flexible: true,
+            ),
+          ),
+        );
+      }
 
       return Container(
         width: constraints.maxWidth,
-        height: constraints.maxHeight,
+        height: scrollable ? null : constraints.maxHeight,
         padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
           // This is the Mushaf paper itself; use the reader-specific color
@@ -128,7 +166,35 @@ class _MushafPageContent extends StatelessWidget {
               horizontalInset,
               6,
             ),
-            child: Stack(
+            child: scrollable
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _MushafRunningHeader(
+                        surahName: _arabicSurahName(firstSurah),
+                        juzNumber: juzNumber,
+                        palette: palette,
+                      ),
+                      const SizedBox(height: 6),
+                      for (final row in pageRows)
+                        if (row.flexible)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Center(child: row.child),
+                          )
+                        else
+                          row.child,
+                      const SizedBox(height: 38),
+                      Center(
+                        child: _MushafPageNumber(
+                          pageNumber: pageNumber,
+                          palette: palette,
+                        ),
+                      ),
+                    ],
+                  )
+                : Stack(
               children: [
                 Positioned.fill(
                   bottom: 38,

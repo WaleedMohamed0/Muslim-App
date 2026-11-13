@@ -12,6 +12,7 @@ class ReaderControlsOverlay extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onBack,
+    required this.onOpenPageSlider,
     required this.audioControls,
   });
 
@@ -23,6 +24,7 @@ class ReaderControlsOverlay extends StatelessWidget {
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final VoidCallback onBack;
+  final VoidCallback onOpenPageSlider;
   final Widget audioControls;
 
   @override
@@ -88,7 +90,7 @@ class ReaderControlsOverlay extends StatelessWidget {
                     ),
                     Divider(height: 1, color: palette.muted.withValues(alpha: .16)),
                     Padding(
-                      padding: const EdgeInsetsDirectional.fromSTEB(10, 0, 10, 8),
+                      padding: const EdgeInsetsDirectional.fromSTEB(10, 2, 10, 8),
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
                         Row(children: [
                           _ReaderIconButton(icon: Icons.chevron_left_rounded, tooltip: 'الصفحة السابقة', palette: palette, onPressed: onPrevious),
@@ -97,10 +99,23 @@ class ReaderControlsOverlay extends StatelessWidget {
                           const Spacer(),
                           _ReaderIconButton(icon: bookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, tooltip: bookmarked ? 'إزالة علامة الصفحة' : 'حفظ الصفحة', palette: palette, onPressed: onBookmark),
                         ]),
-                        Row(children: [
-                          const Spacer(),
-                          Text('صفحة ${toArabicIndicDigits(pageNumber)} من ${toArabicIndicDigits(pageCount)}', style: TextStyle(color: palette.muted, fontSize: 11, fontWeight: FontWeight.w600)),
-                        ]),
+                        Center(
+                          child: OutlinedButton.icon(
+                            onPressed: onOpenPageSlider,
+                            icon: const Icon(Icons.tune_rounded, size: 16),
+                            label: Text(
+                              'صفحة ${toArabicIndicDigits(pageNumber)} من ${toArabicIndicDigits(pageCount)}',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: palette.accent,
+                              side: BorderSide(color: palette.muted.withValues(alpha: .24)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                              shape: const StadiumBorder(),
+                            ),
+                          ),
+                        ),
                       ]),
                     ),
                   ],
