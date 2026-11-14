@@ -203,7 +203,11 @@ class _Dashboard extends StatelessWidget {
     final cubit = context.read<KhatmahCubit>();
     final today = plan.schedule[plan.currentDay - 1];
     final colors = Theme.of(context).colorScheme;
-    final completedDays = plan.schedule.where(plan.isDayComplete).length;
+    var completedDays = 0;
+    for (final day in plan.schedule) {
+      if (plan.checkpointPage < day.endPage && !plan.isDayComplete(day)) break;
+      completedDays++;
+    }
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
       children: [
@@ -381,13 +385,14 @@ class _Dashboard extends StatelessWidget {
         Text('اضغط على أي يوم لبدء القراءة من موضعه.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
         const SizedBox(height: 8),
         ...plan.schedule.map((day) {
-          final done = plan.isDayComplete(day);
+          final done = plan.checkpointPage >= day.endPage || plan.isDayComplete(day);
           final isToday = day.day == plan.currentDay;
-          final pagesRead =
-              List.generate(
-                day.pages,
-                (i) => day.startPage + i,
-              ).where(plan.completedPages.contains).length;
+          final pagesRead = plan.checkpointPage >= day.endPage || plan.isDayComplete(day)
+              ? day.pages
+              : List.generate(
+                  day.pages,
+                  (i) => day.startPage + i,
+                ).where(plan.completedPages.contains).length;
           return Card(
             elevation: 0,
             margin: const EdgeInsets.symmetric(vertical: 6),
@@ -402,7 +407,7 @@ class _Dashboard extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SurahScreen(surahNumber: day.startSurah, initialAyah: day.startAyah))),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SurahScreen(surahNumber: day.startSurah, initialAyah: day.startAyah, initialPageNumber: day.startPage, trackKhatmahProgress: true))),
               child: Padding(
                 padding: const EdgeInsetsDirectional.fromSTEB(16, 15, 12, 15),
                 child: Row(

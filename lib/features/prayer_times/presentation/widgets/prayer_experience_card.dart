@@ -127,9 +127,7 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
             ? 'مواقيت الصَّلَاة'
             : 'الصَّلَاة القادمة: ${_prayerName(upcoming.id)}';
     final subtitle =
-        isPlaying
-            ? 'الأذان يعمل الآن'
-            : upcoming == null
+        upcoming == null
             ? 'اضغط لعرض مواقيت الصَّلَاة'
             : 'متبقي ${_formatRemaining(upcoming.at.difference(DateTime.now()))}';
     final foregroundColor =
@@ -191,15 +189,17 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      textDirection: TextDirection.rtl,
-                      style: subtitleStyle?.copyWith(
-                        fontSize: 15,
-                        color: foregroundColor.withValues(alpha: .78),
+                    if (!isPlaying) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        textDirection: TextDirection.rtl,
+                        style: subtitleStyle?.copyWith(
+                          fontSize: 15,
+                          color: foregroundColor.withValues(alpha: .78),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

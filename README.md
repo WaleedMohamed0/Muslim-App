@@ -14,6 +14,16 @@ A new Flutter project.
 
 ## Android development
 
+### Adhan stop controls
+
+While Adhan is playing, its native playback service activates a remote-volume
+`MediaSession`. Android routes volume adjustments to that session's
+`VolumeProvider`, which stops Adhan and consumes either volume key without
+changing the device volume. The session exists only during playback and is
+released on stop or completion, preserving normal volume controls otherwise.
+The ongoing playback notification retains its stop action as a backup control.
+Android documents this remote-volume routing through `MediaSession.setPlaybackToRemote`.
+
 Build and update the existing app on the single connected Android device:
 
 ```powershell

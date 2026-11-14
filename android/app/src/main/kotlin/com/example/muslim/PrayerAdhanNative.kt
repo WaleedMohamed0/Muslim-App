@@ -9,17 +9,15 @@ import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.database.ContentObserver
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.media.VolumeProvider
-import android.media.session.MediaSession
-import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
+import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
@@ -613,10 +611,11 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
 
 class PrayerAdhanPlaybackService : Service() {
     private var player: MediaPlayer? = null
+    private var screenWakeLock: PowerManager.WakeLock? = null
     private var focusRequest: AudioFocusRequest? = null
     private var audioManager: AudioManager? = null
-    private var volumeKeySession: MediaSession? = null
-    private val mainHandler = Handler(Looper.getMainLooper())
+    private var alarmVolumeObserver: ContentObserver? = null
+    private var observedAlarmVolume: Int? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -696,10 +695,15 @@ class PrayerAdhanPlaybackService : Service() {
                 setOnPreparedListener { preparedPlayer ->
                     preparedPlayer.start()
                     val alarmVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 1
+                    registerAlarmVolumeObserver(alarmVolume)
+                    if (scheduledPrayer != null && volume > 0f && alarmVolume > 0 &&
+                        preparedPlayer.isPlaying
+                    ) {
+                        wakeScreenForAdhan()
+                    }
                     activePrayer = scheduledPrayer?.takeIf {
                         volume > 0f && alarmVolume > 0 && preparedPlayer.isPlaying
                     }
-                    startVolumeKeyCapture()
                 }
                 setOnCompletionListener {
                     activePrayer = null
@@ -715,6 +719,30 @@ class PrayerAdhanPlaybackService : Service() {
         } catch (_: Exception) {
             stopPlayback()
         }
+    }
+
+    /** Briefly wakes the display for the lock screen when scheduled Adhan starts. */
+    @Suppress("DEPRECATION")
+    private fun wakeScreenForAdhan() {
+        releaseScreenWakeLock()
+        val powerManager = getSystemService(PowerManager::class.java) ?: return
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                PowerManager.ON_AFTER_RELEASE,
+            "MuslimApp:AdhanScreenWake",
+        )
+        screenWakeLock = wakeLock
+        // The timeout bounds the screen-on request even if the service is interrupted.
+        runCatching { wakeLock.acquire(5_000L) }
+            .onFailure { screenWakeLock = null }
+    }
+
+    private fun releaseScreenWakeLock() {
+        screenWakeLock?.let { wakeLock ->
+            if (wakeLock.isHeld) wakeLock.release()
+        }
+        screenWakeLock = null
     }
 
     private fun requestAudioFocus(attributes: AudioAttributes) {
@@ -733,6 +761,8 @@ class PrayerAdhanPlaybackService : Service() {
     }
 
     private fun stopPlayer() {
+        releaseScreenWakeLock()
+        unregisterAlarmVolumeObserver()
         activePrayer = null
         try {
             player?.stop()
@@ -749,53 +779,43 @@ class PrayerAdhanPlaybackService : Service() {
         }
     }
 
+    /** Watches the alarm stream only while this service's Adhan player is active. */
+    private fun registerAlarmVolumeObserver(initialVolume: Int) {
+        unregisterAlarmVolumeObserver()
+        observedAlarmVolume = initialVolume
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) {
+                super.onChange(selfChange, uri)
+                val manager = audioManager ?: return
+                val currentVolume = runCatching {
+                    manager.getStreamVolume(AudioManager.STREAM_ALARM)
+                }.getOrNull() ?: return
+                val previousVolume = observedAlarmVolume
+                observedAlarmVolume = currentVolume
+                // Ignore unrelated Settings.System updates and duplicate notifications.
+                if (previousVolume != null && currentVolume != previousVolume &&
+                    runCatching { player?.isPlaying == true }.getOrDefault(false)
+                ) {
+                    stopPlayback()
+                }
+            }
+        }
+        alarmVolumeObserver = observer
+        contentResolver.registerContentObserver(Settings.System.CONTENT_URI, true, observer)
+    }
+
+    private fun unregisterAlarmVolumeObserver() {
+        alarmVolumeObserver?.let { observer ->
+            runCatching { contentResolver.unregisterContentObserver(observer) }
+        }
+        alarmVolumeObserver = null
+        observedAlarmVolume = null
+    }
+
     private fun stopPlayback() {
         stopPlayer()
         stopForeground(STOP_FOREGROUND_REMOVE)
-        releaseVolumeKeySession()
         stopSelf()
-    }
-
-    private fun startVolumeKeyCapture() {
-        releaseVolumeKeySession()
-        volumeKeySession = MediaSession(this, "AdhanPlaybackVolumeKeys").apply {
-            setPlaybackToRemote(
-                object : VolumeProvider(VOLUME_CONTROL_RELATIVE, 100, 100) {
-                    override fun onAdjustVolume(direction: Int) {
-                        if (direction == AudioManager.ADJUST_RAISE ||
-                            direction == AudioManager.ADJUST_LOWER
-                        ) {
-                            mainHandler.post { silenceForVolumeKey() }
-                        }
-                    }
-                },
-            )
-            setPlaybackState(
-                PlaybackState.Builder()
-                    .setActions(PlaybackState.ACTION_STOP)
-                    .setState(PlaybackState.STATE_PLAYING, 0L, 1f)
-                    .build(),
-            )
-            isActive = true
-        }
-    }
-
-    private fun silenceForVolumeKey() {
-        if (player == null) return
-        // The remote media session consumes the key without changing the device
-        // volume. Stop this playback and release capture for the next key press.
-        stopPlayer()
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        releaseVolumeKeySession()
-        stopSelf()
-    }
-
-    private fun releaseVolumeKeySession() {
-        volumeKeySession?.let { session ->
-            session.isActive = false
-            session.release()
-        }
-        volumeKeySession = null
     }
 
     private fun createPlaybackChannel() {
@@ -846,15 +866,16 @@ class PrayerAdhanPlaybackService : Service() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(
                 if (prayer.isBlank()) null else elAzanPendingIntent(this, prayer),
             )
-            .addAction(0, "إيقاف", stopPendingIntent)
+            .addAction(android.R.drawable.ic_media_pause, "إيقاف الأذان", stopPendingIntent)
         return builder.build()
     }
 
     override fun onDestroy() {
-        releaseVolumeKeySession()
+        unregisterAlarmVolumeObserver()
         stopPlayer()
         if (serviceInstance === this) serviceInstance = null
         super.onDestroy()
@@ -886,6 +907,14 @@ class PrayerAdhanPlaybackService : Service() {
                 "playing" to playing,
                 "prayer" to if (playing) prayer.orEmpty() else "",
             )
+        }
+
+        fun stopForVisibleVolumeKey(): Boolean {
+            val service = serviceInstance ?: return false
+            val isPlaying = runCatching { service.player?.isPlaying == true }.getOrDefault(false)
+            if (!isPlaying) return false
+            service.stopPlayback()
+            return true
         }
     }
 }

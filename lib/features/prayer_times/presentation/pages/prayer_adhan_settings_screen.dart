@@ -53,6 +53,10 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_previewStateSubscription.cancel());
     unawaited(_previewPlayer.dispose());
+    if (_previewingId != null &&
+        AdhanAudioOption.byId(_previewingId).assetPath == null) {
+      unawaited(_service.stopAudio());
+    }
     super.dispose();
   }
 
@@ -194,9 +198,13 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     if (_previewingId != null) unawaited(_previewPlayer.setVolume(volume));
   }
 
-  void _saveVolume() => unawaited(
-    _save(_settings.copyWith(volume: _settings.volume)),
-  );
+  Future<void> _saveVolume() async {
+    await _save(_settings.copyWith(volume: _settings.volume));
+    if (_previewingId != null &&
+        AdhanAudioOption.byId(_previewingId).assetPath == null) {
+      await _service.previewAudio(_previewingId!);
+    }
+  }
 
   Future<void> _previewAudio(AdhanAudioOption option) async {
     if (_previewingId == option.id) {
@@ -204,16 +212,25 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       return;
     }
     try {
-      await _previewPlayer.setAsset(option.assetPath);
-      await _previewPlayer.setVolume(_settings.volume);
-      unawaited(
-        _previewPlayer.play().catchError((Object _) {
-          if (mounted) {
-            setState(() => _previewingId = null);
-            AppSnackBar.show(message: 'تعذر تشغيل معاينة الأذان');
-          }
-        }),
-      );
+      if (option.assetPath == null) {
+        await _previewPlayer.stop();
+        await _service.previewAudio(option.id);
+      } else {
+        if (_previewingId != null &&
+            AdhanAudioOption.byId(_previewingId).assetPath == null) {
+          await _service.stopAudio();
+        }
+        await _previewPlayer.setAsset(option.assetPath!);
+        await _previewPlayer.setVolume(_settings.volume);
+        unawaited(
+          _previewPlayer.play().catchError((Object _) {
+            if (mounted) {
+              setState(() => _previewingId = null);
+              AppSnackBar.show(message: 'تعذر تشغيل معاينة الأذان');
+            }
+          }),
+        );
+      }
       if (mounted) setState(() => _previewingId = option.id);
     } catch (_) {
       if (mounted) AppSnackBar.show(message: 'تعذر تشغيل معاينة الأذان');
@@ -222,7 +239,12 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
 
   Future<void> _stopTest() async {
     try {
-      await _previewPlayer.stop();
+      if (_previewingId != null &&
+          AdhanAudioOption.byId(_previewingId).assetPath == null) {
+        await _service.stopAudio();
+      } else {
+        await _previewPlayer.stop();
+      }
     } catch (_) {}
     if (mounted) setState(() => _previewingId = null);
   }
@@ -339,14 +361,121 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'عند اكتشاف أن الجهاز في وضع مكالمة، لا يُشغّل الأذان ويصل تنبيه الصَّلَاة بصمت. قد تؤثر قيود النظام أو الشركة المصنّعة في توقيت التنبيهات، كما يلتزم الصوت بإعدادات عدم الإزعاج في الجهاز.',
-                  textDirection: TextDirection.rtl,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        height: 1.6,
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: colors.outlineVariant),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: colors.primaryContainer,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.volume_up_rounded,
+                              size: 19,
+                              color: colors.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'إيقاف الأذان أثناء تشغيله',
+                                  textDirection: TextDirection.rtl,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'يمكنك إيقافه بالضغط على زر رفع أو خفض الصوت في هاتفك.',
+                                  textDirection: TextDirection.rtl,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: colors.onSurfaceVariant,
+                                        height: 1.5,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: 48,
+                          top: 14,
+                          bottom: 14,
+                        ),
+                        child: Divider(
+                          height: 1,
+                          color: colors.outlineVariant,
+                        ),
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: colors.surfaceContainerHighest,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.info_outline_rounded,
+                              size: 19,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'ملاحظات التشغيل',
+                                  textDirection: TextDirection.rtl,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'عند اكتشاف أن الجهاز في وضع مكالمة، لا يُشغّل الأذان ويصل تنبيه الصَّلَاة بصمت. قد تؤثر قيود النظام أو الشركة المصنّعة في توقيت التنبيهات، كما يلتزم الصوت بإعدادات عدم الإزعاج في الجهاز.',
+                                  textDirection: TextDirection.rtl,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: colors.onSurfaceVariant,
+                                        height: 1.5,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

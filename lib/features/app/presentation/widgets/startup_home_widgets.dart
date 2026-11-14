@@ -99,29 +99,35 @@ class WelcomeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final foreground = isDark ? colors.onPrimaryContainer : colors.onPrimary;
-    final bannerColors =
-        isDark
-            ? [colors.primaryContainer, colors.surfaceContainerHigh]
-            : [colors.primary, Color.lerp(colors.primary, Colors.black, .12)!];
+    final foreground = colors.onSurface;
+    final accent = colors.primary;
+    final cardColor =
+        Color.lerp(
+          isDark ? colors.surfaceContainerHigh : colors.surface,
+          colors.primaryContainer,
+          isDark ? .42 : .62,
+        )!;
     return Material(
-      color: colors.primary,
+      color: cardColor,
       borderRadius: BorderRadius.circular(AppRadii.dialog),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadii.dialog),
         child: Container(
           constraints: const BoxConstraints(minHeight: 164),
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 18, 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadii.dialog),
+            border: Border.all(color: accent.withValues(alpha: .32)),
             gradient: LinearGradient(
-              colors: bannerColors,
+              colors: [cardColor, Color.lerp(cardColor, colors.primary, .08)!],
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
             ),
           ),
           child: Row(
+            textDirection: TextDirection.rtl,
             children: [
               Expanded(
                 child: Column(
@@ -129,39 +135,54 @@ class WelcomeCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'السلام عليكم',
+                      'القرآن الكريم',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: foreground.withValues(alpha: .78),
+                        color: accent,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 9),
+                    const SizedBox(height: 5),
                     Text(
-                      'لحظاتٌ من السكينة\nتبدأ بآية',
+                      'المصحف الشريف',
                       style: Theme.of(
                         context,
                       ).textTheme.headlineSmall?.copyWith(
                         color: foreground,
                         fontWeight: FontWeight.w800,
-                        height: 1.35,
+                        height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        Text(
-                          'ابدأ القراءة',
-                          style: TextStyle(
-                            color: foreground,
-                            fontWeight: FontWeight.w700,
+                        Container(
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                            11,
+                            7,
+                            11,
+                            7,
                           ),
-                        ),
-                        const SizedBox(width: 7),
-                        Directionality(
-                          textDirection: TextDirection.ltr,
-                          child: Icon(
-                            Icons.arrow_back_rounded,
-                            color: foreground,
-                            size: 18,
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: isDark ? .22 : .13),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.menu_book_rounded,
+                                color: accent,
+                                size: 17,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'افتح المصحف',
+                                style: TextStyle(
+                                  color: foreground,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -169,11 +190,16 @@ class WelcomeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.menu_book_rounded,
-                size: 64,
-                color: foreground.withValues(alpha: .88),
+              const SizedBox(width: 14),
+              Container(
+                width: 88,
+                height: 112,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: isDark ? .18 : .11),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: accent.withValues(alpha: .28)),
+                ),
+                child: Icon(Icons.menu_book_rounded, size: 52, color: accent),
               ),
             ],
           ),

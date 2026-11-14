@@ -7,6 +7,7 @@ import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/features/quran/presentation/controllers/surah_reader_controller.dart';
 import 'package:muslim/features/quran/data/data_sources/mushaf_long_press_hint_preferences.dart';
 import 'package:muslim/features/quran/data/data_sources/mushaf_zoom_hint_preferences.dart';
@@ -83,6 +84,14 @@ class _SurahScreenState extends State<SurahScreen> {
           ? (page, surah, ayah) => context.read<KhatmahCubit>().recordReadingPosition(page: page, surah: surah, ayah: ayah)
           : widget.onPageRead,
     )..addListener(_handleReaderChanged);
+    if (widget.trackKhatmahProgress) {
+      final initialAyah = widget.initialAyah ?? 1;
+      unawaited(context.read<KhatmahCubit>().recordReadingPosition(
+        page: MushafLineLayoutData.pageNumber(widget.surahNumber, initialAyah),
+        surah: widget.surahNumber,
+        ayah: initialAyah,
+      ));
+    }
   }
 
   Future<void> _loadHints() async {

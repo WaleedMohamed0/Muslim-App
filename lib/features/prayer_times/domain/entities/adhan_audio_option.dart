@@ -11,11 +11,6 @@ class AdhanAudioOption {
 
   static const options = <AdhanAudioOption>[
     AdhanAudioOption(
-      id: 'adhan_madinah',
-      name: 'أذان المدينة المنورة',
-      assetPath: 'assets/features/prayer_times/audio/المدينة المنورة.mp3',
-    ),
-    AdhanAudioOption(
       id: 'adhan_abdulbasit',
       name: 'الشيخ عبد الباسط عبد الصمد',
       assetPath: 'assets/features/prayer_times/audio/عبدالباسط.mp3',
@@ -24,6 +19,26 @@ class AdhanAudioOption {
       id: 'adhan_makkah',
       name: 'أذان مكة المكرمة',
       assetPath: 'assets/features/prayer_times/audio/مكة.mp3',
+    ),
+    AdhanAudioOption(
+      id: 'adhan_madinah_new',
+      name: 'أذان المدينة المنورة',
+      assetPath: 'assets/features/prayer_times/audio/اذان المدينة المنورة.mp3',
+    ),
+    AdhanAudioOption(
+      id: 'adhan_mohamed_refaat',
+      name: 'الشيخ محمد رفعت',
+      assetPath: 'assets/features/prayer_times/audio/اذان محمد رفعت.mp3',
+    ),
+    AdhanAudioOption(
+      id: 'adhan_mahmoud_albanna',
+      name: 'الشيخ محمود علي البنا',
+      assetPath: 'assets/features/prayer_times/audio/اذان محمود البنا.mp3',
+    ),
+    AdhanAudioOption(
+      id: 'adhan_nasser_alqatami',
+      name: 'الشيخ ناصر القطامي',
+      assetPath: 'assets/features/prayer_times/audio/اذان ناصر القطامي.mp3',
     ),
   ];
 

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.Manifest
 import android.app.AlarmManager
 import android.hardware.GeomagneticField
+import android.view.KeyEvent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -27,6 +28,7 @@ class MainActivity: AudioServiceActivity() {
     private var pendingNotificationRoute: String? = null
     private var notificationPermissionResult: MethodChannel.Result? = null
     private val notificationPermissionRequest = 7401
+    private val adhanVolumeKeysDown = mutableSetOf<Int>()
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         // Keep the launch notification route available before Flutter installs
@@ -161,6 +163,24 @@ class MainActivity: AudioServiceActivity() {
             pendingNotificationRoute = route
             notificationNavigation?.invokeMethod("openNotificationRoute", route)
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val isVolumeKey = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+            event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+        if (isVolumeKey) {
+            if (event.action == KeyEvent.ACTION_UP && adhanVolumeKeysDown.remove(event.keyCode)) {
+                return true
+            }
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                if (event.keyCode in adhanVolumeKeysDown) return true
+                if (PrayerAdhanPlaybackService.stopForVisibleVolumeKey()) {
+                    adhanVolumeKeysDown.add(event.keyCode)
+                    return true
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun notificationRouteFrom(source: Intent?): String? {
