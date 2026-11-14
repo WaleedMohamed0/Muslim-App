@@ -22,6 +22,9 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
   bool _loading = true;
   bool _initialPageReported = false;
   bool _completionPresented = false;
+  Offset _progressCardOffset = Offset.zero;
+  final _progressCardKey = GlobalKey();
+  double _progressCardHeight = 100;
 
   @override
   void initState() {
@@ -167,21 +170,65 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
           minimumPageNumber: session.startPage,
           maximumPageNumber: session.endPage,
         ),
-        PositionedDirectional(
-          top: MediaQuery.paddingOf(context).top + 54,
-          start: 16,
-          end: 16,
-          child: IgnorePointer(
-            child: Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: _DailyWirdProgress(
-                completed: current - session.startPage + 1,
-                total: session.endPage - session.startPage + 1,
-                percent: percent,
-                progress: progress,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const horizontalPadding = 16.0;
+            final safeTop = MediaQuery.paddingOf(context).top;
+            final safeBottom = MediaQuery.paddingOf(context).bottom;
+            final cardHeight = _progressCardHeight;
+            final baseTop = safeTop + 8;
+            final minTop = safeTop;
+            final maxTop = (constraints.maxHeight - safeBottom - cardHeight)
+                .clamp(minTop, constraints.maxHeight)
+                .toDouble();
+            final minVerticalOffset = minTop - baseTop;
+            final maxVerticalOffset = maxTop - baseTop;
+            final clampedOffset = Offset(
+              0,
+              _progressCardOffset.dy
+                  .clamp(minVerticalOffset, maxVerticalOffset)
+                  .toDouble(),
+            );
+            if (clampedOffset != _progressCardOffset) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() => _progressCardOffset = clampedOffset);
+              });
+            }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final height = _progressCardKey.currentContext?.size?.height;
+              if (mounted && height != null && height != _progressCardHeight) {
+                setState(() => _progressCardHeight = height);
+              }
+            });
+            return SizedBox.expand(
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: horizontalPadding,
+                    top: baseTop + clampedOffset.dy,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanUpdate: (details) => setState(() {
+                        _progressCardOffset = Offset(
+                          0,
+                          (_progressCardOffset.dy + details.delta.dy)
+                              .clamp(minVerticalOffset, maxVerticalOffset)
+                              .toDouble(),
+                        );
+                      }),
+                      child: _DailyWirdProgress(
+                        key: _progressCardKey,
+                        completed: current - session.startPage + 1,
+                        total: session.endPage - session.startPage + 1,
+                        percent: percent,
+                        progress: progress,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -190,6 +237,7 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
 
 class _DailyWirdProgress extends StatelessWidget {
   const _DailyWirdProgress({
+    super.key,
     required this.completed,
     required this.total,
     required this.percent,

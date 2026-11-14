@@ -671,7 +671,7 @@ class PrayerAdhanPlaybackService : Service() {
     private var focusRequest: AudioFocusRequest? = null
     private var audioManager: AudioManager? = null
     private var alarmVolumeObserver: ContentObserver? = null
-    private var observedAlarmVolume: Int? = null
+    private var observedStreamVolumes: Map<Int, Int>? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -887,22 +887,31 @@ class PrayerAdhanPlaybackService : Service() {
         }
     }
 
-    /** Watches the alarm stream only while this service's Adhan player is active. */
+    /** Watches the streams Android may route hardware volume keys to while Adhan is active. */
     private fun registerAlarmVolumeObserver(initialVolume: Int) {
         unregisterAlarmVolumeObserver()
-        observedAlarmVolume = initialVolume
+        val streams = VOLUME_KEY_STREAMS
+        val manager = audioManager ?: return
+        // Capture after playback is prepared so setup-time/internal volume state
+        // is the baseline and cannot be mistaken for a hardware key press.
+        observedStreamVolumes = streams.associateWith { stream ->
+            if (stream == AudioManager.STREAM_ALARM) initialVolume
+            else manager.getStreamVolume(stream)
+        }
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean, uri: Uri?) {
                 super.onChange(selfChange, uri)
                 val manager = audioManager ?: return
-                val currentVolume = runCatching {
-                    manager.getStreamVolume(AudioManager.STREAM_ALARM)
-                }.getOrNull() ?: return
-                val previousVolume = observedAlarmVolume
-                observedAlarmVolume = currentVolume
-                // Ignore unrelated Settings.System updates and duplicate notifications.
-                if (previousVolume != null && currentVolume != previousVolume &&
-                    runCatching { player?.isPlaying == true }.getOrDefault(false)
+                val currentVolumes = streams.associateWith { stream ->
+                    runCatching { manager.getStreamVolume(stream) }.getOrDefault(-1)
+                }
+                val previousVolumes = observedStreamVolumes
+                observedStreamVolumes = currentVolumes
+                // Settings may emit several notifications for one key press.
+                // Update the snapshot first, then stop once on the first real change.
+                if (previousVolumes != null && currentVolumes.any { (stream, volume) ->
+                        volume >= 0 && previousVolumes[stream] != volume
+                    } && runCatching { player?.isPlaying == true }.getOrDefault(false)
                 ) {
                     stopPlayback()
                 }
@@ -917,7 +926,7 @@ class PrayerAdhanPlaybackService : Service() {
             runCatching { contentResolver.unregisterContentObserver(observer) }
         }
         alarmVolumeObserver = null
-        observedAlarmVolume = null
+        observedStreamVolumes = null
     }
 
     private fun stopPlayback() {
@@ -995,6 +1004,13 @@ class PrayerAdhanPlaybackService : Service() {
         const val ACTION_TEST = "com.example.muslim.TEST_ADHAN"
         const val ACTION_STOP = "com.example.muslim.STOP_ADHAN"
         private const val NOTIFICATION_ID = 7301
+        private val VOLUME_KEY_STREAMS = intArrayOf(
+            AudioManager.STREAM_ALARM,
+            AudioManager.STREAM_MUSIC,
+            AudioManager.STREAM_RING,
+            AudioManager.STREAM_SYSTEM,
+            AudioManager.STREAM_NOTIFICATION,
+        )
 
         private fun notificationId(prayer: String): Int =
             if (prayer.isBlank()) NOTIFICATION_ID else "prayer_alert_$prayer".hashCode()

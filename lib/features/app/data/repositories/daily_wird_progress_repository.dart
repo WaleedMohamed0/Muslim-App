@@ -49,14 +49,13 @@ class DailyWirdProgressRepository {
       await prefs.remove(_surahKey);
       await prefs.remove(_ayahKey);
     } else if (savedDay != today) {
-      if (prefs.getString(_completedKey) == savedDay) {
-        start = end == 604 ? 1 : end + 1;
-        assignNewRange = true;
-        await prefs.setInt(_pageKey, start);
-        await prefs.remove(_surahKey);
-        await prefs.remove(_ayahKey);
-      }
-      // An unfinished Wird keeps its original range and exact checkpoint.
+      // A new calendar day always gets a new range. Carrying yesterday's
+      // checkpoint forward can leave the reader stuck in yesterday's Wird.
+      start = end == 604 ? 1 : end + 1;
+      assignNewRange = true;
+      await prefs.setInt(_pageKey, start);
+      await prefs.remove(_surahKey);
+      await prefs.remove(_ayahKey);
     } else if (savedDay == today && prefs.getString(_completedKey) != today) {
       // Updating the pages-per-day setting adjusts today's unfinished target.
       assignNewRange = true;

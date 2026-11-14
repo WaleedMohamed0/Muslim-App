@@ -50,7 +50,12 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isLightMode = theme.brightness == Brightness.light;
+    final lightBorder = theme.colorScheme.primary.withValues(alpha: 0.45);
+
+    return Scaffold(
     appBar: defaultAppBar(context: context, text: 'إعداد الورد اليومي'),
     body: _loading
         ? const Center(child: CircularProgressIndicator())
@@ -90,10 +95,39 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _controller,
+                  style: isLightMode
+                      ? TextStyle(color: theme.colorScheme.onSurface)
+                      : null,
+                  cursorColor: isLightMode ? theme.colorScheme.primary : null,
                   textDirection: TextDirection.rtl,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(labelText: 'صفحة يوميًا', border: OutlineInputBorder(), suffixIcon: Icon(Icons.menu_book_rounded)),
+                  decoration: InputDecoration(
+                    labelText: 'صفحة يوميًا',
+                    border: const OutlineInputBorder(),
+                    filled: isLightMode,
+                    fillColor: isLightMode ? theme.colorScheme.surface : null,
+                    labelStyle: isLightMode
+                        ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
+                        : null,
+                    hintStyle: isLightMode
+                        ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
+                        : null,
+                    enabledBorder: isLightMode
+                        ? OutlineInputBorder(
+                            borderSide: BorderSide(color: lightBorder),
+                          )
+                        : null,
+                    focusedBorder: isLightMode
+                        ? OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.primary,
+                              width: 2,
+                            ),
+                          )
+                        : null,
+                    suffixIcon: const Icon(Icons.menu_book_rounded),
+                  ),
                   validator: (text) {
                     final pages = int.tryParse(text ?? '');
                     if (pages == null || pages < 1 || pages > 604) return 'أدخل عددًا من ١ إلى ٦٠٤ صفحات';
@@ -105,5 +139,6 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
               ],
             ),
           ),
-  );
+    );
+  }
 }

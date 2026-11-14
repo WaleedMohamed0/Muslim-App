@@ -44,9 +44,67 @@ class MushafTextPage extends StatefulWidget {
   State<MushafTextPage> createState() => MushafTextPageState();
 }
 
-class MushafTextPageState extends State<MushafTextPage> {
+class MushafTextPageState extends State<MushafTextPage>
+    with SingleTickerProviderStateMixin {
   final Map<int, Offset> _pointerStarts = {};
+  late final AnimationController _recenterController;
+  Animation<Matrix4>? _recenterAnimation;
+  double? _interactionStartScale;
   bool _pointerGestureMoved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _recenterController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    )..addListener(() {
+        final animation = _recenterAnimation;
+        if (animation != null) widget.zoomController.value = animation.value;
+      });
+  }
+
+  @override
+  void dispose() {
+    _recenterController.dispose();
+    super.dispose();
+  }
+
+  void _onInteractionStart(ScaleStartDetails details) {
+    _interactionStartScale =
+        widget.zoomController.value.getMaxScaleOnAxis();
+    _recenterController.stop();
+  }
+
+  void _onInteractionEnd(ScaleEndDetails details, Size viewportSize) {
+    final startScale = _interactionStartScale;
+    final endScale = widget.zoomController.value.getMaxScaleOnAxis();
+    if (startScale != null && startScale > endScale) {
+      // InteractiveViewer may finish its pan inertia after this callback.
+      // Start recentering after that motion so it cannot overwrite the target.
+      Future<void>.delayed(const Duration(milliseconds: 250), () {
+        if (!mounted) return;
+        final current = widget.zoomController.value;
+        final scale = current.getMaxScaleOnAxis();
+        final centered = Matrix4.diagonal3Values(scale, scale, 1)
+          ..setTranslationRaw(
+            (viewportSize.width - viewportSize.width * scale) / 2,
+            (viewportSize.height - viewportSize.height * scale) / 2,
+            0,
+          );
+        _recenterAnimation = Matrix4Tween(
+          begin: current.clone(),
+          end: centered,
+        ).animate(CurvedAnimation(
+          parent: _recenterController,
+          curve: Curves.easeOut,
+        ));
+        _recenterController.forward(from: 0);
+      });
+    }
+    _interactionStartScale = null;
+    widget.onInteractionEnd();
+  }
 
   void _onPointerDown(PointerDownEvent event) {
     if (_pointerStarts.isEmpty) _pointerGestureMoved = false;
@@ -102,7 +160,9 @@ class MushafTextPageState extends State<MushafTextPage> {
             // Keep horizontal zoom panning comfortable while clamping the
             // page vertically to the viewport once its full height is shown.
             boundaryMargin: const EdgeInsets.symmetric(horizontal: 28),
-            onInteractionEnd: (_) => widget.onInteractionEnd(),
+            onInteractionStart: _onInteractionStart,
+            onInteractionEnd: (details) =>
+                _onInteractionEnd(details, constraints.biggest),
             child: LayoutBuilder(
               builder: (context, pageConstraints) {
                 const scrollable = false;
