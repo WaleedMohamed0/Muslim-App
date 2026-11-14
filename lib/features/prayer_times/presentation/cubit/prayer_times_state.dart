@@ -1,7 +1,11 @@
 import '../../domain/entities/prayer_times.dart';
 
 class PrayerDisplayTime {
-  const PrayerDisplayTime({required this.name, required this.time, required this.period});
+  const PrayerDisplayTime({
+    required this.name,
+    required this.time,
+    required this.period,
+  });
   final String name;
   final String time;
   final String period;
@@ -10,7 +14,6 @@ class PrayerDisplayTime {
 enum PrayerTimesStatus { initial, loading, loaded, failure }
 
 enum PrayerTimesErrorType {
-  network,
   locationServicesDisabled,
   locationPermissionDenied,
   locationPermissionPermanentlyDenied,

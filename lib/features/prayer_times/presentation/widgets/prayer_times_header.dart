@@ -70,7 +70,7 @@ class PrayerTimesIntroCard extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 9),
                     child: Text(
-                      '[النساء: 103]',
+                      '[النساء: ١٠٣]',
                       textDirection: TextDirection.rtl,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(

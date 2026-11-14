@@ -8,6 +8,7 @@ class PrayerTimes {
     required this.maghrib,
     required this.isha,
     this.alarmTimes = const [],
+    this.timezone,
   });
 
   final DateTime fajr;
@@ -16,4 +17,5 @@ class PrayerTimes {
   final DateTime maghrib;
   final DateTime isha;
   final List<PrayerAlarmTime> alarmTimes;
+  final String? timezone;
 }

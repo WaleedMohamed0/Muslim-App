@@ -26,6 +26,7 @@ class PrayerExperienceCard extends StatefulWidget {
   @override
   State<PrayerExperienceCard> createState() => _PrayerExperienceCardState();
 }
+
 class _PrayerExperienceCardState extends State<PrayerExperienceCard>
     with WidgetsBindingObserver {
   Timer? _ticker;
@@ -56,6 +57,7 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _startUpdates();
+      unawaited(context.read<PrayerTimesCubit>().getPrayerTime());
       unawaited(_refreshPlaybackState());
     } else {
       _ticker?.cancel();

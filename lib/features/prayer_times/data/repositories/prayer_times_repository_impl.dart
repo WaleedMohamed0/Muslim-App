@@ -20,6 +20,5 @@ class PrayerTimesRepositoryImpl implements PrayerTimesRepository {
   Future<PrayerTimes> getForCurrentLocation(
     DateTime date, {
     bool forceRefresh = false,
-  }) async =>
-      (await dataSource.fetch(date, forceRefresh: forceRefresh)).toEntity(date);
+  }) async => dataSource.fetch(date, forceRefresh: forceRefresh);
 }

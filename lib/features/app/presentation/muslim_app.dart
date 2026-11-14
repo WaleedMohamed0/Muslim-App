@@ -270,9 +270,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  DateTime _lastLocalDate = DateTime.now();
-  String _lastTimeZone = DateTime.now().timeZoneName;
-  Duration _lastUtcOffset = DateTime.now().timeZoneOffset;
   StreamSubscription<bool>? _mediaNotificationClickSubscription;
   StreamSubscription? _quranWidgetStateSubscription;
   String? _lastQuranWidgetState;
@@ -611,21 +608,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     context.read<QuranCubit>().handleAppLifecycleState(state);
     if (state != AppLifecycleState.resumed) return;
-    final now = DateTime.now();
-    final dayChanged =
-        now.year != _lastLocalDate.year ||
-        now.month != _lastLocalDate.month ||
-        now.day != _lastLocalDate.day;
-    final timezoneChanged =
-        now.timeZoneName != _lastTimeZone ||
-        now.timeZoneOffset != _lastUtcOffset;
-    _lastLocalDate = now;
-    _lastTimeZone = now.timeZoneName;
-    _lastUtcOffset = now.timeZoneOffset;
-    if (dayChanged || timezoneChanged) {
-      final prayerTimes = context.read<PrayerTimesCubit>();
-      if (prayerTimes.isOnline) unawaited(prayerTimes.getPrayerTime());
-    }
+    unawaited(context.read<PrayerTimesCubit>().getPrayerTime());
   }
 
   @override

@@ -12,6 +12,12 @@ class NextPrayer {
 NextPrayer? nextPrayerAfter(PrayerTimes? times, DateTime now) {
   if (times == null) return null;
 
+  for (final alarm in times.alarmTimes) {
+    if (alarm.at.isAfter(now)) {
+      return NextPrayer(id: alarm.prayerId, at: alarm.at);
+    }
+  }
+
   const prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
   final timesOfDay = [
     times.fajr,

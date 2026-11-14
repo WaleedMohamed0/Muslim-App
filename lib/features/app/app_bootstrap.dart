@@ -36,7 +36,6 @@ Future<void> runMuslimApp() async {
   } catch (_) {
     // Keep app startup available if notification services are unavailable.
   }
-  DioHelper.init();
   DioHelper.initHadeeth();
   final initialNotificationRoute =
       initialKahfRoute ?? await _readInitialNotificationRoute();

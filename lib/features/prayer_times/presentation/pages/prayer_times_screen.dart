@@ -20,7 +20,8 @@ class _PrayerTimesState extends State<PrayerTimes> {
       case PrayerTimesErrorType.locationServicesDisabled:
         await _showLocationSettingsPrompt(
           title: 'خدمات الموقع متوقفة',
-          message: 'فعّل خدمات الموقع على جهازك لإحضار موقعك الحالي. سنواصل استخدام موقعك السابق حتى ذلك الحين.',
+          message:
+              'فعّل خدمات الموقع على جهازك لإحضار موقعك الحالي. سنواصل استخدام موقعك السابق حتى ذلك الحين.',
           openSettings: Geolocator.openLocationSettings,
           actionLabel: 'إعدادات الموقع',
         );
@@ -28,24 +29,22 @@ class _PrayerTimesState extends State<PrayerTimes> {
       case PrayerTimesErrorType.locationPermissionPermanentlyDenied:
         await _showLocationSettingsPrompt(
           title: 'إذن الموقع مرفوض نهائيًا',
-          message: 'اسمح للتطبيق بالوصول إلى الموقع من إعدادات التطبيق. سنواصل استخدام موقعك السابق حتى تغيّر الإذن.',
+          message:
+              'اسمح للتطبيق بالوصول إلى الموقع من إعدادات التطبيق. سنواصل استخدام موقعك السابق حتى تغيّر الإذن.',
           openSettings: Geolocator.openAppSettings,
           actionLabel: 'إعدادات التطبيق',
         );
         return;
       case PrayerTimesErrorType.locationPermissionDenied:
         AppSnackBar.show(
-          message: 'لم يتم السماح بإذن الموقع. اضغط تحديث الموقع للمحاولة مرة أخرى؛ سنواصل استخدام موقعك السابق.',
+          message:
+              'لم يتم السماح بإذن الموقع. اضغط تحديث الموقع للمحاولة مرة أخرى؛ سنواصل استخدام موقعك السابق.',
         );
         return;
       case PrayerTimesErrorType.locationUnavailable:
         AppSnackBar.show(
-          message: 'تعذر تحديد الموقع الحالي؛ سنواصل استخدام موقعك السابق ومواقيته.',
-        );
-        return;
-      case PrayerTimesErrorType.network:
-        AppSnackBar.show(
-          message: 'تعذر تحديث المواقيت دون اتصال بالإنترنت؛ ما زلنا نستخدم مواقيتك المحفوظة.',
+          message:
+              'تعذر تحديد الموقع الحالي؛ سنواصل استخدام موقعك السابق ومواقيته.',
         );
         return;
       default:
@@ -64,20 +63,21 @@ class _PrayerTimesState extends State<PrayerTimes> {
     if (!mounted) return;
     final open = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title, textDirection: TextDirection.rtl),
-        content: Text(message, textDirection: TextDirection.rtl),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('لاحقًا'),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Text(title, textDirection: TextDirection.rtl),
+            content: Text(message, textDirection: TextDirection.rtl),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('لاحقًا'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(actionLabel),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(actionLabel),
-          ),
-        ],
-      ),
     );
     if (open == true) await openSettings();
   }
@@ -107,7 +107,9 @@ class _PrayerTimesState extends State<PrayerTimes> {
                 tooltip: 'تحديث المواقيت',
                 onPressed: () async {
                   final cubit = context.read<PrayerTimesCubit>();
-                  final succeeded = await cubit.getPrayerTime(forceRefresh: true);
+                  final succeeded = await cubit.getPrayerTime(
+                    forceRefresh: true,
+                  );
                   if (!context.mounted) return;
                   if (succeeded) {
                     AppSnackBar.show(
@@ -123,25 +125,28 @@ class _PrayerTimesState extends State<PrayerTimes> {
             ],
           ),
           body: switch (state.status) {
-            PrayerTimesStatus.initial || PrayerTimesStatus.loading =>
-              const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 14),
-                    Text(
-                      'جارٍ تحميل مواقيت الصَّلَاة...',
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+            PrayerTimesStatus.initial ||
+            PrayerTimesStatus.loading => const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 14),
+                  Text(
+                    'جارٍ تحميل مواقيت الصَّلَاة...',
+                    textDirection: TextDirection.rtl,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
+            ),
             PrayerTimesStatus.failure => _PrayerTimesError(
               message: state.error ?? 'تعذر تحميل مواقيت الصَّلَاة',
               errorType: state.errorType,
-              onRetry: () => context.read<PrayerTimesCubit>().getPrayerTime(forceRefresh: true),
+              onRetry:
+                  () => context.read<PrayerTimesCubit>().getPrayerTime(
+                    forceRefresh: true,
+                  ),
               onOpenLocationSettings: Geolocator.openLocationSettings,
               onOpenAppSettings: Geolocator.openAppSettings,
             ),
@@ -210,7 +215,9 @@ class _PrayerTimesError extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isLocationError ? Icons.location_off_outlined : Icons.cloud_off_rounded,
+              isLocationError
+                  ? Icons.location_off_outlined
+                  : Icons.cloud_off_rounded,
               size: 42,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
