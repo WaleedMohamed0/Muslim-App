@@ -25,10 +25,12 @@ class PrayerTimesState {
     this.prayerTimes,
     this.status = PrayerTimesStatus.initial,
     this.displayTimes = const [],
+    this.cityName,
   });
   final String? error;
   final PrayerTimesErrorType? errorType;
   final PrayerTimes? prayerTimes;
   final PrayerTimesStatus status;
   final List<PrayerDisplayTime> displayTimes;
+  final String? cityName;
 }

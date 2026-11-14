@@ -336,7 +336,7 @@ class MainActivity: AudioServiceActivity() {
         listOf("fajr", "dhuhr", "asr", "maghrib", "isha").forEach { prayer ->
             editor.putBoolean("prayer_$prayer", prayerValues?.get(prayer) as? Boolean ?: true)
         }
-        val audioId = values["audioId"] as? String ?: "adhan_madinah"
+        val audioId = values["audioId"] as? String ?: "adhan_madinah_new"
         editor.putString(PrayerAdhanStorage.AUDIO_ID, audioId)
             .remove("audio_path")
             .remove("audio_name")

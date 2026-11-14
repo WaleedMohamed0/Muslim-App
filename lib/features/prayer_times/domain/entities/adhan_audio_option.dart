@@ -40,10 +40,15 @@ class AdhanAudioOption {
       name: 'الشيخ ناصر القطامي',
       assetPath: 'assets/features/prayer_times/audio/اذان ناصر القطامي.mp3',
     ),
+    AdhanAudioOption(
+      id: 'adhan_nasr_eldin',
+      name: 'الشيخ نصر الدين',
+      assetPath: 'assets/features/prayer_times/audio/اذان نصر الدين.mp3',
+    ),
   ];
 
   static AdhanAudioOption byId(String? id) => options.firstWhere(
-    (option) => option.id == id,
+    (option) => option.id == (id == 'adhan_madinah' ? 'adhan_madinah_new' : id),
     orElse: () => options.first,
   );
 }

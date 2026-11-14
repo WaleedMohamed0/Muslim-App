@@ -15,6 +15,7 @@ dependencies:
   dio: ^5.11.1
   flutter_bloc: ^9.1.1
   geolocator: ^14.1.2
+  geocoding: ^5.0.1
   flutter_compass: ^0.8.1
   just_audio: ^0.10.6
   audio_service: ^0.18.19

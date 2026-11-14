@@ -30,6 +30,8 @@ class PrayerTimesContent extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsetsDirectional.fromSTEB(20, 14, 20, 28),
           children: [
+            _CurrentLocationCard(cityName: state.cityName),
+            const SizedBox(height: 16),
             const PrayerTimesIntroCard(),
             const SizedBox(height: 18),
             if (nextPrayerIndex != null && nextPrayerTime != null) ...[
@@ -102,5 +104,38 @@ class PrayerTimesContent extends StatelessWidget {
     );
   }
 
+}
+
+class _CurrentLocationCard extends StatelessWidget {
+  const _CurrentLocationCard({required this.cityName});
+
+  final String? cityName;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.surfaceContainerHighest.withValues(alpha: 0.45),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
+          textDirection: TextDirection.rtl,
+          children: [
+            Icon(Icons.location_on_rounded, color: colors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                cityName ?? 'تعذر تحديد المدينة الحالية',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 

@@ -32,6 +32,7 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
   Timer? _playbackPoller;
   bool _isPlaying = false;
   bool _checkingPlayback = false;
+  bool _stoppingPlayback = false;
   String? _playingPrayer;
 
   @override
@@ -75,7 +76,7 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
   }
 
   Future<void> _refreshPlaybackState() async {
-    if (_checkingPlayback) return;
+    if (_checkingPlayback || _stoppingPlayback) return;
     _checkingPlayback = true;
     try {
       final state = await PrayerAdhanService.instance.getPlaybackState();
@@ -108,6 +109,23 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
       }
     } finally {
       _checkingPlayback = false;
+    }
+  }
+
+  Future<void> _stopAdhan() async {
+    if (_stoppingPlayback) return;
+    setState(() {
+      _stoppingPlayback = true;
+      _isPlaying = false;
+      _playingPrayer = null;
+    });
+    try {
+      await PrayerAdhanService.instance.stopAudio();
+    } catch (_) {
+      if (mounted) setState(() => _stoppingPlayback = false);
+      await _refreshPlaybackState();
+    } finally {
+      if (mounted) setState(() => _stoppingPlayback = false);
     }
   }
 
@@ -189,7 +207,31 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
                         ),
                       ),
                     ),
-                    if (!isPlaying) ...[
+                    if (isPlaying) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: FilledButton.tonalIcon(
+                          onPressed: _stoppingPlayback ? null : _stopAdhan,
+                          icon: const Icon(Icons.stop_rounded, size: 17),
+                          label: const Text('إيقاف الأذان'),
+                          style: FilledButton.styleFrom(
+                            foregroundColor: colors.error,
+                            backgroundColor: colors.errorContainer,
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 17,
+                              vertical: 12,
+                            ),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            textStyle: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
                       const SizedBox(height: 4),
                       Text(
                         subtitle,

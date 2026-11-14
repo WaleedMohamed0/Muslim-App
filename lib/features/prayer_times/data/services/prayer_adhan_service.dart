@@ -14,7 +14,7 @@ class PrayerAdhanSettings {
       'isha': true,
     },
     this.volume = .85,
-    this.audioId = 'adhan_madinah',
+    this.audioId = 'adhan_madinah_new',
   });
 
   final bool enabled;

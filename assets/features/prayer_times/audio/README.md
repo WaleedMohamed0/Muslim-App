@@ -11,5 +11,6 @@ Each selectable recording has a stable app ID. Flutter uses the asset path for s
 | `adhan_mohamed_refaat` | الشيخ محمد رفعت | `اذان محمد رفعت.mp3` |
 | `adhan_mahmoud_albanna` | الشيخ محمود علي البنا | `اذان محمود البنا.mp3` |
 | `adhan_nasser_alqatami` | الشيخ ناصر القطامي | `اذان ناصر القطامي.mp3` |
+| `adhan_nasr_eldin` | الشيخ نصر الدين | `اذان نصر الدين.mp3` |
 
 The older `adhan_madinah` resource is retained so existing saved settings and native playback remain valid. New recordings are copied into Android raw resources; the supplied MP3 assets are left unchanged.

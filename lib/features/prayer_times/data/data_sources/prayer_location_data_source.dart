@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/prayer_times.dart';
@@ -13,6 +16,39 @@ class PrayerLocationDataSource {
 
   final PrayerTimesCache _cache;
   final PrayerLocationCache _locationCache;
+  final Geocoding _geocoding = Geocoding(locale: const Locale('ar'));
+
+  Future<String?> getCurrentCity({bool forceRefresh = false}) async {
+    try {
+      final location = await _locationCache.read();
+      if (location == null) return null;
+      if (!forceRefresh) {
+        final cachedCity = await _locationCache.readCity(location);
+        if (cachedCity != null) return cachedCity;
+      }
+      final placemarks = await _geocoding.placemarkFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      if (placemarks.isEmpty) return null;
+      final placemark = placemarks.first;
+      final cityParts = [
+        placemark.administrativeArea,
+        placemark.subAdministrativeArea,
+        placemark.locality,
+      ]
+          .whereType<String>()
+          .map((part) => part.trim())
+          .where((part) => part.isNotEmpty)
+          .toSet();
+      if (cityParts.isEmpty) return null;
+      final city = cityParts.join('، ');
+      await _locationCache.writeCity(location, city);
+      return city;
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<PrayerTimes?> getCached(DateTime date) async {
     CachedPrayerTimes? cached;

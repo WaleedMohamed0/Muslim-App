@@ -13,6 +13,10 @@ class PrayerTimesRepositoryImpl implements PrayerTimesRepository {
   Future<PrayerTimes?> getCached(DateTime date) => dataSource.getCached(date);
 
   @override
+  Future<String?> getCurrentCity({bool forceRefresh = false}) =>
+      dataSource.getCurrentCity(forceRefresh: forceRefresh);
+
+  @override
   Future<PrayerTimes> getForCurrentLocation(
     DateTime date, {
     bool forceRefresh = false,

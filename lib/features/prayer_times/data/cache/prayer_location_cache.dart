@@ -32,4 +32,27 @@ class PrayerLocationCache {
     await prefs.setDouble(_latitudeKey, latitude);
     await prefs.setDouble(_longitudeKey, longitude);
   }
+
+  static const _cityKey = 'prayer_location_city_v2';
+  static const _cityLatitudeKey = 'prayer_location_city_latitude_v2';
+  static const _cityLongitudeKey = 'prayer_location_city_longitude_v2';
+
+  Future<String?> readCity(CachedLocation location) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getDouble(_cityLatitudeKey) != location.latitude ||
+        prefs.getDouble(_cityLongitudeKey) != location.longitude) {
+      return null;
+    }
+    final city = prefs.getString(_cityKey)?.trim();
+    return city == null || city.isEmpty ? null : city;
+  }
+
+  Future<void> writeCity(CachedLocation location, String city) async {
+    final value = city.trim();
+    if (value.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cityKey, value);
+    await prefs.setDouble(_cityLatitudeKey, location.latitude);
+    await prefs.setDouble(_cityLongitudeKey, location.longitude);
+  }
 }

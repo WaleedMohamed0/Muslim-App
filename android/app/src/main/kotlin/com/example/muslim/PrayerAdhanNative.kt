@@ -21,10 +21,27 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
+
+private object AdhanTiming {
+    private const val TAG = "AdhanTiming"
+
+    fun log(stage: String, scheduledAt: Long = 0L) {
+        val now = System.currentTimeMillis()
+        val scheduled = if (scheduledAt > 0L) " scheduledAt=$scheduledAt deltaMs=${now - scheduledAt}" else ""
+        Log.i(TAG, "$stage at=$now elapsedRealtime=${android.os.SystemClock.elapsedRealtime()}$scheduled")
+    }
+
+    fun failure(stage: String, error: Throwable, scheduledAt: Long = 0L) {
+        val now = System.currentTimeMillis()
+        val scheduled = if (scheduledAt > 0L) " scheduledAt=$scheduledAt deltaMs=${now - scheduledAt}" else ""
+        Log.e(TAG, "$stage at=$now elapsedRealtime=${android.os.SystemClock.elapsedRealtime()}$scheduled error=${error.javaClass.simpleName}: ${error.message}", error)
+    }
+}
 
 internal object PrayerAdhanStorage {
     const val PREFS = "prayer_adhan_native"
@@ -416,6 +433,7 @@ internal object PrayerAlarmScheduler {
             )
         }
         try {
+            AdhanTiming.log("alarm_schedule prayer=${item.optString("prayer")}", at)
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 at,
@@ -488,31 +506,52 @@ class PrayerAlarmRestoreReceiver : BroadcastReceiver() {
 
 class PrayerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val prefs = context.getSharedPreferences(PrayerAdhanStorage.PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean(PrayerAdhanStorage.ENABLED, false)) return
-        val prayer = intent.getStringExtra("prayer") ?: return
-        if (!prefs.getBoolean("prayer_$prayer", true)) return
-
-        val id = intent.getStringExtra("id") ?: return
         val scheduledAt = intent.getLongExtra("scheduled_at", 0L)
+        AdhanTiming.log("receiver_onReceive prayer=${intent.getStringExtra("prayer")}", scheduledAt)
+        val prefs = context.getSharedPreferences(PrayerAdhanStorage.PREFS, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean(PrayerAdhanStorage.ENABLED, false)) {
+            AdhanTiming.log("receiver_skip reason=adhan_disabled", scheduledAt)
+            return
+        }
+        val prayer = intent.getStringExtra("prayer") ?: run {
+            AdhanTiming.log("receiver_skip reason=missing_prayer", scheduledAt)
+            return
+        }
+        if (!prefs.getBoolean("prayer_$prayer", true)) {
+            AdhanTiming.log("receiver_skip prayer=$prayer reason=prayer_disabled", scheduledAt)
+            return
+        }
+
+        val id = intent.getStringExtra("id") ?: run {
+            AdhanTiming.log("receiver_skip prayer=$prayer reason=missing_alarm_id", scheduledAt)
+            return
+        }
         if (scheduledAt > 0L && System.currentTimeMillis() < scheduledAt) {
+            AdhanTiming.log("receiver_reschedule_early prayer=$prayer", scheduledAt)
             PrayerAlarmScheduler.rescheduleEarly(context, intent, prayer, scheduledAt)
             return
         }
         val lastId = prefs.getString("last_alarm_id", null)
         val lastAt = prefs.getLong("last_alarm_at", 0L)
-        if (lastId == id && System.currentTimeMillis() - lastAt < 120_000L) return
-        prefs.edit()
-            .putString("last_alarm_id", id)
-            .putLong("last_alarm_at", System.currentTimeMillis())
-            .apply()
+        val lastScheduledAt = prefs.getLong("last_alarm_scheduled_at", 0L)
+        val sameScheduledDelivery = scheduledAt > 0L && lastScheduledAt == scheduledAt
+        if (lastId == id && sameScheduledDelivery &&
+            System.currentTimeMillis() - lastAt < 120_000L
+        ) {
+            AdhanTiming.log("receiver_skip prayer=$prayer reason=duplicate id=$id", scheduledAt)
+            return
+        }
 
         if (isPhoneCallActive(context)) {
+            markAlarmHandled(prefs, id, scheduledAt)
+            AdhanTiming.log("receiver_call_active prayer=$prayer", scheduledAt)
             showCallReminder(context, prayer)
             return
         }
 
         if (!intent.getBooleanExtra("exact", false)) {
+            markAlarmHandled(prefs, id, scheduledAt)
+            AdhanTiming.log("receiver_non_exact prayer=$prayer", scheduledAt)
             showPrayerAlert(context, prayer, exact = false)
             return
         }
@@ -520,6 +559,8 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         val serviceIntent = Intent(context, PrayerAdhanPlaybackService::class.java).apply {
             action = PrayerAdhanPlaybackService.ACTION_PLAY
             putExtra("prayer", prayer)
+            putExtra("scheduled_at", scheduledAt)
+            putExtra("alarm_id", id)
         }
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -527,9 +568,24 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             } else {
                 context.startService(serviceIntent)
             }
-        } catch (_: Exception) {
+            markAlarmHandled(prefs, id, scheduledAt)
+            AdhanTiming.log("receiver_service_start_requested prayer=$prayer id=$id", scheduledAt)
+        } catch (error: Exception) {
+            AdhanTiming.failure("receiver_service_start_failed prayer=$prayer id=$id", error, scheduledAt)
             showPrayerAlert(context, prayer, exact = false)
         }
+    }
+
+    private fun markAlarmHandled(
+        prefs: android.content.SharedPreferences,
+        id: String,
+        scheduledAt: Long,
+    ) {
+        prefs.edit()
+            .putString("last_alarm_id", id)
+            .putLong("last_alarm_at", System.currentTimeMillis())
+            .putLong("last_alarm_scheduled_at", scheduledAt)
+            .apply()
     }
 
     private fun showPrayerAlert(context: Context, prayer: String, exact: Boolean) {
@@ -621,11 +677,14 @@ class PrayerAdhanPlaybackService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        AdhanTiming.log("service_onCreate")
         serviceInstance = this
         createPlaybackChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val scheduledAt = intent?.getLongExtra("scheduled_at", 0L) ?: 0L
+        AdhanTiming.log("service_onStartCommand action=${intent?.action} startId=$startId flags=$flags", scheduledAt)
         when (intent?.action) {
             ACTION_STOP -> {
                 stopPlayback()
@@ -634,18 +693,27 @@ class PrayerAdhanPlaybackService : Service() {
             }
             ACTION_TEST, ACTION_PLAY -> {
                 val prayer = intent.getStringExtra("prayer") ?: ""
+                val scheduledAt = intent.getLongExtra("scheduled_at", 0L)
+                val alarmId = intent.getStringExtra("alarm_id")
                 val prefs = getSharedPreferences(PrayerAdhanStorage.PREFS, MODE_PRIVATE)
                 if (intent.action == ACTION_PLAY &&
                     (!prefs.getBoolean(PrayerAdhanStorage.ENABLED, false) ||
                         !prefs.getBoolean("prayer_$prayer", true))
                 ) {
+                    AdhanTiming.log("service_skip prayer=$prayer reason=settings_disabled startId=$startId", scheduledAt)
+                    clearAlarmDedup(alarmId)
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
-                startForeground(
-                    notificationId(prayer),
-                    buildPlaybackNotification(prayer),
-                )
+                try {
+                    startForeground(notificationId(prayer), buildPlaybackNotification(prayer))
+                    AdhanTiming.log("service_foreground_started prayer=$prayer startId=$startId", scheduledAt)
+                } catch (error: Exception) {
+                    AdhanTiming.failure("service_foreground_start_failed prayer=$prayer startId=$startId", error, scheduledAt)
+                    clearAlarmDedup(alarmId)
+                    stopSelf(startId)
+                    return START_NOT_STICKY
+                }
                 val audioId = if (intent.action == ACTION_TEST) {
                     intent.getStringExtra("audio_id")
                 } else {
@@ -656,6 +724,8 @@ class PrayerAdhanPlaybackService : Service() {
                     prefs.getFloat(PrayerAdhanStorage.VOLUME, .85f),
                     audioId,
                     scheduledPrayer,
+                    scheduledAt,
+                    alarmId,
                 )
             }
             else -> stopSelf(startId)
@@ -667,24 +737,31 @@ class PrayerAdhanPlaybackService : Service() {
         volume: Float,
         previewAudioId: String? = null,
         scheduledPrayer: String? = null,
+        scheduledAt: Long = 0L,
+        alarmId: String? = null,
     ) {
         stopPlayer()
         val attributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
-        requestAudioFocus(attributes)
         try {
+            val focusResult = requestAudioFocus(attributes)
+            AdhanTiming.log("audio_focus_request prayer=${scheduledPrayer ?: "preview"} result=$focusResult", scheduledAt)
+            val prefs = getSharedPreferences(PrayerAdhanStorage.PREFS, MODE_PRIVATE)
+            val audioId = previewAudioId
+                ?: prefs.getString(PrayerAdhanStorage.AUDIO_ID, "adhan_madinah")
+                ?: "adhan_madinah"
+            val lookedUpResourceId = resources.getIdentifier(audioId, "raw", packageName)
+            if (lookedUpResourceId == 0) {
+                throw IllegalStateException("No bundled Adhan resource for audioId=$audioId")
+            }
+            val resourceId = lookedUpResourceId
+            AdhanTiming.log("mediaPlayer_initialize prayer=${scheduledPrayer ?: "preview"} audioId=$audioId resourceId=$resourceId volume=$volume", scheduledAt)
             player = MediaPlayer().apply {
                 setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
                 setAudioAttributes(attributes)
                 setVolume(volume.coerceIn(0f, 1f), volume.coerceIn(0f, 1f))
-                val prefs = getSharedPreferences(PrayerAdhanStorage.PREFS, MODE_PRIVATE)
-                val audioId = previewAudioId
-                    ?: prefs.getString(PrayerAdhanStorage.AUDIO_ID, "adhan_madinah")
-                    ?: "adhan_madinah"
-                val resourceId = resources.getIdentifier(audioId, "raw", packageName)
-                    .takeIf { it != 0 } ?: R.raw.adhan_madinah
                 resources.openRawResourceFd(resourceId).use { descriptor ->
                     setDataSource(
                         descriptor.fileDescriptor,
@@ -693,31 +770,59 @@ class PrayerAdhanPlaybackService : Service() {
                     )
                 }
                 setOnPreparedListener { preparedPlayer ->
-                    preparedPlayer.start()
-                    val alarmVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 1
-                    registerAlarmVolumeObserver(alarmVolume)
-                    if (scheduledPrayer != null && volume > 0f && alarmVolume > 0 &&
-                        preparedPlayer.isPlaying
-                    ) {
-                        wakeScreenForAdhan()
+                    AdhanTiming.log("mediaPlayer_onPrepared prayer=${scheduledPrayer ?: "preview"} current=${preparedPlayer === player}", scheduledAt)
+                    if (preparedPlayer !== player) {
+                        AdhanTiming.log("mediaPlayer_prepared_stale_callback prayer=${scheduledPrayer ?: "preview"}", scheduledAt)
+                        return@setOnPreparedListener
                     }
-                    activePrayer = scheduledPrayer?.takeIf {
-                        volume > 0f && alarmVolume > 0 && preparedPlayer.isPlaying
+                    try {
+                        preparedPlayer.start()
+                        val alarmVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 1
+                        val isPlaying = preparedPlayer.isPlaying
+                        AdhanTiming.log("mediaPlayer_started prayer=${scheduledPrayer ?: "preview"} isPlaying=$isPlaying alarmVolume=$alarmVolume", scheduledAt)
+                        registerAlarmVolumeObserver(alarmVolume)
+                        if (scheduledPrayer != null && volume > 0f && alarmVolume > 0 && isPlaying) {
+                            wakeScreenForAdhan()
+                        }
+                        activePrayer = scheduledPrayer?.takeIf { volume > 0f && alarmVolume > 0 && isPlaying }
+                    } catch (error: Exception) {
+                        AdhanTiming.failure("mediaPlayer_start_failed prayer=${scheduledPrayer ?: "preview"}", error, scheduledAt)
+                        clearAlarmDedup(alarmId)
+                        stopPlayback()
                     }
                 }
                 setOnCompletionListener {
+                    AdhanTiming.log("mediaPlayer_completed prayer=${scheduledPrayer ?: "preview"}", scheduledAt)
                     activePrayer = null
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
-                setOnErrorListener { _, _, _ ->
+                setOnErrorListener { _, what, extra ->
+                    AdhanTiming.failure("mediaPlayer_error prayer=${scheduledPrayer ?: "preview"} what=$what extra=$extra", IllegalStateException("MediaPlayer error what=$what extra=$extra"), scheduledAt)
+                    clearAlarmDedup(alarmId)
                     stopPlayback()
                     true
                 }
+                AdhanTiming.log("mediaPlayer_prepareAsync prayer=${scheduledPrayer ?: "preview"}", scheduledAt)
                 prepareAsync()
             }
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            AdhanTiming.failure("mediaPlayer_setup_failed prayer=${scheduledPrayer ?: "preview"}", error, scheduledAt)
+            clearAlarmDedup(alarmId)
             stopPlayback()
+        }
+    }
+
+    private fun clearAlarmDedup(alarmId: String?) {
+        if (alarmId.isNullOrBlank()) return
+        val prefs = getSharedPreferences(PrayerAdhanStorage.PREFS, MODE_PRIVATE)
+        if (prefs.getString("last_alarm_id", null) == alarmId) {
+            prefs.edit()
+                .remove("last_alarm_id")
+                .remove("last_alarm_at")
+                .remove("last_alarm_scheduled_at")
+                .apply()
+            AdhanTiming.log("alarm_dedup_cleared id=$alarmId")
         }
     }
 
@@ -745,18 +850,21 @@ class PrayerAdhanPlaybackService : Service() {
         screenWakeLock = null
     }
 
-    private fun requestAudioFocus(attributes: AudioAttributes) {
+    private fun requestAudioFocus(attributes: AudioAttributes): Int {
         audioManager = getSystemService(AudioManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(attributes)
-                .setOnAudioFocusChangeListener { }
+                .setOnAudioFocusChangeListener { change ->
+                    AdhanTiming.log("audio_focus_change change=$change")
+                }
                 .build()
             focusRequest = request
-            audioManager?.requestAudioFocus(request)
+            return audioManager?.requestAudioFocus(request) ?: AudioManager.AUDIOFOCUS_REQUEST_FAILED
         } else {
             @Suppress("DEPRECATION")
-            audioManager?.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN)
+            return audioManager?.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN)
+                ?: AudioManager.AUDIOFOCUS_REQUEST_FAILED
         }
     }
 
@@ -875,6 +983,7 @@ class PrayerAdhanPlaybackService : Service() {
     }
 
     override fun onDestroy() {
+        AdhanTiming.log("service_onDestroy")
         unregisterAlarmVolumeObserver()
         stopPlayer()
         if (serviceInstance === this) serviceInstance = null

@@ -32,6 +32,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       final cached = await _getPrayerTimes.getCached(DateTime.now());
       if (cached != null && !isClosed && state.prayerTimes == null) {
         _publishPrayerTimes(cached);
+        unawaited(_refreshCity());
       }
     } catch (_) {
       // The Adhan experience remains available if the optional cache fails.
@@ -60,6 +61,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       final cached = await _getPrayerTimes.getCached(today);
       if (cached != null) {
         _publishPrayerTimes(cached);
+        if (!forceRefresh) unawaited(_refreshCity());
         if (!isOnline && !forceRefresh) return true;
         // A cached schedule is already the result for the persistent cached
         // location. Device location is read only on an explicit refresh.
@@ -71,12 +73,14 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
         }
         final times = await _getPrayerTimes(today, forceRefresh: forceRefresh);
         _publishPrayerTimes(times);
+        unawaited(_refreshCity(forceRefresh: forceRefresh));
         return true;
       } else {
         // Cache is already visible. This background check validates the current
         // location and fetches only if today's cache belongs to another place.
         final times = await _getPrayerTimes(today);
         _publishPrayerTimes(times);
+        unawaited(_refreshCity());
         return true;
       }
     } catch (error) {
@@ -96,6 +100,21 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
     } finally {
       _isLoadingPrayerTimes = false;
     }
+  }
+
+  Future<void> _refreshCity({bool forceRefresh = false}) async {
+    final city = await _getPrayerTimes.getCurrentCity(forceRefresh: forceRefresh);
+    if (isClosed || city == state.cityName) return;
+    emit(
+      PrayerTimesState(
+        error: state.error,
+        errorType: state.errorType,
+        prayerTimes: state.prayerTimes,
+        status: state.status,
+        displayTimes: state.displayTimes,
+        cityName: city,
+      ),
+    );
   }
 
   String _localizedError(Object error) {
@@ -179,6 +198,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
           _display('المغرِب', times.maghrib, false),
           _display('العِشَاءِ', times.isha, false),
         ],
+        cityName: state.cityName,
       ),
     );
   }
