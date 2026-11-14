@@ -14,8 +14,10 @@ class TasbeehRepository {
   static const dhikrs = [
     'سُبْحَانَ اللَّهِ',
     'الْحَمْدُ لِلَّهِ',
+    'لَا إِلَهَ إِلَّا اللَّهُ',
     'اللَّهُ أَكْبَرُ',
     'أَسْتَغْفِرُ اللَّهَ',
+    'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
   ];
 
   String get _today => DateTime.now().toIso8601String().substring(0, 10);

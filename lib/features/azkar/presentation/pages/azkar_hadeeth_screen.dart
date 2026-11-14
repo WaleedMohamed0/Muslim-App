@@ -185,6 +185,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                         return AzkarSectionHeader(
                           isHadith: false,
                           totalCount: entries.length,
+                          showTasbeehHint: category == 5,
                         );
                       }
                       if ((category == 0 || category == 1) &&
@@ -300,7 +301,13 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                         reference: category != 2 && entry.verified
                             ? _entryReference(entry)
                             : null,
-                        instructions: entry.verified ? entry.instructions : null,
+                        instructions: entry.verified && category != 5
+                            ? entry.instructions
+                            : null,
+                        showVirtueInfo: category == 5,
+                        onVirtueTap: category == 5
+                            ? () => _showTasbeehVirtue(context, entry)
+                            : null,
                         onCopy:
                             () => Clipboard.setData(ClipboardData(text: text)),
                         onIncrement: () => cubit.incrementEntry(entry),
@@ -358,6 +365,79 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     if (grade.isEmpty || reference.endsWith(grade)) return reference;
     return '$reference — $grade';
   }
+
+  Future<void> _showTasbeehVirtue(
+    BuildContext context,
+    AzkarEntry entry,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    builder: (sheetContext) {
+      final theme = Theme.of(sheetContext);
+      final colors = theme.colorScheme;
+      final virtue = entry.instructions.trim();
+      final reference = entry.verified ? _entryReference(entry).trim() : '';
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsetsDirectional.fromSTEB(
+              24,
+              4,
+              24,
+              24 + MediaQuery.viewInsetsOf(sheetContext).bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  entry.content,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w700,
+                    height: 1.7,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'فضل التسبيحة',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  virtue.isEmpty ? 'لا يتوفر نص للفضل.' : virtue,
+                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+                ),
+                if (reference.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      'المصدر: $reference',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 
   Future<void> _showPostPrayerCompletion() async {
     if (!mounted) return;

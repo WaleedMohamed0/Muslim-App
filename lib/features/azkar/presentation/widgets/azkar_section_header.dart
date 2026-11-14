@@ -7,10 +7,12 @@ class AzkarSectionHeader extends StatelessWidget {
     super.key,
     required this.isHadith,
     required this.totalCount,
+    this.showTasbeehHint = false,
   });
 
   final bool isHadith;
   final int totalCount;
+  final bool showTasbeehHint;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +68,17 @@ class AzkarSectionHeader extends StatelessWidget {
                       color: colors.onSurfaceVariant,
                     ),
                   ),
+                  if (showTasbeehHint) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'اضغط رمز المعلومات بجانب التسبيحة لعرض فضلها ومصدرها.',
+                      textDirection: TextDirection.rtl,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        height: 1.4,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

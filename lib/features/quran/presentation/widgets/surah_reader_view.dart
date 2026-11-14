@@ -206,20 +206,6 @@ class SurahReaderView extends StatelessWidget {
                 ),
               ),
             ),
-            if (!controlsVisible)
-              PositionedDirectional(
-                bottom: 10,
-                end: 18,
-                child: IgnorePointer(
-                  child: Text(
-                    'صفحة ${toArabicIndicDigits(pageNumber)}',
-                    style: TextStyle(
-                      color: palette.muted.withValues(alpha: .72),
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ),
             if (showZoomHint)
               PositionedDirectional(
                 top: 12,

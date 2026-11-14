@@ -28,6 +28,7 @@ class DailyWirdProgressRepository {
   static const _surahKey = 'daily_wird_progress_surah_v1';
   static const _ayahKey = 'daily_wird_progress_ayah_v1';
   static const _completedKey = 'daily_wird_completed_day_v1';
+  static const _completedDaysKey = 'daily_wird_completed_days_v1';
 
   String _dateKey([DateTime? value]) {
     final date = value ?? DateTime.now();
@@ -94,6 +95,11 @@ class DailyWirdProgressRepository {
     final today = _dateKey();
     if (prefs.getString(_completedKey) == today) return false;
     await prefs.setString(_completedKey, today);
+    final completedDays = prefs.getStringList(_completedDaysKey) ?? <String>[];
+    if (!completedDays.contains(today)) {
+      completedDays.add(today);
+      await prefs.setStringList(_completedDaysKey, completedDays);
+    }
     return true;
   }
 

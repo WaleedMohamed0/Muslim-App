@@ -19,6 +19,7 @@ import 'package:muslim/features/khatmah/presentation/pages/khatmah_screen.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_audio_mini_player.dart';
 import 'package:muslim/features/app/presentation/widgets/startup_home_widgets.dart';
 import 'package:muslim/features/app/presentation/widgets/prayer_wird_home_section.dart';
+import 'package:muslim/features/app/presentation/widgets/daily_wird_home_card.dart';
 import 'package:muslim/features/app/presentation/pages/daily_reminder_settings_screen.dart';
 import 'package:muslim/features/app/presentation/pages/app_settings_screen.dart';
 import 'package:muslim/core/assets/app_assets.dart';
@@ -38,6 +39,126 @@ class StartUpScreen extends StatefulWidget {
 
   @override
   State<StartUpScreen> createState() => _StartUpScreenState();
+}
+
+class _AzkarDiscoveryCarousel extends StatefulWidget {
+  const _AzkarDiscoveryCarousel({required this.displayOrder});
+
+  final List<int> displayOrder;
+
+  @override
+  State<_AzkarDiscoveryCarousel> createState() =>
+      _AzkarDiscoveryCarouselState();
+}
+
+class _AzkarDiscoveryCarouselState extends State<_AzkarDiscoveryCarousel>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _nudgeController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 850),
+  )..repeat(reverse: true);
+  bool _hasScrolled = false;
+
+  bool _handleScroll(ScrollNotification notification) {
+    if (!_hasScrolled &&
+        notification is ScrollUpdateNotification &&
+        notification.metrics.axis == Axis.horizontal &&
+        notification.scrollDelta != null &&
+        notification.scrollDelta!.abs() > .5) {
+      setState(() => _hasScrolled = true);
+      _nudgeController.stop();
+    }
+    return false;
+  }
+
+  @override
+  void dispose() {
+    _nudgeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+    return SizedBox(
+      height: 144,
+      child: Stack(
+        children: [
+          NotificationListener<ScrollNotification>(
+            onNotification: _handleScroll,
+            child: ListView.separated(
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 14, 20, 12),
+              scrollDirection: Axis.horizontal,
+              itemCount: widget.displayOrder.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, displayIndex) {
+                final index = widget.displayOrder[displayIndex];
+                return WirdCard(
+                  item: AppColors.azkarCategories[index],
+                  onTap:
+                      () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: RouteSettings(
+                            name: '/azkar-category-$index',
+                          ),
+                          builder:
+                              (_) => AzkarAndHadeethScreen(index: index),
+                        ),
+                      ),
+                );
+              },
+            ),
+          ),
+          PositionedDirectional(
+            end: 4,
+            top: 55,
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: _hasScrolled ? 0 : 1,
+                duration: const Duration(milliseconds: 240),
+                child: AnimatedBuilder(
+                  animation: _nudgeController,
+                  builder: (context, child) => Transform.translate(
+                    offset: Offset(
+                      (isRtl ? -1 : 1) * 3 * _nudgeController.value,
+                      0,
+                    ),
+                    child: child,
+                  ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface.withValues(alpha: .92),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.shadow.withValues(
+                            alpha: theme.brightness == Brightness.dark ? .22 : .1,
+                          ),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: Icon(
+                        isRtl
+                            ? Icons.keyboard_double_arrow_left_rounded
+                            : Icons.keyboard_double_arrow_right_rounded,
+                        size: 19,
+                        color: theme.colorScheme.primary.withValues(alpha: .8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StartUpScreenState extends State<StartUpScreen> {
@@ -256,6 +377,10 @@ class _StartUpScreenState extends State<StartUpScreen> {
                 ),
                 const SliverToBoxAdapter(child: PrayerWirdHomeSection()),
                 SliverPadding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 14),
+                  sliver: const SliverToBoxAdapter(child: DailyWirdHomeCard()),
+                ),
+                SliverPadding(
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 8),
                   sliver: SliverToBoxAdapter(
                     child: HomeSectionHeader(
@@ -290,36 +415,8 @@ class _StartUpScreenState extends State<StartUpScreen> {
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 144,
-                    child: ListView.separated(
-                      padding: const EdgeInsetsDirectional.fromSTEB(
-                        20,
-                        14,
-                        20,
-                        12,
-                      ),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _azkarDisplayOrder.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 12),
-                      itemBuilder: (context, displayIndex) {
-                        final index = _azkarDisplayOrder[displayIndex];
-                        return WirdCard(
-                          item: AppColors.azkarCategories[index],
-                          onTap:
-                              () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  settings: RouteSettings(
-                                    name: '/azkar-category-$index',
-                                  ),
-                                  builder:
-                                      (_) =>
-                                          AzkarAndHadeethScreen(index: index),
-                                ),
-                              ),
-                        );
-                      },
-                    ),
+                  child: _AzkarDiscoveryCarousel(
+                    displayOrder: _azkarDisplayOrder,
                   ),
                 ),
                 SliverPadding(

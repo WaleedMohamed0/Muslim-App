@@ -15,6 +15,8 @@ class AzkarTextCard extends StatelessWidget {
     this.onFavorite,
     this.onShare,
     this.sectionLabel,
+    this.showVirtueInfo = false,
+    this.onVirtueTap,
   });
   final String text;
   final int? counter;
@@ -28,6 +30,8 @@ class AzkarTextCard extends StatelessWidget {
   final VoidCallback? onFavorite;
   final VoidCallback? onShare;
   final String? sectionLabel;
+  final bool showVirtueInfo;
+  final VoidCallback? onVirtueTap;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -36,7 +40,7 @@ class AzkarTextCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadii.card),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.all(showVirtueInfo ? 10 : AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -56,18 +60,57 @@ class AzkarTextCard extends StatelessWidget {
                 ),
               ),
             ],
-            Text(
-              toArabicIndicDigits(text),
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(
-                fontSize: (Theme.of(context).textTheme.titleMedium?.fontSize ?? 16) + 2,
-                height: 1.9,
+            if (showVirtueInfo)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      toArabicIndicDigits(text),
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: (Theme.of(context).textTheme.titleMedium?.fontSize ?? 16) + 1,
+                      height: 1.4,
+                      ),
+                    ),
+                  ),
+                  if (onVirtueTap != null)
+                    IconButton(
+                      onPressed: onVirtueTap,
+                      tooltip: 'فضل التسبيحة والمصدر',
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+                      padding: EdgeInsets.zero,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .primaryContainer
+                            .withValues(alpha: 0.55),
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimaryContainer,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadii.control),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.info_outline_rounded,
+                        size: 19,
+                      ),
+                    ),
+                ],
+              )
+            else
+              Text(
+                toArabicIndicDigits(text),
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: (Theme.of(context).textTheme.titleMedium?.fontSize ?? 16) + 2,
+                  height: 1.9,
+                ),
               ),
-            ),
-            if (instructions != null && instructions!.isNotEmpty) ...[
+            if (!showVirtueInfo && instructions != null && instructions!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 toArabicIndicDigits(instructions!),
@@ -79,7 +122,7 @@ class AzkarTextCard extends StatelessWidget {
                     ),
               ),
             ],
-            if (reference != null && reference!.isNotEmpty) ...[
+            if (!showVirtueInfo && reference != null && reference!.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
                 toArabicIndicDigits('المصدر: $reference'),
@@ -114,7 +157,7 @@ class AzkarTextCard extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 10),
+            SizedBox(height: showVirtueInfo ? 6 : 10),
             Row(
               textDirection: TextDirection.rtl,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -213,7 +256,7 @@ class AzkarTextCard extends StatelessWidget {
               ],
             ),
             if (counter != null && repetitionCount != null) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: showVirtueInfo ? 6 : 12),
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Text(
