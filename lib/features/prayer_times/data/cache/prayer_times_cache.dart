@@ -125,6 +125,7 @@ class PrayerTimesCache {
       if (json['date'] != dateKey && dayAlarms.length < 5) return null;
       return CachedPrayerTimes(
         times: PrayerTimes(
+          sunrise: prayerTime('sunrise'),
           fajr: prayerTime('fajr'),
           dhuhr: prayerTime('dhuhr'),
           asr: prayerTime('asr'),
@@ -165,6 +166,7 @@ class PrayerTimesCache {
       'longitude': longitude,
       'region': region,
       'timezone': times.timezone,
+      'sunrise': _time(times.sunrise),
       'fajr': _time(times.fajr),
       'dhuhr': _time(times.dhuhr),
       'asr': _time(times.asr),

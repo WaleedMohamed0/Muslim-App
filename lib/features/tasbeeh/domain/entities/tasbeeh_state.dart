@@ -1,25 +1,32 @@
+import 'package:muslim/features/tasbeeh/domain/entities/tasbeeh_item.dart';
+
 class TasbeehState {
   const TasbeehState({
-    this.count = 0,
-    this.dhikr = 'سُبْحَانَ اللَّهِ',
-    this.target = 33,
+    this.items = const [],
+    this.selectedDhikr = 'سُبْحَانَ اللَّهِ',
     this.dailyTotal = 0,
     this.isLoading = true,
   });
 
-  final int count;
-  final String dhikr;
-  final int target;
+  final List<TasbeehItem> items;
+  final String selectedDhikr;
   final int dailyTotal;
   final bool isLoading;
 
-  double get progress => target <= 0 ? 0 : (count / target).clamp(0.0, 1.0);
-  bool get isComplete => count >= target;
+  TasbeehItem get selectedItem => items.firstWhere(
+    (item) => item.dhikr == selectedDhikr,
+    orElse: () => const TasbeehItem(dhikr: 'سُبْحَانَ اللَّهِ', count: 0, target: 33),
+  );
 
-  TasbeehState copyWith({int? count, String? dhikr, int? target, int? dailyTotal, bool? isLoading}) => TasbeehState(
-    count: count ?? this.count,
-    dhikr: dhikr ?? this.dhikr,
-    target: target ?? this.target,
+  int get count => selectedItem.count;
+  int get target => selectedItem.target;
+  String get dhikr => selectedDhikr;
+  double get progress => selectedItem.progress;
+  bool get isComplete => selectedItem.isComplete;
+
+  TasbeehState copyWith({List<TasbeehItem>? items, String? selectedDhikr, int? dailyTotal, bool? isLoading}) => TasbeehState(
+    items: items ?? this.items,
+    selectedDhikr: selectedDhikr ?? this.selectedDhikr,
     dailyTotal: dailyTotal ?? this.dailyTotal,
     isLoading: isLoading ?? this.isLoading,
   );

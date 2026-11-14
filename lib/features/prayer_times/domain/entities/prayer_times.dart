@@ -2,6 +2,7 @@ import 'prayer_alarm_time.dart';
 
 class PrayerTimes {
   const PrayerTimes({
+    required this.sunrise,
     required this.fajr,
     required this.dhuhr,
     required this.asr,
@@ -11,6 +12,7 @@ class PrayerTimes {
     this.timezone,
   });
 
+  final DateTime sunrise;
   final DateTime fajr;
   final DateTime dhuhr;
   final DateTime asr;

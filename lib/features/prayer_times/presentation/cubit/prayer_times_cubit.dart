@@ -70,7 +70,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       // this day's local calculation cache.
       final times = await _getPrayerTimes(today, forceRefresh: forceRefresh);
       _publishPrayerTimes(times);
-      unawaited(_refreshCity(forceRefresh: true));
+      unawaited(_refreshCity(forceRefresh: forceRefresh));
       return true;
     } catch (error) {
       if (forceRefresh) lastRefreshErrorType = _errorType(error);
@@ -184,6 +184,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
         status: PrayerTimesStatus.loaded,
         displayTimes: [
           _display('الفَجرِ', times.fajr, true),
+          _display('الشُّروق', times.sunrise, true),
           _display('الظُّهرِ', times.dhuhr, true),
           _display('العَصرِ', times.asr, false),
           _display('المغرِب', times.maghrib, false),

@@ -20,8 +20,9 @@ class PrayerTimesContent extends StatelessWidget {
     final upcoming = prayer_logic.nextPrayerAfter(state.prayerTimes, now);
     final nextPrayerIndex = upcoming == null
         ? null
-        : const ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
-            .indexOf(upcoming.id);
+        : const {'fajr': 0, 'dhuhr': 2, 'asr': 3, 'maghrib': 4, 'isha': 5}[
+            upcoming.id
+          ];
     final nextPrayerTime = upcoming?.at;
 
     return Center(
@@ -79,15 +80,17 @@ class PrayerTimesContent extends StatelessWidget {
     prayer_model.PrayerTimes? times,
     List<PrayerDisplayTime> displayTimes,
   ) {
-    if (times == null || displayTimes.length < 5) return const [];
+    if (times == null || displayTimes.length < 6) return const [];
     final timesOfDay = [
       times.fajr,
+      times.sunrise,
       times.dhuhr,
       times.asr,
       times.maghrib,
       times.isha,
     ];
     const icons = [
+      Icons.wb_sunny_outlined,
       Icons.wb_twilight_rounded,
       Icons.wb_sunny_rounded,
       Icons.access_time_filled_rounded,
@@ -95,7 +98,7 @@ class PrayerTimesContent extends StatelessWidget {
       Icons.nights_stay_rounded,
     ];
     return List.generate(
-      5,
+      6,
       (index) => PrayerScheduleItem(
         display: displayTimes[index],
         time: timesOfDay[index],

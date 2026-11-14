@@ -23,6 +23,7 @@ class AzkarAndHadeethScreen extends StatefulWidget {
 
 class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
   bool _completionDialogShown = false;
+  bool _completionBaselineEstablished = false;
   late final String title = switch (widget.index) {
     0 => 'أَذْكَارُ الصَّبَاحِ',
     1 => 'أَذْكَارُ المساءِ',
@@ -112,9 +113,27 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     }
 
     return BlocConsumer<AzkarCubit, AzkarState>(
-      listenWhen: (_, __) => category == 4,
-      listener: (context, _) {
+      listenWhen: (previous, current) =>
+          category == 4 ||
+          (category >= 0 && category <= 3 && previous.revision != current.revision),
+      listener: (context, current) {
         final cubit = context.read<AzkarCubit>();
+        if (category >= 0 && category <= 3) {
+          if (current.isLoading) return;
+          final complete = _isSectionComplete(cubit, current, category);
+          if (!_completionBaselineEstablished) {
+            _completionBaselineEstablished = true;
+            return;
+          }
+          if (!complete) {
+            _completionDialogShown = false;
+            return;
+          }
+          if (_completionDialogShown) return;
+          _completionDialogShown = true;
+          unawaited(_showAzkarCompletion());
+          return;
+        }
         if (_completionDialogShown || !cubit.isPostPrayerSessionComplete()) {
           return;
         }
@@ -293,6 +312,46 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     );
   }
 
+  bool _isSectionComplete(AzkarCubit cubit, AzkarState state, int category) {
+    final entries = state.entriesFor(category);
+    return entries.isNotEmpty && entries.every((entry) {
+      final required = entry.repetitionCount ?? 1;
+      return cubit.progressFor(entry) >= required;
+    });
+  }
+
+  Future<void> _showAzkarCompletion() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: colors.primary.withValues(alpha: 0.22)),
+          ),
+          icon: Icon(Icons.spa_rounded, color: colors.primary, size: 34),
+          title: const Text('أحسنت! 🌿', textAlign: TextAlign.center),
+          content: const Text(
+            'أتممت أذكارك، تقبّل الله منك',
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('تم'),
+            ),
+          ],
+        );
+      },
+    );
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
   String _entryReference(AzkarEntry entry) {
     final grade = entry.authenticityGrade.trim();
     final reference = entry.reference.trim();
@@ -305,22 +364,29 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        icon: Icon(Icons.check_circle_rounded, color: Theme.of(context).colorScheme.primary, size: 38),
-        title: const Text('أحسنت!'),
-        content: const Text(
-          'أتممت أذكار ما بعد الصلاة بنجاح، تقبّل الله منك.',
-          textAlign: TextAlign.center,
-          textDirection: TextDirection.rtl,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('تم'),
+      builder: (dialogContext) {
+        final colors = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: colors.primary.withValues(alpha: 0.22)),
           ),
-        ],
-      ),
+          icon: Icon(Icons.spa_rounded, color: colors.primary, size: 34),
+          title: const Text('أحسنت! 🌿', textAlign: TextAlign.center),
+          content: const Text(
+            'أتممت أذكارك، تقبّل الله منك',
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('تم'),
+            ),
+          ],
+        );
+      },
     );
     if (mounted) Navigator.of(context).pop(true);
   }

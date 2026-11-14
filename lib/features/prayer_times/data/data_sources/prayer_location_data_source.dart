@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:adhan/adhan.dart' as adhan;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -31,9 +29,27 @@ class PrayerLocationDataSource {
       if (location == null) return null;
       final cachedRegion = await _locationCache.readRegionForLocation(location);
       if (!forceRefresh && cachedRegion != null) return cachedRegion.city;
+      if (forceRefresh && cachedRegion != null) {
+        try {
+          final region = await _resolveRegion(location);
+          if (region == null) return cachedRegion.city;
+          await _locationCache.writeCity(location, region.city);
+          await _locationCache.writeRegion(
+            region: region.region,
+            city: region.city,
+            country: region.country,
+            countryCode: region.countryCode,
+            reference: region.reference,
+          );
+          return region.city;
+        } catch (_) {
+          return cachedRegion.city;
+        }
+      }
       if (!forceRefresh) {
         final cachedCity = await _locationCache.readCity(location);
         if (cachedCity != null) return cachedCity;
+        return null;
       }
       final region = await _resolveRegion(location);
       if (region == null) return null;
@@ -109,7 +125,10 @@ class PrayerLocationDataSource {
     }
     final zone = await _readTimezone();
     final timezone = zone?.name;
-    final regionalData = await _regionalData(deviceLocation);
+    final regionalData = await _regionalData(
+      deviceLocation,
+      forceRefresh: forceRefresh,
+    );
     // The previous API received the raw GPS fix. Use that same coordinate for
     // local calculations; geocoded regional centroids can shift prayer times.
     final calculationLocation = deviceLocation;
@@ -123,7 +142,6 @@ class PrayerLocationDataSource {
       nowAtLocation.month,
       nowAtLocation.day,
     );
-    if (regionalData == null) unawaited(_cacheCity(deviceLocation));
     CachedPrayerTimes? cached;
     try {
       cached = await _cache.read(calculationDate);
@@ -173,6 +191,7 @@ class PrayerLocationDataSource {
               : adhan.PrayerTimes.utc(coordinates, components, parameters);
       final instant = switch (prayer) {
         adhan.Prayer.fajr => times.fajr,
+        adhan.Prayer.sunrise => times.sunrise,
         adhan.Prayer.dhuhr => times.dhuhr,
         adhan.Prayer.asr => times.asr,
         adhan.Prayer.maghrib => times.maghrib,
@@ -201,6 +220,7 @@ class PrayerLocationDataSource {
       }
     }
     final result = PrayerTimes(
+      sunrise: calculate(calculationDate, adhan.Prayer.sunrise),
       fajr: calculate(calculationDate, adhan.Prayer.fajr),
       dhuhr: calculate(calculationDate, adhan.Prayer.dhuhr),
       asr: calculate(calculationDate, adhan.Prayer.asr),
@@ -223,24 +243,10 @@ class PrayerLocationDataSource {
     return result;
   }
 
-  Future<void> _cacheCity(CachedLocation location) async {
-    try {
-      final region = await _resolveRegion(location);
-      if (region == null) return;
-      await _locationCache.writeCity(location, region.city);
-      await _locationCache.writeRegion(
-        region: region.region,
-        city: region.city,
-        country: region.country,
-        countryCode: region.countryCode,
-        reference: region.reference,
-      );
-    } catch (_) {
-      // City labels are optional and may require an online geocoder.
-    }
-  }
-
-  Future<CachedRegion?> _regionalData(CachedLocation location) async {
+  Future<CachedRegion?> _regionalData(
+    CachedLocation location, {
+    required bool forceRefresh,
+  }) async {
     CachedRegion? cached;
     try {
       cached = await _locationCache.readRegionForLocation(location);
@@ -248,8 +254,9 @@ class PrayerLocationDataSource {
       // Continue with the global default if location metadata is unavailable.
     }
     if (cached?.countryCode != null && cached!.countryCode!.isNotEmpty) {
-      return cached;
+      if (!forceRefresh) return cached;
     }
+    if (!forceRefresh) return cached;
     try {
       final region = await _resolveRegion(
         location,

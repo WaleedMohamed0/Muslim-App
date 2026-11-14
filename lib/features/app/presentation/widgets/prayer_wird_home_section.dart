@@ -110,6 +110,7 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
       time.second,
     );
     return PrayerTimes(
+      sunrise: rebase(times.sunrise),
       fajr: rebase(times.fajr),
       dhuhr: rebase(times.dhuhr),
       asr: rebase(times.asr),

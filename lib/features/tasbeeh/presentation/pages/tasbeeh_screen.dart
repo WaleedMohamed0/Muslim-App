@@ -8,7 +8,7 @@ import 'package:muslim/features/tasbeeh/presentation/cubit/tasbeeh_cubit.dart';
 
 class TasbeehScreen extends StatelessWidget {
   const TasbeehScreen({super.key});
-  static const _azkar = ['سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ ، وَاللَّهُ أَكْبَرُ.'];
+  static const _azkar = TasbeehRepository.dhikrs;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
