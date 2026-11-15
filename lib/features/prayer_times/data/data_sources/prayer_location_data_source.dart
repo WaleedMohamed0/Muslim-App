@@ -49,7 +49,20 @@ class PrayerLocationDataSource {
       if (!forceRefresh) {
         final cachedCity = await _locationCache.readCity(location);
         if (cachedCity != null) return cachedCity;
-        return null;
+        // A location can be available before any city metadata has been
+        // stored (for example, on the first launch). Resolve it here instead
+        // of leaving the UI on its "city unavailable" fallback indefinitely.
+        final region = await _resolveRegion(location);
+        if (region == null) return null;
+        await _locationCache.writeCity(location, region.city);
+        await _locationCache.writeRegion(
+          region: region.region,
+          city: region.city,
+          country: region.country,
+          countryCode: region.countryCode,
+          reference: region.reference,
+        );
+        return region.city;
       }
       final region = await _resolveRegion(location);
       if (region == null) return null;
