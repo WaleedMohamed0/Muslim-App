@@ -434,9 +434,17 @@ internal object PrayerAlarmScheduler {
         }
         try {
             AdhanTiming.log("alarm_schedule prayer=${item.optString("prayer")}", at)
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                at,
+            // Prayer Adhan is a user-visible alarm. AlarmClockInfo keeps it
+            // exact and gives it the platform's highest-priority alarm path,
+            // avoiding OEM batching seen with setExactAndAllowWhileIdle.
+            val showIntent = PendingIntent.getActivity(
+                context,
+                0,
+                Intent(context, MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            alarmManager.setAlarmClock(
+                AlarmManager.AlarmClockInfo(at, showIntent),
                 alarmPendingIntent(),
             )
         } catch (_: SecurityException) {
@@ -455,11 +463,13 @@ internal object PrayerAlarmScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         try {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                at,
-                pending,
+            val showIntent = PendingIntent.getActivity(
+                context,
+                0,
+                Intent(context, MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
+            alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(at, showIntent), pending)
         } catch (_: SecurityException) {
             // Permission can be revoked after the check; never fire early.
         }
@@ -781,20 +791,30 @@ class PrayerAdhanPlaybackService : Service() {
                     stopPlayback()
                     true
                 }
-                AdhanTiming.log("audio_initialization_begin prayer=${scheduledPrayer ?: "preview"}", scheduledAt)
-                // The source is a bundled raw resource. Prepare synchronously so playback
-                // begins in this service start, without waiting for a later handler callback.
-                prepare()
-                AdhanTiming.log("audio_initialization_complete prayer=${scheduledPrayer ?: "preview"}", scheduledAt)
-                start()
-                val alarmVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 1
-                val isPlaying = isPlaying
-                AdhanTiming.log("audio_playback_started prayer=${scheduledPrayer ?: "preview"} isPlaying=$isPlaying alarmVolume=$alarmVolume", scheduledAt)
-                registerAlarmVolumeObserver(alarmVolume)
-                if (scheduledPrayer != null && volume > 0f && alarmVolume > 0 && isPlaying) {
-                    wakeScreenForAdhan()
+                setOnPreparedListener { preparedPlayer ->
+                    AdhanTiming.log("mediaPlayer_onPrepared prayer=${scheduledPrayer ?: "preview"} current=${preparedPlayer === player}", scheduledAt)
+                    if (preparedPlayer !== player) {
+                        AdhanTiming.log("mediaPlayer_prepared_stale_callback prayer=${scheduledPrayer ?: "preview"}", scheduledAt)
+                        return@setOnPreparedListener
+                    }
+                    try {
+                        preparedPlayer.start()
+                        val alarmVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 1
+                        val isPlaying = preparedPlayer.isPlaying
+                        AdhanTiming.log("audio_playback_started prayer=${scheduledPrayer ?: "preview"} isPlaying=$isPlaying alarmVolume=$alarmVolume", scheduledAt)
+                        registerAlarmVolumeObserver(alarmVolume)
+                        if (scheduledPrayer != null && volume > 0f && alarmVolume > 0 && isPlaying) {
+                            wakeScreenForAdhan()
+                        }
+                        activePrayer = scheduledPrayer?.takeIf { volume > 0f && alarmVolume > 0 && isPlaying }
+                    } catch (error: Exception) {
+                        AdhanTiming.failure("mediaPlayer_start_failed prayer=${scheduledPrayer ?: "preview"}", error, scheduledAt)
+                        clearAlarmDedup(alarmId)
+                        stopPlayback()
+                    }
                 }
-                activePrayer = scheduledPrayer?.takeIf { volume > 0f && alarmVolume > 0 && isPlaying }
+                AdhanTiming.log("audio_initialization_begin prayer=${scheduledPrayer ?: "preview"}", scheduledAt)
+                prepareAsync()
             }
         } catch (error: Exception) {
             AdhanTiming.failure("mediaPlayer_setup_failed prayer=${scheduledPrayer ?: "preview"}", error, scheduledAt)
