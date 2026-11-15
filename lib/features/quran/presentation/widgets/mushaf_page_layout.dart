@@ -56,6 +56,19 @@ class _MushafPageContent extends StatelessWidget {
       final firstSection = sections.first;
       final firstSurah = (firstSection['surah'] as num).toInt();
       final firstVerse = (firstSection['start'] as num).toInt();
+      final layoutLines = MushafLineLayoutData.page(pageNumber);
+      final surahsStartingOnPage = sections
+          .where((section) => section['start'] == 1)
+          .map((section) => section['surah']!)
+          .toSet();
+      final correctlyPlacedHeaders = layoutLines
+          .where(
+            (line) =>
+                line.type == MushafLayoutLineType.surahName &&
+                surahsStartingOnPage.contains(line.surahNumber),
+          )
+          .map((line) => line.surahNumber!)
+          .toSet();
       final juzNumber = quran.getJuzNumber(firstSurah, firstVerse);
       // Keep the text comfortably balanced inside the Mushaf frame while
       // leaving enough room for long rows at the fixed font size.
@@ -79,10 +92,24 @@ class _MushafPageContent extends StatelessWidget {
               ? (openingBlankLineCount - openingBlankLinesToSkip) ~/ 2
               : 0;
       var openingBlankLinesMovedBeforeContent = 0;
-      for (final line in MushafLineLayoutData.page(pageNumber)) {
+      if (firstVerse == 1 && !correctlyPlacedHeaders.contains(firstSurah)) {
+        pageRows.add((
+          child: SurahNameHeader(
+            surahName: _arabicSurahName(firstSurah),
+            palette: palette,
+            fontSize: fontSize + 1,
+          ),
+          flexible: true,
+        ));
+        if (pageNumber <= 2) {
+          pageRows.add((child: const SizedBox(height: 8), flexible: false));
+        }
+      }
+      for (final line in layoutLines) {
         switch (line.type) {
           case MushafLayoutLineType.surahName:
             final surahNumber = line.surahNumber!;
+            if (!correctlyPlacedHeaders.contains(surahNumber)) break;
             pageRows.add((
               child: SurahNameHeader(
                 surahName: _arabicSurahName(surahNumber),
@@ -259,7 +286,7 @@ class _MushafPageContent extends StatelessWidget {
 
 String _arabicSurahName(int surahNumber) {
   final name = UthmaniQuranText.getSurahName(surahNumber);
-  return name == 'اللهب' ? 'المسد' : name;
+  return name == 'اللهب' ? 'المَسَد' : name;
 }
 
 class _MushafRunningHeader extends StatelessWidget {

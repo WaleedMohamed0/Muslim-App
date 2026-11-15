@@ -178,6 +178,17 @@ class QuranReciter {
       avatarColorValue: 0xFF526B75,
       country: QuranReciterCountry.saudiArabia,
     ),
+    QuranReciter(
+      id: 'mp3quran_ali_jaber',
+      nameArabic: 'الشيخ علي جابر',
+      nameEnglish: 'Sheikh Ali Jaber',
+      serverUrl: 'https://cdn.mp3quran.net/download/audio/ali-jaber/r1/',
+      timingReadId: 53,
+      avatarAsset: 'assets/images/reciters/mp3quran_ali_jaber.jpg',
+      avatarLabel: 'عج',
+      avatarColorValue: 0xFF526B75,
+      country: QuranReciterCountry.saudiArabia,
+    ),
   ];
 
   /// Reciters grouped in the picker priority order, while preserving catalog
