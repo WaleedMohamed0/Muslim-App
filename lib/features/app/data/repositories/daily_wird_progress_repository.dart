@@ -50,16 +50,18 @@ class DailyWirdProgressRepository {
       await prefs.remove(_surahKey);
       await prefs.remove(_ayahKey);
     } else if (savedDay != today) {
-      // A new calendar day always gets a new range. Carrying yesterday's
-      // checkpoint forward can leave the reader stuck in yesterday's Wird.
-      start = checkpointPage.clamp(1, 604).toInt();
+      // Continue the Daily Wird's own sequence across days. If yesterday was
+      // completed, begin after its target; otherwise resume its last page.
+      final previousEnd = prefs.getInt(_endPageKey) ?? checkpointPage;
+      final previousPage = prefs.getInt(_pageKey) ?? checkpointPage;
+      start = prefs.getString(_completedKey) == savedDay
+          ? (previousEnd >= 604 ? 1 : previousEnd + 1)
+          : previousPage;
+      start = start.clamp(1, 604).toInt();
       assignNewRange = true;
       await prefs.setInt(_pageKey, start);
       await prefs.remove(_surahKey);
       await prefs.remove(_ayahKey);
-    } else if (savedDay == today && prefs.getString(_completedKey) != today) {
-      // Updating the pages-per-day setting adjusts today's unfinished target.
-      assignNewRange = true;
     }
 
     if (assignNewRange) {
@@ -69,10 +71,16 @@ class DailyWirdProgressRepository {
     await prefs.setInt(_startPageKey, start);
     await prefs.setInt(_endPageKey, end);
 
-    final checkpoint = checkpointPage;
+    final checkpoint = savedDay == today
+        ? (prefs.getInt(_pageKey) ?? checkpointPage)
+        : checkpointPage;
     final first = MushafLineLayoutData.pageData(checkpoint).first;
-    final surah = checkpointPage == 1 ? 1 : checkpointSurah;
-    final ayah = checkpointPage == 1 ? 1 : checkpointAyah;
+    final surah = savedDay == today
+        ? (prefs.getInt(_surahKey) ?? checkpointSurah)
+        : (checkpointPage == 1 ? 1 : checkpointSurah);
+    final ayah = savedDay == today
+        ? (prefs.getInt(_ayahKey) ?? checkpointAyah)
+        : (checkpointPage == 1 ? 1 : checkpointAyah);
     return DailyWirdSession(
       startPage: start,
       endPage: end,
@@ -81,6 +89,22 @@ class DailyWirdProgressRepository {
       checkpointAyah: ayah,
       completed: prefs.getString(_completedKey) == today,
     );
+  }
+
+  Future<void> recordPage({
+    required int page,
+    required int surah,
+    required int ayah,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _dateKey();
+    if (prefs.getString(_dayKey) != today) return;
+    final start = prefs.getInt(_startPageKey) ?? 1;
+    final end = prefs.getInt(_endPageKey) ?? start;
+    if (page < start || page > end) return;
+    await prefs.setInt(_pageKey, page);
+    await prefs.setInt(_surahKey, surah);
+    await prefs.setInt(_ayahKey, ayah);
   }
 
   Future<bool> completeToday() async {

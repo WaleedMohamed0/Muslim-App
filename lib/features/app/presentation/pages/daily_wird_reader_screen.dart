@@ -21,8 +21,8 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
   final _progress = DailyWirdProgressRepository();
   DailyWirdSession? _session;
   int? _currentPage;
+  int? _furthestCheckpointPage;
   bool _loading = true;
-  bool _initialPageReported = false;
   bool _completionPresented = false;
   Offset _progressCardOffset = Offset.zero;
   final _progressCardKey = GlobalKey();
@@ -46,6 +46,8 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
     if (!mounted) return;
     setState(() {
       _session = session;
+      _furthestCheckpointPage = session?.checkpointPage;
+      _currentPage = session?.checkpointPage;
       _loading = false;
     });
   }
@@ -65,18 +67,23 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
 
   void _recordPage(int page, int surah, int ayah) {
     final session = _session;
-    if (session == null || page < session.startPage || page > session.endPage)
+    if (session == null || page < session.startPage) return;
+    // A page is only confirmed as read once the reader advances beyond it.
+    // This keeps opening a one-page Wird from completing it immediately.
+    if (page > session.endPage) {
+      if (page == session.endPage + 1 && !session.completed) {
+        unawaited(_finish());
+      }
       return;
-    unawaited(context.read<KhatmahCubit>().recordReadingPosition(page: page, surah: surah, ayah: ayah));
+    }
+    final furthest = _furthestCheckpointPage ?? session.startPage;
+    if (page <= furthest) return;
+
+    // The callback reports the page just entered. Count the previous page as
+    // read only once the next page has been reached.
+    _furthestCheckpointPage = page;
+    unawaited(_progress.recordPage(page: page, surah: surah, ayah: ayah));
     if (mounted) setState(() => _currentPage = page);
-    if (page >= session.endPage && !session.completed) {
-      unawaited(_finish());
-      return;
-    }
-    if (!_initialPageReported) {
-      _initialPageReported = true;
-      return;
-    }
   }
 
   Future<void> _finish() async {
@@ -157,8 +164,12 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
                     as num)
                 .toInt();
     final current = _currentPage ?? page;
+    final completedPages = (current - session.startPage).clamp(
+      0,
+      session.endPage - session.startPage + 1,
+    ).toInt();
     final percent =
-        (((current - session.startPage + 1) /
+        ((completedPages /
                     (session.endPage - session.startPage + 1)) *
                 100)
             .round();
@@ -175,7 +186,9 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
           saveGeneralCheckpoint: false,
           onPageRead: _recordPage,
           minimumPageNumber: session.startPage,
-          maximumPageNumber: session.endPage,
+          maximumPageNumber: session.endPage < 604
+              ? session.endPage + 1
+              : session.endPage,
         ),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -225,7 +238,7 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
                       }),
                       child: _DailyWirdProgress(
                         key: _progressCardKey,
-                        completed: current - session.startPage + 1,
+                        completed: completedPages,
                         total: session.endPage - session.startPage + 1,
                         percent: percent,
                         progress: progress,

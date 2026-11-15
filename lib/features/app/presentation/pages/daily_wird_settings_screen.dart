@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/core/utils/arabic_digits.dart';
 import '../../data/repositories/daily_wird_configuration_repository.dart';
 import '../../data/repositories/daily_wird_progress_repository.dart';
 
@@ -33,14 +34,14 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
     setState(() {
       final pages = results[0] as int?;
       _completedToday = results[1] as bool;
-      if (pages != null) _controller.text = '$pages';
+      if (pages != null) _controller.text = toArabicIndicDigits(pages);
       _loading = false;
     });
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final pages = int.parse(_controller.text.trim());
+    final pages = int.parse(_toWesternDigits(_controller.text.trim()));
     setState(() => _saving = true);
     await _repository.savePagesPerDay(pages);
     if (!mounted) return;
@@ -101,7 +102,7 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
                   cursorColor: isLightMode ? theme.colorScheme.primary : null,
                   textDirection: TextDirection.rtl,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: [_ArabicDigitsInputFormatter()],
                   decoration: InputDecoration(
                     labelText: 'صفحة يوميًا',
                     border: const OutlineInputBorder(),
@@ -129,7 +130,7 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
                     suffixIcon: const Icon(Icons.menu_book_rounded),
                   ),
                   validator: (text) {
-                    final pages = int.tryParse(text ?? '');
+                    final pages = int.tryParse(_toWesternDigits(text ?? ''));
                     if (pages == null || pages < 1 || pages > 604) return 'أدخل عددًا من ١ إلى ٦٠٤ صفحات';
                     return null;
                   },
@@ -139,6 +140,38 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
               ],
             ),
           ),
+    );
+  }
+}
+
+String _toWesternDigits(String value) => value.replaceAllMapped(
+  RegExp(r'[٠-٩۰-۹]'),
+  (match) {
+    final digit = match[0]!.codeUnitAt(0);
+    final zero = digit >= 0x06f0 ? 0x06f0 : 0x0660;
+    return String.fromCharCode(0x30 + digit - zero);
+  },
+);
+
+class _ArabicDigitsInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String arabicDigits(String value) => value
+        .replaceAllMapped(RegExp(r'[0-9]'), (match) => toArabicIndicDigits(match[0]!))
+        .replaceAll(RegExp(r'[^٠-٩۰-۹]'), '');
+
+    final prefixEnd = newValue.selection.extentOffset
+        .clamp(0, newValue.text.length)
+        .toInt();
+    final text = arabicDigits(newValue.text);
+    final cursor = arabicDigits(newValue.text.substring(0, prefixEnd)).length;
+    return newValue.copyWith(
+      text: text,
+      selection: TextSelection.collapsed(offset: cursor),
+      composing: TextRange.empty,
     );
   }
 }

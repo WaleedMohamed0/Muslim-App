@@ -53,6 +53,12 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
     _ => '${toArabicIndicDigits(count)} صفحات',
   };
 
+  String _pageUnit(int count) => switch (count) {
+    1 => 'صفحة',
+    2 => 'صفحتان',
+    _ => 'صفحات',
+  };
+
   @override
   Widget build(BuildContext context) {
     if (_session?.completed == true) {
@@ -68,7 +74,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
         ? 0
         : session.completed
             ? total
-            : (session.checkpointPage - session.startPage + 1).clamp(0, total);
+            : (session.checkpointPage - session.startPage).clamp(0, total);
     final remaining = (total - current).clamp(0, total);
     final fraction = total == 0 ? 0.0 : current / total;
 
@@ -129,7 +135,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('تقدم اليوم', style: Theme.of(context).textTheme.labelSmall),
-                    Text('${toArabicIndicDigits(current)} / ${toArabicIndicDigits(total)} صفحات',
+                    Text('${toArabicIndicDigits(current)} / ${toArabicIndicDigits(total)} ${_pageUnit(total)}',
                         textDirection: TextDirection.rtl,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: colors.onSurfaceVariant,
