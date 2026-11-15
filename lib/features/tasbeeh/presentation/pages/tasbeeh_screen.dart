@@ -88,7 +88,9 @@ class _TasbeehView extends StatelessWidget {
             SizedBox(height: 46, child: ListView.separated(scrollDirection: Axis.horizontal, itemCount: TasbeehScreen._azkar.length, separatorBuilder: (_, _) => const SizedBox(width: 8), itemBuilder: (context, index) {
               final dhikr = TasbeehScreen._azkar[index];
               final selected = state.dhikr == dhikr;
-              return ChoiceChip(label: Text(dhikr, style: TextStyle(fontWeight: selected ? FontWeight.w700 : FontWeight.w500)), selected: selected, onSelected: (_) => context.read<TasbeehCubit>().selectDhikr(dhikr), showCheckmark: false, padding: const EdgeInsets.symmetric(horizontal: 9), side: BorderSide.none);
+              final lightMode = theme.brightness == Brightness.light;
+              final borderOpacity = lightMode ? (selected ? .95 : .78) : (selected ? .72 : .52);
+              return ChoiceChip(label: Text(dhikr, style: TextStyle(fontWeight: selected ? FontWeight.w700 : FontWeight.w500)), selected: selected, onSelected: (_) => context.read<TasbeehCubit>().selectDhikr(dhikr), showCheckmark: false, padding: const EdgeInsets.symmetric(horizontal: 9), shape: const StadiumBorder(), side: BorderSide(color: lightMode ? colors.primary.withValues(alpha: .62) : colors.outlineVariant.withValues(alpha: borderOpacity), width: lightMode ? 1.5 : 1));
             })),
             const SizedBox(height: 18),
             Row(children: [Expanded(child: Text('هدف الورد', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700))),

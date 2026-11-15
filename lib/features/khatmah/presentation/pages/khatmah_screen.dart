@@ -233,6 +233,8 @@ class _Dashboard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
+                Text('الختمة رقم ${toArabicIndicDigits(plan.currentKhatmah)} · أتممت ${toArabicIndicDigits(plan.completedKhatmahs)} ختمات', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(value: plan.progress, minHeight: 10),

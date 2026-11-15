@@ -35,16 +35,16 @@ class DailyWirdProgressRepository {
     return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  Future<DailyWirdSession> prepareSession(int pagesPerDay) async {
+  Future<DailyWirdSession> prepareSession(int pagesPerDay, {int checkpointPage = 1, int checkpointSurah = 1, int checkpointAyah = 1}) async {
     final prefs = await SharedPreferences.getInstance();
     final today = _dateKey();
     final savedDay = prefs.getString(_dayKey);
-    var start = prefs.getInt(_startPageKey) ?? 1;
+    var start = checkpointPage.clamp(1, 604).toInt();
     var end = prefs.getInt(_endPageKey) ?? _endFor(start, pagesPerDay);
     var assignNewRange = savedDay == null;
 
     if (savedDay == null) {
-      start = 1;
+      start = checkpointPage.clamp(1, 604).toInt();
       end = _endFor(start, pagesPerDay);
       await prefs.setInt(_pageKey, start);
       await prefs.remove(_surahKey);
@@ -52,7 +52,7 @@ class DailyWirdProgressRepository {
     } else if (savedDay != today) {
       // A new calendar day always gets a new range. Carrying yesterday's
       // checkpoint forward can leave the reader stuck in yesterday's Wird.
-      start = end == 604 ? 1 : end + 1;
+      start = checkpointPage.clamp(1, 604).toInt();
       assignNewRange = true;
       await prefs.setInt(_pageKey, start);
       await prefs.remove(_surahKey);
@@ -69,10 +69,10 @@ class DailyWirdProgressRepository {
     await prefs.setInt(_startPageKey, start);
     await prefs.setInt(_endPageKey, end);
 
-    final checkpoint = prefs.getInt(_pageKey) ?? start;
+    final checkpoint = checkpointPage;
     final first = MushafLineLayoutData.pageData(checkpoint).first;
-    final surah = prefs.getInt(_surahKey) ?? (first['surah'] as num).toInt();
-    final ayah = prefs.getInt(_ayahKey) ?? (first['start'] as num).toInt();
+    final surah = checkpointPage == 1 ? 1 : checkpointSurah;
+    final ayah = checkpointPage == 1 ? 1 : checkpointAyah;
     return DailyWirdSession(
       startPage: start,
       endPage: end,
@@ -81,13 +81,6 @@ class DailyWirdProgressRepository {
       checkpointAyah: ayah,
       completed: prefs.getString(_completedKey) == today,
     );
-  }
-
-  Future<void> savePosition(int page, int surah, int ayah) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_pageKey, page);
-    await prefs.setInt(_surahKey, surah);
-    await prefs.setInt(_ayahKey, ayah);
   }
 
   Future<bool> completeToday() async {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/app/data/repositories/daily_wird_configuration_repository.dart';
 import 'package:muslim/features/app/data/repositories/daily_wird_progress_repository.dart';
@@ -25,7 +27,8 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
 
   Future<void> _load() async {
     final pages = await _configuration.loadPagesPerDay();
-    final session = pages == null ? null : await _progress.prepareSession(pages);
+    final plan = context.read<KhatmahCubit>().state;
+    final session = pages == null ? null : await _progress.prepareSession(pages, checkpointPage: plan?.checkpointPage ?? 1, checkpointSurah: plan?.checkpointSurah ?? 1, checkpointAyah: plan?.checkpointAyah ?? 1);
     if (!mounted) return;
     setState(() {
       _pagesPerDay = pages;
@@ -52,6 +55,10 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (_session?.completed == true) {
+      return const SizedBox.shrink();
+    }
+
     final colors = Theme.of(context).colorScheme;
     final session = _session;
     final total = session == null
@@ -65,9 +72,11 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
     final remaining = (total - current).clamp(0, total);
     final fraction = total == 0 ? 0.0 : current / total;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 14),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
         onTap: _openReader,
         child: Padding(
           padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
@@ -140,6 +149,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
               ],
             ],
           ),
+        ),
         ),
       ),
     );

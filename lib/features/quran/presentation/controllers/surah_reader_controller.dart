@@ -218,6 +218,13 @@ class SurahReaderController extends ChangeNotifier {
       surahNumber: surahNumber,
       ayahNumber: verseNumber,
     );
+    // Keep the shared player metadata tied to the Surah and Ayah now shown
+    // by the reader. The verse count is derived from the Cubit's Surah ID,
+    // so updating the ID here also refreshes the displayed range on swipes.
+    // setCurrentPageNumber preserves the active playback Ayah while audio is
+    // playing, and updates the displayed Ayah when playback is inactive.
+    cubit.setSurahInfo(surahNumber, _surahName);
+    cubit.setCurrentPageNumber(verseNumber);
     _onPageRead?.call(index + 1, surahNumber, verseNumber);
     if (_saveGeneralCheckpoint)
       cubit.saveReaderPosition(surahNumber, verseNumber);

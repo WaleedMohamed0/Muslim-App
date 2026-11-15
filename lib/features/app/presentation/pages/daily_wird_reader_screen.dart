@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/app/data/repositories/daily_wird_configuration_repository.dart';
@@ -34,8 +36,13 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
 
   Future<void> _load() async {
     final pages = await _configuration.loadPagesPerDay();
-    final session =
-        pages == null ? null : await _progress.prepareSession(pages);
+    final plan = context.read<KhatmahCubit>().state;
+    final session = pages == null ? null : await _progress.prepareSession(
+      pages,
+      checkpointPage: plan?.checkpointPage ?? 1,
+      checkpointSurah: plan?.checkpointSurah ?? 1,
+      checkpointAyah: plan?.checkpointAyah ?? 1,
+    );
     if (!mounted) return;
     setState(() {
       _session = session;
@@ -60,16 +67,19 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
     final session = _session;
     if (session == null || page < session.startPage || page > session.endPage)
       return;
-    unawaited(_progress.savePosition(page, surah, ayah));
+    unawaited(context.read<KhatmahCubit>().recordReadingPosition(page: page, surah: surah, ayah: ayah));
     if (mounted) setState(() => _currentPage = page);
+    if (page >= session.endPage && !session.completed) {
+      unawaited(_finish());
+      return;
+    }
     if (!_initialPageReported) {
       _initialPageReported = true;
       return;
     }
-    if (page == session.endPage && !session.completed) _finish();
   }
 
-  void _finish() {
+  Future<void> _finish() async {
     if (_completionPresented || !mounted) return;
     _completionPresented = true;
     final session = _session;
@@ -85,21 +95,18 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
               completed: true,
             ),
       );
-    // Present the completion state before waiting on storage, which can take
-    // noticeably longer on first access to SharedPreferences.
-    unawaited(_progress.completeToday());
-    unawaited(
-      showDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        builder:
-            (dialogContext) => _DailyWirdCompletionDialog(
-              onReturnHome: () {
-                Navigator.of(dialogContext).pop();
-                if (mounted) Navigator.of(context).pop();
-              },
-            ),
-      ),
+    await _progress.completeToday();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (dialogContext) => _DailyWirdCompletionDialog(
+            onReturnHome: () {
+              Navigator.of(dialogContext).pop();
+              if (mounted) Navigator.of(context).pop();
+            },
+          ),
     );
   }
 

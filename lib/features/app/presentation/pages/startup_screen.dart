@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -376,10 +377,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                   ),
                 ),
                 const SliverToBoxAdapter(child: PrayerWirdHomeSection()),
-                SliverPadding(
-                  padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 14),
-                  sliver: const SliverToBoxAdapter(child: DailyWirdHomeCard()),
-                ),
+                const SliverToBoxAdapter(child: DailyWirdHomeCard()),
                 SliverPadding(
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 8),
                   sliver: SliverToBoxAdapter(
@@ -442,14 +440,27 @@ class _StartUpScreenState extends State<StartUpScreen> {
                               ),
                         ),
                         const SizedBox(height: 10),
-                        GridView.count(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 1.38,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: [
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            const crossAxisSpacing = 10.0;
+                            final tileWidth =
+                                (constraints.maxWidth - crossAxisSpacing) / 2;
+                            final textScale =
+                                MediaQuery.textScalerOf(context).scale(16) /
+                                16;
+                            return GridView(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: crossAxisSpacing,
+                                    mainAxisSpacing: 10,
+                                    mainAxisExtent:
+                                        (tileWidth / 1.38) +
+                                        (9 * textScale),
+                                  ),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              children: [
                             HomeFeatureTile(
                               icon: Icons.auto_awesome_rounded,
                               title: 'أسماء الله الحسنى',
@@ -561,7 +572,9 @@ class _StartUpScreenState extends State<StartUpScreen> {
                                     ),
                                   ),
                             ),
-                          ],
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 10),
                         Card(

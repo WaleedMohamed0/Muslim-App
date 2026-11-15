@@ -17,7 +17,7 @@ class KhatmahPlan {
   const KhatmahPlan({required this.durationDays, required this.startedAt,
     required this.completedPages, this.checkpointPage = 1, this.checkpointSurah = 1,
     this.checkpointAyah = 1, this.paused = false, this.reminderEnabled = false,
-    this.reminderHour = 20, this.reminderMinute = 0});
+    this.reminderHour = 20, this.reminderMinute = 0, this.completedKhatmahs = 0});
   final int durationDays;
   final DateTime startedAt;
   final Set<int> completedPages;
@@ -29,6 +29,8 @@ class KhatmahPlan {
   final bool reminderEnabled;
   final int reminderHour;
   final int reminderMinute;
+  final int completedKhatmahs;
+  int get currentKhatmah => completedKhatmahs + 1;
   List<KhatmahDay> get schedule => List.generate(durationDays, (i) {
     final start = (i * 604 ~/ durationDays) + 1;
     final end = ((i + 1) * 604 ~/ durationDays);
@@ -39,7 +41,7 @@ class KhatmahPlan {
   int get pagesRead => completedPages.length;
   double get progress => pagesRead / 604;
   int get remainingPages => 604 - pagesRead;
-  KhatmahPlan copyWith({Set<int>? completedPages, int? checkpointPage, int? checkpointSurah, int? checkpointAyah, bool? paused, bool? reminderEnabled, int? reminderHour, int? reminderMinute}) => KhatmahPlan(durationDays: durationDays, startedAt: startedAt, completedPages: completedPages ?? this.completedPages, checkpointPage: checkpointPage ?? this.checkpointPage, checkpointSurah: checkpointSurah ?? this.checkpointSurah, checkpointAyah: checkpointAyah ?? this.checkpointAyah, paused: paused ?? this.paused, reminderEnabled: reminderEnabled ?? this.reminderEnabled, reminderHour: reminderHour ?? this.reminderHour, reminderMinute: reminderMinute ?? this.reminderMinute);
-  Map<String, dynamic> toJson() => {'days': durationDays, 'started': startedAt.toIso8601String(), 'pages': completedPages.toList(), 'checkpointPage': checkpointPage, 'checkpointSurah': checkpointSurah, 'checkpointAyah': checkpointAyah, 'paused': paused, 'reminder': reminderEnabled, 'hour': reminderHour, 'minute': reminderMinute};
-  factory KhatmahPlan.fromJson(Map<String, dynamic> json) => KhatmahPlan(durationDays: json['days'] as int, startedAt: DateTime.parse(json['started'] as String), completedPages: (json['pages'] as List).whereType<int>().where((p) => p >= 1 && p <= 604).toSet(), checkpointPage: (json['checkpointPage'] as int? ?? 1).clamp(1, 604), checkpointSurah: (json['checkpointSurah'] as int? ?? 1).clamp(1, 114), checkpointAyah: json['checkpointAyah'] as int? ?? 1, paused: json['paused'] as bool? ?? false, reminderEnabled: json['reminder'] as bool? ?? false, reminderHour: json['hour'] as int? ?? 20, reminderMinute: json['minute'] as int? ?? 0);
+  KhatmahPlan copyWith({Set<int>? completedPages, int? checkpointPage, int? checkpointSurah, int? checkpointAyah, bool? paused, bool? reminderEnabled, int? reminderHour, int? reminderMinute, int? completedKhatmahs, DateTime? startedAt}) => KhatmahPlan(durationDays: durationDays, startedAt: startedAt ?? this.startedAt, completedPages: completedPages ?? this.completedPages, checkpointPage: checkpointPage ?? this.checkpointPage, checkpointSurah: checkpointSurah ?? this.checkpointSurah, checkpointAyah: checkpointAyah ?? this.checkpointAyah, paused: paused ?? this.paused, reminderEnabled: reminderEnabled ?? this.reminderEnabled, reminderHour: reminderHour ?? this.reminderHour, reminderMinute: reminderMinute ?? this.reminderMinute, completedKhatmahs: completedKhatmahs ?? this.completedKhatmahs);
+  Map<String, dynamic> toJson() => {'days': durationDays, 'started': startedAt.toIso8601String(), 'pages': completedPages.toList(), 'checkpointPage': checkpointPage, 'checkpointSurah': checkpointSurah, 'checkpointAyah': checkpointAyah, 'paused': paused, 'reminder': reminderEnabled, 'hour': reminderHour, 'minute': reminderMinute, 'completedKhatmahs': completedKhatmahs};
+  factory KhatmahPlan.fromJson(Map<String, dynamic> json) => KhatmahPlan(durationDays: json['days'] as int, startedAt: DateTime.parse(json['started'] as String), completedPages: (json['pages'] as List).whereType<int>().where((p) => p >= 1 && p <= 604).toSet(), checkpointPage: (json['checkpointPage'] as int? ?? 1).clamp(1, 604), checkpointSurah: (json['checkpointSurah'] as int? ?? 1).clamp(1, 114), checkpointAyah: json['checkpointAyah'] as int? ?? 1, paused: json['paused'] as bool? ?? false, reminderEnabled: json['reminder'] as bool? ?? false, reminderHour: json['hour'] as int? ?? 20, reminderMinute: json['minute'] as int? ?? 0, completedKhatmahs: json['completedKhatmahs'] as int? ?? 0);
 }

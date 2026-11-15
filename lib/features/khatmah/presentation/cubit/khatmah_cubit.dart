@@ -30,13 +30,15 @@ class KhatmahCubit extends Cubit<KhatmahPlan?> {
     _saveQueue = write.then<void>((_) {}, onError: (Object _) {});
     await write;
   }
-  Future<void> create(int days) => _save(KhatmahPlan(durationDays: days, startedAt: DateTime.now(), completedPages: <int>{}, checkpointPage: 1, checkpointSurah: 1, checkpointAyah: 1));
+  Future<void> create(int days) => _save(KhatmahPlan(durationDays: days, startedAt: DateTime.now(), completedPages: <int>{}, checkpointPage: 1, checkpointSurah: 1, checkpointAyah: 1, completedKhatmahs: state?.completedKhatmahs ?? 0));
   Future<void> recordReadingPosition({required int page, required int surah, required int ayah}) async {
     final plan = state;
     if (plan == null || plan.paused || page < 1 || page > 604 || surah < 1 || surah > 114 || ayah < 1) return;
     final alreadyRead = plan.completedPages.contains(page);
     if (alreadyRead && plan.checkpointPage == page && plan.checkpointSurah == surah && plan.checkpointAyah == ayah) return;
-    final updated = plan.copyWith(completedPages: {...plan.completedPages, page}, checkpointPage: page, checkpointSurah: surah, checkpointAyah: ayah);
+    final pages = {...plan.completedPages, page};
+    final completesKhatmah = pages.length == 604;
+    final updated = plan.copyWith(completedPages: completesKhatmah ? <int>{} : pages, checkpointPage: completesKhatmah ? 1 : page, checkpointSurah: completesKhatmah ? 1 : surah, checkpointAyah: completesKhatmah ? 1 : ayah, completedKhatmahs: plan.completedKhatmahs + (completesKhatmah ? 1 : 0), startedAt: completesKhatmah ? DateTime.now() : null);
     await _save(updated);
     if (!alreadyRead && updated.reminderEnabled && updated.isDayComplete(updated.schedule[updated.currentDay - 1])) {
       await KahfReminderService.instance.scheduleKhatmah(enabled: true, hour: updated.reminderHour, minute: updated.reminderMinute, skipToday: true);
