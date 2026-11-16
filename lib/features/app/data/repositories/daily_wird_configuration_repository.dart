@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Local, offline configuration for the number of pages in the daily Wird.
 class DailyWirdConfigurationRepository {
   static const _pagesKey = 'daily_wird_pages_per_day_v1';
+  static final ValueNotifier<int> configurationVersion = ValueNotifier<int>(0);
 
   Future<int?> loadPagesPerDay() async {
     final prefs = await SharedPreferences.getInstance();
@@ -16,5 +18,6 @@ class DailyWirdConfigurationRepository {
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_pagesKey, pages);
+    configurationVersion.value++;
   }
 }

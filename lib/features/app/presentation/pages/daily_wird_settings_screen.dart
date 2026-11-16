@@ -21,6 +21,7 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
   bool _saving = false;
   bool _completedToday = false;
   bool _startedToday = false;
+  bool _hasConfiguredPages = false;
   DailyWirdStreakStats? _streak;
 
   @override
@@ -38,6 +39,7 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
     if (!mounted) return;
     setState(() {
       final pages = results[0] as int?;
+      _hasConfiguredPages = pages != null;
       _completedToday = results[1] as bool;
       _streak = results[2] as DailyWirdStreakStats;
       _startedToday = results[3] as bool;
@@ -65,14 +67,7 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
       ),
     );
     if (!mounted) return;
-    final completed = await _progressRepository.isCompletedToday();
-    final started = await _progressRepository.hasStartedToday();
-    if (mounted && (completed != _completedToday || started != _startedToday)) {
-      setState(() {
-        _completedToday = completed;
-        _startedToday = started;
-      });
-    }
+    await _load();
   }
 
   @override
@@ -92,7 +87,11 @@ class _DailyWirdSettingsScreenState extends State<DailyWirdSettingsScreen> {
               children: [
                 _WirdStreakSummary(stats: _streak),
                 const SizedBox(height: 16),
-                if (_completedToday) ...[
+                if (!_hasConfiguredPages) ...[
+                  // The user must choose a daily page count before the
+                  // reader can start, so don't show a button that loops back
+                  // to these settings.
+                ] else if (_completedToday) ...[
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(

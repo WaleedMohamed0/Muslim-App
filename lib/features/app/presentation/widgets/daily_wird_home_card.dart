@@ -5,6 +5,7 @@ import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/app/data/repositories/daily_wird_configuration_repository.dart';
 import 'package:muslim/features/app/data/repositories/daily_wird_progress_repository.dart';
 import 'package:muslim/features/app/presentation/pages/daily_wird_reader_screen.dart';
+import 'package:muslim/features/app/presentation/daily_wird_route_observer.dart';
 
 class DailyWirdHomeCard extends StatefulWidget {
   const DailyWirdHomeCard({super.key});
@@ -14,7 +15,8 @@ class DailyWirdHomeCard extends StatefulWidget {
 }
 
 class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
+  PageRoute<dynamic>? _subscribedRoute;
   final _configuration = DailyWirdConfigurationRepository();
   final _progress = DailyWirdProgressRepository();
   DailyWirdSession? _session;
@@ -25,13 +27,40 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    DailyWirdConfigurationRepository.configurationVersion.addListener(
+      _onConfigurationChanged,
+    );
+    _load();
+  }
+
+  void _onConfigurationChanged() {
     _load();
   }
 
   @override
   void dispose() {
+    dailyWirdRouteObserver.unsubscribe(this);
+    DailyWirdConfigurationRepository.configurationVersion.removeListener(
+      _onConfigurationChanged,
+    );
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic> && route != _subscribedRoute) {
+      dailyWirdRouteObserver.unsubscribe(this);
+      _subscribedRoute = route;
+      dailyWirdRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _load();
   }
 
   @override

@@ -31,6 +31,7 @@ import 'package:muslim/features/prayer_times/presentation/pages/elazan_screen.da
 import 'package:muslim/features/qibla/presentation/pages/qibla_compass_screen.dart';
 import 'package:muslim/features/khatmah/presentation/pages/khatmah_screen.dart';
 import 'package:muslim/features/app/presentation/pages/daily_wird_reader_screen.dart';
+import 'package:muslim/features/app/presentation/daily_wird_route_observer.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 const MethodChannel _notificationNavigationChannel = MethodChannel(
@@ -632,7 +633,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
     return MaterialApp(
       navigatorKey: appNavigatorKey,
-      navigatorObservers: [_appRouteObserver],
+      navigatorObservers: [_appRouteObserver, dailyWirdRouteObserver],
       builder: (context, child) {
         final theme =
             themeMode == ThemeMode.dark ? AppTheme.dark : AppTheme.light;
