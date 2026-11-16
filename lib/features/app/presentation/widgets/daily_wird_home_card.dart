@@ -13,26 +13,44 @@ class DailyWirdHomeCard extends StatefulWidget {
   State<DailyWirdHomeCard> createState() => _DailyWirdHomeCardState();
 }
 
-class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
+class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
+    with WidgetsBindingObserver {
   final _configuration = DailyWirdConfigurationRepository();
   final _progress = DailyWirdProgressRepository();
   DailyWirdSession? _session;
+  DailyWirdStreakStats? _streak;
   int? _pagesPerDay;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _load();
+    }
   }
 
   Future<void> _load() async {
     final pages = await _configuration.loadPagesPerDay();
     final plan = context.read<KhatmahCubit>().state;
     final session = pages == null ? null : await _progress.prepareSession(pages, checkpointPage: plan?.checkpointPage ?? 1, checkpointSurah: plan?.checkpointSurah ?? 1, checkpointAyah: plan?.checkpointAyah ?? 1);
+    final streak = await _progress.loadStreakStats();
     if (!mounted) return;
     setState(() {
       _pagesPerDay = pages;
       _session = session;
+      _streak = streak;
     });
   }
 
@@ -64,20 +82,18 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
     if (_session?.completed == true) {
       return const SizedBox.shrink();
     }
-
     final colors = Theme.of(context).colorScheme;
     final session = _session;
     final total = session == null
         ? (_pagesPerDay ?? 0)
         : session.endPage - session.startPage + 1;
-    final current = session == null
+    final completedPages = session == null
         ? 0
         : session.completed
-            ? total
-            : (session.checkpointPage - session.startPage).clamp(0, total);
-    final remaining = (total - current).clamp(0, total);
-    final fraction = total == 0 ? 0.0 : current / total;
-
+        ? total
+        : (session.checkpointPage - session.startPage).clamp(0, total).toInt();
+    final fraction = total == 0 ? 0.0 : completedPages / total;
+    final percent = (fraction * 100).round();
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 14),
       child: Card(
@@ -112,7 +128,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
                               ? 'اضبط وردك اليومي وابدأ القراءة'
                               : session?.completed == true
                                   ? 'أتممت وردك اليوم، تقبّل الله منك'
-                                  : 'المتبقي ${_pageCount(remaining)}',
+                                  : 'هدف اليوم ${_pageCount(_pagesPerDay ?? total)}',
                           textDirection: TextDirection.rtl,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: colors.onSurfaceVariant),
@@ -135,22 +151,53 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('تقدم اليوم', style: Theme.of(context).textTheme.labelSmall),
-                    Text('${toArabicIndicDigits(current)} / ${toArabicIndicDigits(total)} ${_pageUnit(total)}',
-                        textDirection: TextDirection.rtl,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                            fontWeight: FontWeight.w600)),
+                    Text(
+                      '${toArabicIndicDigits(completedPages)} / ${toArabicIndicDigits(total)} ${_pageUnit(total)}',
+                      textDirection: TextDirection.rtl,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: fraction,
-                    minHeight: 6,
-                    backgroundColor: colors.surfaceContainerHighest,
-                    color: session?.completed == true ? colors.tertiary : colors.primary,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: fraction),
+                    duration: const Duration(milliseconds: 360),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, _) => LinearProgressIndicator(
+                      value: value,
+                      minHeight: 6,
+                      backgroundColor: colors.surfaceContainerHighest,
+                      color: session?.completed == true ? colors.tertiary : colors.primary,
+                    ),
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${toArabicIndicDigits(percent)}٪',
+                  textAlign: TextAlign.end,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: session?.completed == true ? colors.tertiary : colors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              if ((_streak?.currentStreak ?? 0) > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(color: colors.primaryContainer.withValues(alpha: .45), borderRadius: BorderRadius.circular(14)),
+                  child: Row(textDirection: TextDirection.rtl, children: [
+                    Icon(Icons.local_fire_department_rounded, size: 20, color: colors.tertiary),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('سلسلة وردك: ${toArabicIndicDigits(_streak!.currentStreak)} يوم — داوم على تلاوة القرآن', textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700))),
+                    const SizedBox(width: 8),
+                    Icon(Icons.radio_button_unchecked_rounded, size: 19, color: colors.onSurfaceVariant),
+                  ]),
                 ),
               ],
             ],

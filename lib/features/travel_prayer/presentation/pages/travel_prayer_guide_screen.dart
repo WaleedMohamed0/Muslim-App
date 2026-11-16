@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/repositories/travel_prayer_progress_repository.dart';
 import '../../data/travel_prayer_content.dart';
+import '../widgets/travel_dua_card.dart';
 
 String _arabicDigits(Object value) => value.toString().replaceAllMapped(
   RegExp(r'[0-9]'),
@@ -58,6 +59,7 @@ class _TravelPrayerGuideScreenState extends State<TravelPrayerGuideScreen> {
               _LessonCard(title: 'ثالثاً: جدول صَلَاة الْمُسَافِر', id: 'table', completed: _completed.contains('table'), onComplete: _mark, child: const _PrayerTable()),
               _LessonCard(title: 'رابعاً: أحكام مهمة للمسافر', id: 'rules', completed: _completed.contains('rules'), onComplete: _mark, child: const _RulesContent()),
               _LessonCard(title: 'مواقف تطبيقية', id: 'scenarios', completed: _completed.contains('scenarios'), onComplete: _mark, child: const _ScenarioContent()),
+              const TravelDuaCard(),
               _QuizEntryCard(unlocked: TravelPrayerContent.lessons.every((lesson) => _completed.contains(lesson.id))),
               const SizedBox(height: 12),
               const _SourcesCard(),

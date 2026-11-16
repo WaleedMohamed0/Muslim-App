@@ -19,6 +19,16 @@ class DailyWirdSession {
   final bool completed;
 }
 
+class DailyWirdStreakStats {
+  const DailyWirdStreakStats({required this.currentStreak, required this.bestStreak, required this.totalCompletedDays, required this.completedDates, required this.completedToday, this.newMilestone});
+  final int currentStreak;
+  final int bestStreak;
+  final int totalCompletedDays;
+  final Set<String> completedDates;
+  final bool completedToday;
+  final int? newMilestone;
+}
+
 /// Persists a rolling Daily Wird checkpoint, independently from other readers.
 class DailyWirdProgressRepository {
   static const _dayKey = 'daily_wird_progress_day_v1';
@@ -29,6 +39,8 @@ class DailyWirdProgressRepository {
   static const _ayahKey = 'daily_wird_progress_ayah_v1';
   static const _completedKey = 'daily_wird_completed_day_v1';
   static const _completedDaysKey = 'daily_wird_completed_days_v1';
+  static const _bestStreakKey = 'daily_wird_best_streak_v1';
+  static const _milestonesKey = 'daily_wird_shown_milestones_v1';
 
   String _dateKey([DateTime? value]) {
     final date = value ?? DateTime.now();
@@ -108,21 +120,84 @@ class DailyWirdProgressRepository {
   }
 
   Future<bool> completeToday() async {
+    final result = await completeTodayWithStats();
+    return result.completedToday;
+  }
+
+  Future<DailyWirdStreakStats> loadStreakStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dates = (prefs.getStringList(_completedDaysKey) ?? <String>[]).toSet();
+    final today = _dateKey();
+    return _stats(prefs, dates, today, completedToday: dates.contains(today));
+  }
+
+  Future<DailyWirdStreakStats> completeTodayWithStats() async {
     final prefs = await SharedPreferences.getInstance();
     final today = _dateKey();
-    if (prefs.getString(_completedKey) == today) return false;
+    final completedDays = (prefs.getStringList(_completedDaysKey) ?? <String>[]).toSet();
+    if (completedDays.contains(today)) return _stats(prefs, completedDays, today, completedToday: false);
     await prefs.setString(_completedKey, today);
-    final completedDays = prefs.getStringList(_completedDaysKey) ?? <String>[];
-    if (!completedDays.contains(today)) {
-      completedDays.add(today);
-      await prefs.setStringList(_completedDaysKey, completedDays);
+    completedDays.add(today);
+    await prefs.setStringList(_completedDaysKey, completedDays.toList()..sort());
+    final oldBest = prefs.getInt(_bestStreakKey) ?? 0;
+    final computed = _currentStreak(completedDays, today);
+    final best = computed > oldBest ? computed : oldBest;
+    await prefs.setInt(_bestStreakKey, best);
+    final shown = prefs.getStringList(_milestonesKey) ?? <String>[];
+    const milestones = <int>[7, 14, 30, 60, 100];
+    final reached = milestones.where((m) => computed == m && !shown.contains('$m')).toList();
+    if (reached.isNotEmpty) {
+      shown.add('${reached.first}');
+      await prefs.setStringList(_milestonesKey, shown);
     }
-    return true;
+    return DailyWirdStreakStats(currentStreak: computed, bestStreak: best, totalCompletedDays: completedDays.length, completedDates: completedDays, completedToday: true, newMilestone: reached.isEmpty ? null : reached.first);
+  }
+
+  DailyWirdStreakStats _stats(SharedPreferences prefs, Set<String> dates, String today, {required bool completedToday}) {
+    final current = _currentStreak(dates, today);
+    final storedBest = prefs.getInt(_bestStreakKey) ?? 0;
+    final historicalBest = _bestHistoricalStreak(dates);
+    final best = [storedBest, historicalBest, current].reduce((a, b) => a > b ? a : b);
+    return DailyWirdStreakStats(currentStreak: current, bestStreak: best, totalCompletedDays: dates.length, completedDates: dates, completedToday: completedToday);
+  }
+
+  int _bestHistoricalStreak(Set<String> dates) {
+    final sorted = dates.toList()..sort();
+    var best = 0;
+    var run = 0;
+    DateTime? previous;
+    for (final key in sorted) {
+      final date = DateTime.tryParse(key);
+      if (date == null) continue;
+      run = previous != null && date.difference(previous).inDays == 1 ? run + 1 : 1;
+      if (run > best) best = run;
+      previous = date;
+    }
+    return best;
+  }
+
+  int _currentStreak(Set<String> dates, String today) {
+    var cursor = DateTime.tryParse(today)!;
+    if (!dates.contains(today)) cursor = cursor.subtract(const Duration(days: 1));
+    var count = 0;
+    while (dates.contains(_dateKey(cursor))) {
+      count++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return count;
   }
 
   Future<bool> isCompletedToday() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_completedKey) == _dateKey();
+  }
+
+  Future<bool> hasStartedToday() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_dayKey) != _dateKey()) return false;
+    final start = prefs.getInt(_startPageKey);
+    final page = prefs.getInt(_pageKey);
+    return start != null && page != null && page > start;
   }
 
   int _endFor(int start, int pages) =>

@@ -102,8 +102,9 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
               completed: true,
             ),
       );
-    await _progress.completeToday();
+    final streak = await _progress.completeTodayWithStats();
     if (!mounted) return;
+    if (!streak.completedToday) return;
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -113,6 +114,7 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
               Navigator.of(dialogContext).pop();
               if (mounted) Navigator.of(context).pop();
             },
+            milestone: streak.newMilestone,
           ),
     );
   }
@@ -223,6 +225,16 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
             return SizedBox.expand(
               child: Stack(
                 children: [
+                  if (session.endPage == 604 && current == 604 && !session.completed)
+                    PositionedDirectional(
+                      end: 16,
+                      bottom: MediaQuery.paddingOf(context).bottom + 24,
+                      child: FilledButton.icon(
+                        onPressed: _finish,
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text('أتممت الورد'),
+                      ),
+                    ),
                   Positioned(
                     left: horizontalPadding,
                     top: baseTop + clampedOffset.dy,
@@ -343,8 +355,9 @@ class _DailyWirdProgress extends StatelessWidget {
 }
 
 class _DailyWirdCompletionDialog extends StatelessWidget {
-  const _DailyWirdCompletionDialog({required this.onReturnHome});
+  const _DailyWirdCompletionDialog({required this.onReturnHome, this.milestone});
   final VoidCallback onReturnHome;
+  final int? milestone;
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +400,7 @@ class _DailyWirdCompletionDialog extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'تقبّل الله منك، وجعل القرآن نورًا لك.',
+            milestone == null ? 'تقبّل الله منك 🌿' : 'إنجاز مبارك، تقبّل الله منك وجعل القرآن نورًا لك 🌿',
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
             style: Theme.of(

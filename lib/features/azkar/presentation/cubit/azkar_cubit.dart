@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'azkar_state.dart';
 import '../../../../core/assets/app_assets.dart';
+import '../../../travel_prayer/data/travel_dua.dart';
 
 class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
   AzkarCubit({GetAzkar? getAzkar, LocalAzkarDataSource? dataSource})
@@ -68,9 +69,18 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
       _repository = LocalAzkarRepository(_content!);
       _entriesByCategory = Map.unmodifiable({
         for (var category = 0; category < 10; category++)
-          category: List<AzkarEntry>.unmodifiable(
-            _repository!.entriesFor(category),
-          ),
+          category: List<AzkarEntry>.unmodifiable([
+            ..._repository!.entriesFor(category),
+            if (category == 9)
+              const AzkarEntry(
+                id: 'situational_travel_dua',
+                category: 'أدعية للمواقف اليومية',
+                subCategory: 'السفر',
+                reference: TravelDua.reference,
+                verified: true,
+                content: TravelDua.fullText,
+              ),
+          ]),
       });
       // Initialize Tasbeeh counters as part of loading so the page never builds
       // against loaded content with an uninitialized counter list.

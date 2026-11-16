@@ -6,7 +6,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.job.JobInfo
+import android.app.job.JobParameters
+import android.app.job.JobScheduler
+import android.app.job.JobService
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.database.ContentObserver
@@ -26,6 +31,7 @@ import androidx.core.app.NotificationCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
+import java.util.concurrent.Executors
 
 private object AdhanTiming {
     private const val TAG = "AdhanTiming"
@@ -391,7 +397,7 @@ internal object PrayerAlarmScheduler {
             val item = alarms.optJSONObject(index) ?: continue
             val prayer = item.optString("prayer")
             if (!prefs.getBoolean("prayer_$prayer", true)) continue
-            val at = if (reinterpretLocalTimes) localWallTime(item) else item.optLong("at")
+            val at = if (reinterpretLocalTimes) restoredWallTime(item) else item.optLong("at")
             if (at <= now) continue
             // Prayer alerts need exact delivery during Doze without presenting
             // themselves as a system alarm clock to the user.
@@ -399,7 +405,7 @@ internal object PrayerAlarmScheduler {
         }
     }
 
-    private fun localWallTime(item: JSONObject): Long {
+    internal fun restoredWallTime(item: JSONObject): Long {
         val calendar = Calendar.getInstance().apply {
             clear()
             set(Calendar.YEAR, item.optInt("year"))
@@ -509,8 +515,78 @@ class PrayerAlarmRestoreReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val reinterpret = intent.action == Intent.ACTION_TIME_CHANGED ||
             intent.action == Intent.ACTION_TIMEZONE_CHANGED
-        PrayerAlarmScheduler.restore(context, reinterpretLocalTimes = reinterpret)
-        DailyAzkarReminderScheduler.restore(context)
+        val scheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as? JobScheduler
+        if (scheduler == null) {
+            AdhanTiming.log("restore_job_schedule_failed reason=job_scheduler_unavailable action=${intent.action}")
+            return
+        }
+        val service = ComponentName(context, PrayerAlarmRestoreJobService::class.java)
+        val extras = android.os.PersistableBundle().apply {
+            putBoolean(PrayerAlarmRestoreJobService.EXTRA_REINTERPRET, reinterpret)
+            putString(PrayerAlarmRestoreJobService.EXTRA_ACTION, intent.action)
+        }
+        val job = JobInfo.Builder(PrayerAlarmRestoreJobService.JOB_ID, service)
+            .setPersisted(true)
+            .setExtras(extras)
+            .build()
+        val result = scheduler.schedule(job)
+        AdhanTiming.log(
+            "restore_job_scheduled action=${intent.action} result=$result reinterpret=$reinterpret",
+        )
+    }
+}
+
+class PrayerAlarmRestoreJobService : JobService() {
+    override fun onStartJob(params: JobParameters): Boolean {
+        val reinterpret = params.extras.getBoolean(EXTRA_REINTERPRET, false)
+        val action = params.extras.getString(EXTRA_ACTION) ?: "unknown"
+        restorationExecutor.execute {
+            try {
+                val prefs = getSharedPreferences(PrayerAdhanStorage.PREFS, Context.MODE_PRIVATE)
+                val alarms = runCatching {
+                    JSONArray(prefs.getString(PrayerAdhanStorage.ALARMS, "[]"))
+                }.getOrDefault(JSONArray())
+                val now = System.currentTimeMillis()
+                val exactAlarmsAllowed = PrayerAlarmScheduler.canScheduleExactAlarms(this)
+                val enabled = prefs.getBoolean(PrayerAdhanStorage.ENABLED, false)
+                val expected = if (enabled && exactAlarmsAllowed) {
+                    (0 until alarms.length()).count { index ->
+                        val item = alarms.optJSONObject(index) ?: return@count false
+                        val prayer = item.optString("prayer")
+                        val at = if (reinterpret) {
+                            PrayerAlarmScheduler.restoredWallTime(item)
+                        } else {
+                            item.optLong("at")
+                        }
+                        prefs.getBoolean("prayer_$prayer", true) && at > now
+                    }
+                } else {
+                    0
+                }
+                AdhanTiming.log(
+                    "restore_start action=$action stored=${alarms.length()} expected=$expected enabled=$enabled exactAlarmsAllowed=$exactAlarmsAllowed",
+                )
+                PrayerAlarmScheduler.restore(this, reinterpretLocalTimes = reinterpret)
+                DailyAzkarReminderScheduler.restore(this)
+                AdhanTiming.log(
+                    "restore_complete action=$action eligible=$expected stored=${alarms.length()}",
+                )
+                jobFinished(params, false)
+            } catch (error: Exception) {
+                AdhanTiming.failure("restore_failed action=$action", error)
+                jobFinished(params, true)
+            }
+        }
+        return true
+    }
+
+    override fun onStopJob(params: JobParameters): Boolean = true
+
+    companion object {
+        const val JOB_ID = 7421
+        const val EXTRA_REINTERPRET = "reinterpret_local_times"
+        const val EXTRA_ACTION = "restore_action"
+        private val restorationExecutor = Executors.newSingleThreadExecutor()
     }
 }
 

@@ -12,6 +12,7 @@ import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/external_link_button.dart';
 import 'package:muslim/features/azkar/presentation/widgets/azkar_text_card.dart';
 import 'package:muslim/features/azkar/presentation/widgets/azkar_section_header.dart';
+import 'package:muslim/features/travel_prayer/presentation/widgets/travel_dua_card.dart';
 
 class AzkarAndHadeethScreen extends StatefulWidget {
   const AzkarAndHadeethScreen({super.key, required this.index});
@@ -292,6 +293,9 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                       }
                       final itemIndex = index - 1;
                       final entry = entries[itemIndex];
+                      if (entry.id == 'situational_travel_dua') {
+                        return const TravelDuaCard();
+                      }
                       final text = entry.content;
                       return AzkarTextCard(
                         text: text,
