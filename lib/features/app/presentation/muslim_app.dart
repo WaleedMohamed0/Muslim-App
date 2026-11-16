@@ -14,6 +14,7 @@ import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cub
 import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
 import 'package:muslim/features/app/presentation/cubit/app_state.dart';
 import 'package:muslim/core/storage/cache_helper.dart';
+import 'package:muslim/core/error_reporting/diagnostic_context.dart';
 import 'package:muslim/core/widgets/app_snackbar.dart';
 import 'package:muslim/core/widgets/dismiss_keyboard_on_outside_tap.dart';
 import 'package:muslim/core/theme/app_colors.dart';
@@ -113,6 +114,11 @@ class _AppRouteObserver extends NavigatorObserver {
       final routeName = currentRouteName;
       if (_activeRouteName.value != routeName) {
         _activeRouteName.value = routeName;
+        unawaited(
+          DiagnosticContext.setCurrentScreen(
+            DiagnosticContext.analyticsRouteName(routeName),
+          ),
+        );
       }
     });
   }
@@ -633,7 +639,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
     return MaterialApp(
       navigatorKey: appNavigatorKey,
-      navigatorObservers: [_appRouteObserver, dailyWirdRouteObserver],
+      navigatorObservers: [
+        _appRouteObserver,
+        DiagnosticContext.analyticsObserver,
+        dailyWirdRouteObserver,
+      ],
       builder: (context, child) {
         final theme =
             themeMode == ThemeMode.dark ? AppTheme.dark : AppTheme.light;

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:muslim/core/error_reporting/diagnostic_context.dart';
 import 'package:muslim/features/tasbeeh/data/repositories/tasbeeh_repository.dart';
 import 'package:muslim/features/tasbeeh/domain/entities/tasbeeh_state.dart';
 
@@ -20,6 +21,16 @@ class TasbeehCubit extends Cubit<TasbeehState> {
         .map((item) => item.dhikr == state.selectedDhikr ? item.copyWith(count: item.count + 1) : item)
         .toList(growable: false);
     final next = state.copyWith(items: items, dailyTotal: state.dailyTotal + 1);
+    final previous = state.items.firstWhere(
+      (item) => item.dhikr == state.selectedDhikr,
+    );
+    final updated = items.firstWhere(
+      (item) => item.dhikr == state.selectedDhikr,
+    );
+    if (previous.count < updated.target &&
+        updated.count >= updated.target) {
+      DiagnosticContext.log('Tasbeeh: session target completed');
+    }
     emit(next);
     await _repository.save(next);
   }

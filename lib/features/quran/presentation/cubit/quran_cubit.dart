@@ -6,6 +6,7 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
+import 'package:muslim/core/error_reporting/diagnostic_context.dart';
 import '../../../../core/storage/cache_helper.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -872,8 +873,15 @@ class QuranCubit extends Cubit<QuranState> {
       _sourceReciter = selectedReciter;
       _publishMediaItem();
       if (resume) await _startPlayback();
-    } catch (_) {
-      unawaited(_handleAudioFailure(force: true));
+    } catch (error, stackTrace) {
+      unawaited(
+        _handleAudioFailure(
+          force: true,
+          error: error,
+          stackTrace: stackTrace,
+          reason: 'Could not load Quran audio for the selected ayah',
+        ),
+      );
     } finally {
       _setAudioLoading(false);
     }
@@ -976,6 +984,7 @@ class QuranCubit extends Cubit<QuranState> {
   Future<void> selectReciter(QuranReciter reciter) async {
     await _reciterReady;
     if (selectedReciter.id == reciter.id) return;
+    DiagnosticContext.log('Quran audio: reciter changed');
     await _enqueueAudioCommand(() async {
       final wasPlaying = _audioPlayer.player.playing;
       final resumeAyah = currentAyahNumber;
@@ -1176,6 +1185,7 @@ class QuranCubit extends Cubit<QuranState> {
   }) async {
     await _reciterReady;
     if (surahNumber == number) return;
+    DiagnosticContext.log('Quran reader: Surah changed');
     // Reading navigation must never interrupt a live or paused audio session.
     // The reader can display another Surah independently while the shared
     // player remains bound to its current media item.
@@ -1284,6 +1294,9 @@ class QuranCubit extends Cubit<QuranState> {
           : null;
 
   void setCurrentPageNumber(int pageNumber) {
+    if (currentPageNumber != pageNumber) {
+      DiagnosticContext.log('Quran reader: page changed');
+    }
     currentPageNumber = pageNumber;
     if (!hasActivePlaybackSession) {
       currentAyahNumber = pageNumber;
@@ -1439,6 +1452,7 @@ class QuranCubit extends Cubit<QuranState> {
   /// Entry point for Android MediaSession and widget Play commands. Unlike a
   /// UI toggle, a Play command must never pause an already-playing session.
   Future<void> resumePlaybackFromMediaSession() async {
+    DiagnosticContext.log('Quran audio: playback started');
     debugPrint(
       'QuranWidgetPlay: Cubit received Play surah=$surahNumber ayah=$currentAyahNumber '
       'playing=${_audioPlayer.player.playing} prepared=$_audioSourcePrepared active=$quranSoundActive '
@@ -1481,6 +1495,7 @@ class QuranCubit extends Cubit<QuranState> {
   }
 
   Future<void> pausePlaybackFromMediaSession() async {
+    DiagnosticContext.log('Quran audio: playback stopped');
     if (_stopCommandPending ||
         !_audioPlayer.player.playing ||
         _playCommandPending ||
@@ -1564,8 +1579,15 @@ class QuranCubit extends Cubit<QuranState> {
       );
       await _startPlayback();
       if (!_singleAyahPlayback) unawaited(_loadAyahTimings(surahNumber));
-    } catch (_) {
-      unawaited(_handleAudioFailure(force: true));
+    } catch (error, stackTrace) {
+      unawaited(
+        _handleAudioFailure(
+          force: true,
+          error: error,
+          stackTrace: stackTrace,
+          reason: 'Could not prepare Quran audio playback',
+        ),
+      );
     }
   }
 
@@ -1631,7 +1653,14 @@ class QuranCubit extends Cubit<QuranState> {
     final playback = _audioPlayer.play();
     unawaited(
       playback.catchError((Object error, StackTrace stackTrace) {
-        unawaited(_handleAudioFailure(force: true));
+        unawaited(
+          _handleAudioFailure(
+            force: true,
+            error: error,
+            stackTrace: stackTrace,
+            reason: 'Quran audio playback failed',
+          ),
+        );
       }),
     );
     _audioStartTimeout = Timer(const Duration(seconds: 15), () {
@@ -1757,10 +1786,21 @@ class QuranCubit extends Cubit<QuranState> {
     }
   }
 
-  void _handlePlayerError(PlayerException _) =>
-      unawaited(_handleAudioFailure(force: true));
+  void _handlePlayerError(PlayerException error) => unawaited(
+    _handleAudioFailure(
+      force: true,
+      error: error,
+      stackTrace: StackTrace.current,
+      reason: 'Quran audio player reported a failure',
+    ),
+  );
 
-  Future<void> _handleAudioFailure({bool force = false}) async {
+  Future<void> _handleAudioFailure({
+    bool force = false,
+    Object? error,
+    StackTrace? stackTrace,
+    String reason = 'Quran audio playback did not start',
+  }) async {
     if (isClosed ||
         _audioErrorReported ||
         (!force &&
@@ -1770,6 +1810,20 @@ class QuranCubit extends Cubit<QuranState> {
       return;
     }
     _audioErrorReported = true;
+    DiagnosticContext.log('Quran audio: playback failed');
+    if (error != null && stackTrace != null) {
+      unawaited(
+        DiagnosticContext.reportHandledError(
+          error: error,
+          stackTrace: stackTrace,
+          reason: reason,
+          information: {
+            'screen': 'quran_reader',
+            'playback_mode': playbackMode.name,
+          },
+        ),
+      );
+    }
     _playCommandPending = false;
     _pauseCommandPending = false;
     _audioStartTimeout?.cancel();
@@ -1827,20 +1881,44 @@ class QuranCubit extends Cubit<QuranState> {
     _failedDownloadUrls.remove(url);
     _downloadingAudioUrls.add(url);
     downloadRevision++;
+    DiagnosticContext.log('Quran audio download: started');
     emit(_nextState);
     try {
       // The repository also records the URL for Download Management. Its
       // cache manager reuses an existing file, so this remains safe when the
       // audio was cached by an earlier playback session.
       await _audioRepository.download(url);
+      // Ayah highlighting depends on the timing table, which is fetched from
+      // the network and cached separately from the audio file. Warm that cache
+      // while the user is downloading the Surah so playback can still follow
+      // the current Ayah when the downloaded audio is played offline.
+      try {
+        await _audioRepository.ayahTimings(
+          surahNumber: number,
+          reciterId: selectedReciter.id,
+          readId: selectedReciter.timingReadId,
+        );
+      } catch (_) {
+        // Audio download should succeed even if optional timing data is down.
+      }
       _knownDownloadedAudioUrls.add(url);
       _failedDownloadUrls.remove(url);
       if (url == currentSurahAudioUrl) {
         quranSoundUrl = url;
         isCached = true;
       }
+      DiagnosticContext.log('Quran audio download: completed');
       AppSnackBar.show(message: 'تم تحميل السورة بنجاح', success: true);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticContext.log('Quran audio download: failed');
+      unawaited(
+        DiagnosticContext.reportHandledError(
+          error: error,
+          stackTrace: stackTrace,
+          reason: 'Could not download Quran audio',
+          information: {'operation': 'surah_audio_download'},
+        ),
+      );
       _failedDownloadUrls.add(url);
       AppSnackBar.show(
         message: 'تعذر تحميل التلاوة، تحقق من الاتصال وحاول مجددًا',

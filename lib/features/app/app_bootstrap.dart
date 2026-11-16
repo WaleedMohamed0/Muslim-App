@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:muslim/core/network/connectivity_service.dart';
+import 'package:muslim/core/error_reporting/crashlytics_error_reporter.dart';
 import 'package:muslim/core/network/dio_client.dart';
 import 'package:muslim/core/storage/cache_helper.dart';
 import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
@@ -24,6 +25,7 @@ const MethodChannel _notificationNavigationChannel = MethodChannel(
 
 Future<void> runMuslimApp() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await CrashlyticsErrorReporter.initialize();
   await UthmaniQuranText.initialize();
   await MushafLineLayoutData.initialize();
   final quranAudioHandler = await initializeQuranAudioService();

@@ -28,6 +28,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
@@ -35,17 +36,41 @@ import java.util.concurrent.Executors
 
 private object AdhanTiming {
     private const val TAG = "AdhanTiming"
+    private val crashlyticsStages = setOf(
+        "receiver_onReceive",
+        "receiver_skip",
+        "receiver_call_active",
+        "receiver_non_exact",
+        "receiver_service_start_requested",
+        "receiver_service_start_failed",
+        "service_skip",
+        "service_foreground_started",
+        "service_foreground_start_failed",
+        "audio_playback_started",
+        "mediaPlayer_error",
+        "mediaPlayer_start_failed",
+        "mediaPlayer_setup_failed",
+    )
 
     fun log(stage: String, scheduledAt: Long = 0L) {
         val now = System.currentTimeMillis()
         val scheduled = if (scheduledAt > 0L) " scheduledAt=$scheduledAt deltaMs=${now - scheduledAt}" else ""
         Log.i(TAG, "$stage at=$now elapsedRealtime=${android.os.SystemClock.elapsedRealtime()}$scheduled")
+        if (stage.substringBefore(' ') in crashlyticsStages) {
+            val safeStage = stage.replace(Regex(" id=[^ ]+"), "")
+            runCatching { FirebaseCrashlytics.getInstance().log("Azan: $safeStage") }
+        }
     }
 
     fun failure(stage: String, error: Throwable, scheduledAt: Long = 0L) {
         val now = System.currentTimeMillis()
         val scheduled = if (scheduledAt > 0L) " scheduledAt=$scheduledAt deltaMs=${now - scheduledAt}" else ""
         Log.e(TAG, "$stage at=$now elapsedRealtime=${android.os.SystemClock.elapsedRealtime()}$scheduled error=${error.javaClass.simpleName}: ${error.message}", error)
+        val safeStage = stage.replace(Regex(" id=[^ ]+"), "")
+        runCatching {
+            FirebaseCrashlytics.getInstance().log("Azan failure: $safeStage")
+            FirebaseCrashlytics.getInstance().recordException(error)
+        }
     }
 }
 

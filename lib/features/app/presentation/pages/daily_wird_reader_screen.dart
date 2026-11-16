@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
+import 'package:muslim/core/error_reporting/diagnostic_context.dart';
 import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/app/data/repositories/daily_wird_configuration_repository.dart';
@@ -103,6 +104,7 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
             ),
       );
     final streak = await _progress.completeTodayWithStats();
+    DiagnosticContext.log('Daily Wird: completion recorded');
     if (!mounted) return;
     if (!streak.completedToday) return;
     await showDialog<void>(

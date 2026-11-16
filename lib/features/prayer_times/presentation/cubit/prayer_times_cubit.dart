@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:muslim/core/error_reporting/diagnostic_context.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import '../../domain/entities/prayer_times.dart';
@@ -52,6 +53,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   }
 
   Future<bool> getPrayerTime({bool forceRefresh = false}) async {
+    DiagnosticContext.log('Prayer times: loading started');
     _scheduleDateRefresh();
     if (_isLoadingPrayerTimes) return state.status == PrayerTimesStatus.loaded;
     if (forceRefresh) lastRefreshErrorType = null;
@@ -72,7 +74,15 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
       _publishPrayerTimes(times);
       unawaited(_refreshCity(forceRefresh: forceRefresh));
       return true;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      if (error is! PrayerLocationException) {
+        unawaited(DiagnosticContext.reportHandledError(
+          error: error,
+          stackTrace: stackTrace,
+          reason: 'Prayer times could not be loaded',
+          information: {'force_refresh': forceRefresh},
+        ));
+      }
       if (forceRefresh) lastRefreshErrorType = _errorType(error);
       // Keep a valid cached day visible when refresh/location lookup fails.
       if (state.status != PrayerTimesStatus.loaded) {
@@ -158,6 +168,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   }
 
   void _publishPrayerTimes(PrayerTimes times) {
+    DiagnosticContext.log('Prayer times: loaded');
     prayerTimesModel = times;
     // final testTime = DateTime.now().add(const Duration(seconds: 5));
     // if (times.alarmTimes.length > 2) {
