@@ -13,6 +13,7 @@ import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cub
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
 import 'package:muslim/features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
+import 'package:muslim/features/app/presentation/daily_wird_route_observer.dart';
 
 class PrayerWirdHomeSection extends StatefulWidget {
   const PrayerWirdHomeSection({super.key});
@@ -22,7 +23,8 @@ class PrayerWirdHomeSection extends StatefulWidget {
 }
 
 class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
+  PageRoute<dynamic>? _subscribedRoute;
   final _progress = PrayerWirdProgressRepository();
   final _getPrayerTimes = GetPrayerTimes(
     PrayerTimesRepositoryImpl(PrayerLocationDataSource()),
@@ -47,10 +49,25 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
 
   @override
   void dispose() {
+    dailyWirdRouteObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     super.dispose();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic> && route != _subscribedRoute) {
+      dailyWirdRouteObserver.unsubscribe(this);
+      _subscribedRoute = route;
+      dailyWirdRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() => _refresh();
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -58,7 +75,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
   }
 
   Future<void> _refresh() async {
-    final postAzanEligible = await _progress.isPostAzanEligible();
     final now = DateTime.now();
     final current = context.read<PrayerTimesCubit>().state.prayerTimes;
     PrayerTimes? times = current;
@@ -82,13 +98,14 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
     final nextPeriod = prayerWirdPeriodKey(times, now);
     if (nextPeriod == null) {
       setState(() {
-        _postAzanEligible = postAzanEligible;
+        _postAzanEligible = false;
         _cachedTimes = null;
         _period = null;
         _loading = false;
       });
       return;
     }
+    final postAzanEligible = await _progress.isPostAzanEligible(nextPeriod);
     await context.read<AzkarCubit>().resetPostPrayerSessionForPeriod(nextPeriod);
     if (!mounted) return;
     final completed = await _progress.completedFor(nextPeriod);
@@ -122,9 +139,9 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
     );
   }
 
-  Future<void> _complete(String id) async {
-    final now = DateTime.now();
-    final period = prayerWirdPeriodKey(_cachedTimes, now);
+  Future<void> _complete(String id, {String? sessionPeriod}) async {
+    final period = sessionPeriod ??
+        prayerWirdPeriodKey(_cachedTimes, DateTime.now());
     if (period == null) return;
     final completed =
         period == _period ? _completed : await _progress.completedFor(period);
@@ -148,7 +165,12 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
         builder: (_) => const AzkarAndHadeethScreen(index: 4),
       ),
     );
-    if (completed == true) await _complete('azkar');
+    if (completed == true) {
+      // The session belongs to the prayer period in which it was opened. If
+      // the next Adhan occurs while the user is reading, don't mark that new
+      // period complete when this session closes.
+      await _complete('azkar', sessionPeriod: period);
+    }
   }
 
   @override

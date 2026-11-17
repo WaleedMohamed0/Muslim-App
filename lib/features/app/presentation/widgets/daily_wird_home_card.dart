@@ -24,6 +24,8 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
   DailyWirdSession? _session;
   DailyWirdStreakStats? _streak;
   int? _pagesPerDay;
+  bool _completedToday = false;
+  bool _hasLoaded = false;
   Timer? _dayRefreshTimer;
   String _loadedDate = _todayKey();
 
@@ -84,16 +86,21 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
   }
 
   Future<void> _load() async {
+    final completedToday = await _progress.isCompletedToday();
     final pages = await _configuration.loadPagesPerDay();
     final plan = context.read<KhatmahCubit>().state;
-    final session = pages == null ? null : await _progress.prepareSession(pages, checkpointPage: plan?.checkpointPage ?? 1, checkpointSurah: plan?.checkpointSurah ?? 1, checkpointAyah: plan?.checkpointAyah ?? 1);
+    final session = pages == null || completedToday
+        ? null
+        : await _progress.prepareSession(pages, checkpointPage: plan?.checkpointPage ?? 1, checkpointSurah: plan?.checkpointSurah ?? 1, checkpointAyah: plan?.checkpointAyah ?? 1);
     final streak = await _progress.loadStreakStats();
     _loadedDate = _todayKey();
     if (!mounted) return;
     setState(() {
+      _completedToday = completedToday;
       _pagesPerDay = pages;
       _session = session;
       _streak = streak;
+      _hasLoaded = true;
     });
   }
 
@@ -129,7 +136,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
 
   @override
   Widget build(BuildContext context) {
-    if (_session?.completed == true) {
+    if (!_hasLoaded || _completedToday || _session?.completed == true) {
       return const SizedBox.shrink();
     }
     final colors = Theme.of(context).colorScheme;

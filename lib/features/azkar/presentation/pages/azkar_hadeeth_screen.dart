@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'package:muslim/features/app/data/services/post_prayer_adhkar_reminder_service.dart';
+import 'package:muslim/features/app/data/repositories/prayer_wird_progress_repository.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_state.dart';
 import 'package:muslim/features/azkar/domain/entities/azkar_entry.dart';
@@ -368,6 +369,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     if (period != null) {
       await PostPrayerAdhkarReminderService.instance
           .cancelForCompletedPeriod(period);
+      await PrayerWirdProgressRepository().markCompleted(period, 'azkar');
     }
     if (mounted) Navigator.of(context).pop(true);
   }

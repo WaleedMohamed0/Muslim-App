@@ -125,81 +125,70 @@ class PostPrayerAdhkarReminderService {
         (preferences.getStringList(_completedPeriodsKey) ?? const <String>[])
             .where((period) => period.split(':').first.compareTo(todayKey) >= 0)
             .toSet();
-    final prayers = <(String, DateTime)>[
-      ('الفجر', times.fajr),
-      ('الظهر', times.dhuhr),
-      ('العصر', times.asr),
-      ('المغرب', times.maghrib),
-      ('العشاء', times.isha),
-    ];
+    final prayerNames = <String, String>{
+      'fajr': 'الفجر',
+      'dhuhr': 'الظهر',
+      'asr': 'العصر',
+      'maghrib': 'المغرب',
+      'isha': 'العشاء',
+    };
     final ids = <String>[];
-    // Keep today and tomorrow armed. Flutter's scheduled notification boot
-    // receiver restores these alarms after reboot; date refresh replaces them.
-    for (var dayOffset = 0; dayOffset < 2; dayOffset++) {
-      final date = DateTime(now.year, now.month, now.day + dayOffset);
-      for (var index = 0; index < prayers.length; index++) {
-        final prayerTime = prayers[index].$2;
-        final prayer = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          prayerTime.hour,
-          prayerTime.minute,
-          prayerTime.second,
+    // Use the exact dated prayer instants from the calculation. Rebuilding a
+    // DateTime from its clock fields can reinterpret it in the device zone.
+    // Keep today and tomorrow armed; the plugin restores alarms after reboot.
+    for (final alarm in times.alarmTimes) {
+      final index = _prayerIds.indexOf(alarm.prayerId);
+      final prayerName = prayerNames[alarm.prayerId];
+      if (index < 0 || prayerName == null) continue;
+      final prayer = tz.TZDateTime.from(alarm.at, tz.local);
+      final date = DateTime(prayer.year, prayer.month, prayer.day);
+      final dayOffset = date.difference(
+        DateTime(now.year, now.month, now.day),
+      ).inDays;
+      if (dayOffset < 0 || dayOffset > 1) continue;
+      final scheduled = prayer.add(const Duration(minutes: 15));
+      if (!scheduled.isAfter(now)) continue;
+      final period = '${_dateKey(date)}:${_prayerIds[index]}';
+      if (completedPeriods.contains(period)) continue;
+      final id = _notificationId(date, index);
+      final title = 'تذكير بأذكار ما بعد صلاة $prayerName 🌿';
+      final details = const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          'أذكار ما بعد الصلاة',
+          channelDescription: 'تذكير بأذكار ما بعد الصلاة',
+          importance: Importance.high,
+          priority: Priority.high,
+          category: AndroidNotificationCategory.reminder,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBanner: true,
+          presentSound: true,
+        ),
+      );
+      try {
+        await _notifications.zonedSchedule(
+          id: id,
+          title: title,
+          body: 'لا تنسَ أذكار ما بعد الصلاة، اجعل لسانك رطبًا بذكر الله.',
+          scheduledDate: scheduled,
+          notificationDetails: details,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: route,
         );
-        final reminder = prayer.add(const Duration(minutes: 15));
-        final scheduled = tz.TZDateTime(
-          tz.local,
-          reminder.year,
-          reminder.month,
-          reminder.day,
-          reminder.hour,
-          reminder.minute,
-          reminder.second,
+      } on PlatformException {
+        await _notifications.zonedSchedule(
+          id: id,
+          title: title,
+          body: 'لا تنسَ أذكار ما بعد الصلاة، اجعل لسانك رطبًا بذكر الله.',
+          scheduledDate: scheduled,
+          notificationDetails: details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: route,
         );
-        if (!scheduled.isAfter(now)) continue;
-        final period = '${_dateKey(date)}:${_prayerIds[index]}';
-        if (completedPeriods.contains(period)) continue;
-        final id = _notificationId(date, index);
-        final title = 'تذكير بأذكار ما بعد صلاة ${prayers[index].$1} 🌿';
-        final details = const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            'أذكار ما بعد الصلاة',
-            channelDescription: 'تذكير بأذكار ما بعد الصلاة',
-            importance: Importance.high,
-            priority: Priority.high,
-            category: AndroidNotificationCategory.reminder,
-          ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBanner: true,
-            presentSound: true,
-          ),
-        );
-        try {
-          await _notifications.zonedSchedule(
-            id: id,
-            title: title,
-            body: 'لا تنسَ أذكار ما بعد الصلاة، اجعل لسانك رطبًا بذكر الله.',
-            scheduledDate: scheduled,
-            notificationDetails: details,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            payload: route,
-          );
-        } on PlatformException {
-          await _notifications.zonedSchedule(
-            id: id,
-            title: title,
-            body: 'لا تنسَ أذكار ما بعد الصلاة، اجعل لسانك رطبًا بذكر الله.',
-            scheduledDate: scheduled,
-            notificationDetails: details,
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-            payload: route,
-          );
-        }
-        ids.add(id.toString());
       }
+      ids.add(id.toString());
     }
     await preferences.setStringList(_idsKey, ids);
     await preferences.setStringList(
