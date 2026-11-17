@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/prayer_times/presentation/models/prayer_schedule_item.dart';

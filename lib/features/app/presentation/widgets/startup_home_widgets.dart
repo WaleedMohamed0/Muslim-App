@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/widgets/app_back_arrow.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';

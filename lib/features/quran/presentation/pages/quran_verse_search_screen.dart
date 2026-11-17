@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/quran/data/repositories/quran_search_repository.dart';
 import 'package:muslim/features/quran/domain/entities/quran_search_result.dart';

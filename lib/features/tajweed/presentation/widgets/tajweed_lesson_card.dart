@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/core/widgets/app_back_arrow.dart';
 import 'package:muslim/features/tajweed/domain/entities/tajweed_lesson.dart';

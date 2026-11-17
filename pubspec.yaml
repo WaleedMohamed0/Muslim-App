@@ -4,13 +4,11 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.2
+  sdk: ^3.14.0
 
 dependencies:
   adhan: ^2.0.0+1
   flutter:
-    sdk: flutter
-  flutter_localizations:
     sdk: flutter
   quran: ^1.4.1
   dio: ^5.11.1
@@ -25,17 +23,18 @@ dependencies:
   awesome_dialog: ^3.3.0
   page_transition: ^2.2.2
   shared_preferences: ^2.5.6
-  flutter_local_notifications: ^19.4.2
+  flutter_local_notifications: ^23.0.2
   flutter_timezone: ^5.1.1
-  timezone: ^0.10.1
+  timezone: ^0.11.2
   internet_connection_checker: ^3.0.1
-  flutter_cache_manager: ^3.4.6
+  flutter_cache_manager: ^3.5.0
   path_provider: ^2.1.6
-  url_launcher: ^6.3.2
-  flutter_svg: ^2.2.3
-  firebase_core: 4.15.2
-  firebase_crashlytics: 5.3.0
-  firebase_analytics: ^12.3.0
+  url_launcher: ^6.3.3
+  flutter_svg: ^2.4.0
+  firebase_core: ^5.2.0
+  firebase_crashlytics: ^6.1.0
+  firebase_analytics: ^13.1.0
+  material_ui: ^1.11.1
 
 
 dev_dependencies:

@@ -1,4 +1,4 @@
-package com.example.muslim
+package com.waleed.muslimapp
 
 import android.app.Service
 import android.content.ComponentName
@@ -222,8 +222,8 @@ class QuranWidgetSessionSyncService : Service() {
         var isRunning: Boolean = false
             private set
 
-        const val ACTION_START = "com.example.muslim.QURAN_WIDGET_SYNC_START"
-        const val ACTION_REFRESH = "com.example.muslim.QURAN_WIDGET_SYNC_REFRESH"
+        const val ACTION_START = "com.waleed.muslimapp.QURAN_WIDGET_SYNC_START"
+        const val ACTION_REFRESH = "com.waleed.muslimapp.QURAN_WIDGET_SYNC_REFRESH"
         private const val RECONNECT_INTERVAL_MS = 5000L
         private const val EMPTY_SESSION_GRACE_MS = 60000L
     }

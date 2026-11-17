@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/widgets/app_widgets_impl.dart';

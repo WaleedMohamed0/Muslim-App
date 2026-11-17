@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/error_reporting/diagnostic_context.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/app/data/services/post_prayer_adhkar_reminder_service.dart';
 import '../../domain/entities/prayer_times.dart';
 import '../../domain/use_cases/get_prayer_times.dart';
 import '../../data/data_sources/prayer_location_data_source.dart';
@@ -186,6 +187,11 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
     unawaited(
       PrayerAdhanService.instance
           .updateSchedule(times.alarmTimes)
+          .catchError((Object _) {}),
+    );
+    unawaited(
+      PostPrayerAdhkarReminderService.instance
+          .schedule(times)
           .catchError((Object _) {}),
     );
     gotPrayerTimes = true;

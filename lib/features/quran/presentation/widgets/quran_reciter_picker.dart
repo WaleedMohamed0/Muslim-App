@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/features/quran/domain/entities/quran_reciter.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';

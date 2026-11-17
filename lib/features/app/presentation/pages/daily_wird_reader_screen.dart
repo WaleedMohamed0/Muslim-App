@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
 import 'package:muslim/core/error_reporting/diagnostic_context.dart';

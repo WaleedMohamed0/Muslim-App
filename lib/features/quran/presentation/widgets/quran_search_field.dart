@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 
 /// Search field shared by the Surah/Juz list and Mushaf Signs screens.

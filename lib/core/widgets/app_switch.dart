@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// App-wide switch colors, tuned for light and dark themes.
 class AppSwitch extends StatelessWidget {

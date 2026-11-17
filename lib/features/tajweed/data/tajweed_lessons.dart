@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/features/tajweed/domain/entities/tajweed_lesson.dart';
 
 abstract final class TajweedLessons {

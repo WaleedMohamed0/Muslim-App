@@ -1,4 +1,4 @@
-package com.example.muslim
+package com.waleed.muslimapp
 
 import android.content.Intent
 import android.Manifest

@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.muslim">
+    package="com.waleed.muslimapp">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -67,7 +67,7 @@
             android:name=".QuranWidgetPlayReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.example.muslim.QURAN_WIDGET_TOGGLE" />
+                <action android:name="com.waleed.muslimapp.QURAN_WIDGET_TOGGLE" />
             </intent-filter>
         </receiver>
         <receiver

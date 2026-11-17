@@ -1,4 +1,4 @@
-package com.example.muslim
+package com.waleed.muslimapp
 
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -41,7 +41,7 @@ class QuranWidgetPlayReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_TOGGLE = "com.example.muslim.QURAN_WIDGET_TOGGLE"
+        const val ACTION_TOGGLE = "com.waleed.muslimapp.QURAN_WIDGET_TOGGLE"
         private const val TAG = "QuranWidgetPlay"
         private const val AUDIO_SERVICE_CLASS =
             "com.ryanheise.audioservice.AudioService"

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A compact, theme-aware confirmation dialog shared by app actions.
 Future<void> showAppActionDialog({

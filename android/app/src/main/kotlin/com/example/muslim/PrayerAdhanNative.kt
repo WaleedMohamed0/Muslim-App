@@ -1,4 +1,4 @@
-package com.example.muslim
+package com.waleed.muslimapp
 
 import android.app.AlarmManager
 import android.app.Notification
@@ -97,7 +97,7 @@ private fun prayerNameArabic(prayer: String): String = when (prayer.lowercase())
 
 private fun elAzanPendingIntent(context: Context, prayer: String): PendingIntent {
     val launchIntent = Intent(context, MainActivity::class.java).apply {
-        action = "com.example.muslim.OPEN_ELAZAN_SCREEN"
+        action = "com.waleed.muslimapp.OPEN_ELAZAN_SCREEN"
         putExtra("notification_route", "elazan_screen")
         putExtra("prayer", prayer)
         addFlags(
@@ -118,7 +118,7 @@ private fun elAzanPendingIntent(context: Context, prayer: String): PendingIntent
 internal object DailyAzkarReminderScheduler {
     private const val PREFS = "daily_azkar_reminders"
     private const val SETTINGS = "settings_json"
-    private const val ACTION_REMINDER = "com.example.muslim.DAILY_REMINDER"
+    private const val ACTION_REMINDER = "com.waleed.muslimapp.DAILY_REMINDER"
     // Use a new channel id so installs that already created the old default-
     // importance channel receive the updated heads-up alert behavior.
     private const val CHANNEL = "daily_azkar_reminders_alerts"
@@ -326,7 +326,7 @@ internal object DailyAzkarReminderScheduler {
             )
         }
         val openIntent = Intent(context, MainActivity::class.java).apply {
-            action = "com.example.muslim.OPEN_DAILY_REMINDER"
+            action = "com.waleed.muslimapp.OPEN_DAILY_REMINDER"
             data = Uri.parse("muslimapp://notification/${reminder.id}")
             // Older saved reminder settings may contain a stale/missing route.
             // The reminder id is stable and unambiguously identifies the page.
@@ -392,7 +392,7 @@ class DailyAzkarReminderReceiver : BroadcastReceiver() {
 }
 
 internal object PrayerAlarmScheduler {
-    private const val ACTION_ALARM = "com.example.muslim.PRAYER_ALARM"
+    private const val ACTION_ALARM = "com.waleed.muslimapp.PRAYER_ALARM"
 
     fun canScheduleExactAlarms(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
@@ -1111,9 +1111,9 @@ class PrayerAdhanPlaybackService : Service() {
     }
 
     companion object {
-        const val ACTION_PLAY = "com.example.muslim.PLAY_ADHAN"
-        const val ACTION_TEST = "com.example.muslim.TEST_ADHAN"
-        const val ACTION_STOP = "com.example.muslim.STOP_ADHAN"
+        const val ACTION_PLAY = "com.waleed.muslimapp.PLAY_ADHAN"
+        const val ACTION_TEST = "com.waleed.muslimapp.TEST_ADHAN"
+        const val ACTION_STOP = "com.waleed.muslimapp.STOP_ADHAN"
         private const val NOTIFICATION_ID = 7301
         private val VOLUME_KEY_STREAMS = intArrayOf(
             AudioManager.STREAM_ALARM,

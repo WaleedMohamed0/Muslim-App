@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/features/prayer_times/domain/entities/prayer_times.dart'
     as prayer_model;
 import 'package:muslim/features/prayer_times/domain/entities/next_prayer.dart'

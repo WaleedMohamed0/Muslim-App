@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/core/widgets/info_hint_card.dart';
 import 'package:muslim/core/widgets/external_link_button.dart';

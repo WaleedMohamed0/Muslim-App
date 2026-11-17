@@ -9,6 +9,7 @@ import 'package:muslim/core/storage/cache_helper.dart';
 import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
 import 'package:muslim/features/app/presentation/muslim_app.dart';
 import 'package:muslim/features/app/data/services/kahf_reminder_service.dart';
+import 'package:muslim/features/app/data/services/post_prayer_adhkar_reminder_service.dart';
 import 'package:muslim/features/asmaa_allah/presentation/cubit/allah_names_cubit.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:muslim/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
@@ -30,17 +31,23 @@ Future<void> runMuslimApp() async {
   await MushafLineLayoutData.initialize();
   final quranAudioHandler = await initializeQuranAudioService();
   String? initialKahfRoute;
+  String? initialPostPrayerRoute;
   try {
     final kahfReminder = KahfReminderService.instance;
     await kahfReminder.initialize();
     initialKahfRoute = kahfReminder.takePendingLaunchRoute();
     await kahfReminder.schedule();
+    final postPrayerReminder = PostPrayerAdhkarReminderService.instance;
+    await postPrayerReminder.initialize();
+    initialPostPrayerRoute = postPrayerReminder.takePendingLaunchRoute();
   } catch (_) {
     // Keep app startup available if notification services are unavailable.
   }
   DioHelper.initHadeeth();
   final initialNotificationRoute =
-      initialKahfRoute ?? await _readInitialNotificationRoute();
+      initialPostPrayerRoute ??
+      initialKahfRoute ??
+      await _readInitialNotificationRoute();
   await CacheHelper.init().catchError((Object _) {});
   runApp(
     MultiBlocProvider(

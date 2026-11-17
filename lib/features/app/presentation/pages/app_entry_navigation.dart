@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/features/app/presentation/pages/startup_screen.dart';
 
 class AppEntryNavigation {

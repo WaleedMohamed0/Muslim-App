@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/widgets/app_back_arrow.dart';
 import 'package:muslim/features/app/data/repositories/prayer_wird_progress_repository.dart';
@@ -32,7 +32,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
   String? _period;
   Set<String> _completed = <String>{};
   bool _loading = true;
-  bool _postAzanEligible = false;
   static const _cards = <(String, String, IconData)>[
     ('azkar', 'أذكار بعد الصلاة', Icons.volunteer_activism_rounded),
   ];
@@ -58,7 +57,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
   }
 
   Future<void> _refresh() async {
-    final postAzanEligible = await _progress.isPostAzanEligible();
     final now = DateTime.now();
     final current = context.read<PrayerTimesCubit>().state.prayerTimes;
     PrayerTimes? times = current;
@@ -82,7 +80,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
     final nextPeriod = prayerWirdPeriodKey(times, now);
     if (nextPeriod == null) {
       setState(() {
-        _postAzanEligible = postAzanEligible;
         _cachedTimes = null;
         _period = null;
         _loading = false;
@@ -92,7 +89,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
     final completed = await _progress.completedFor(nextPeriod);
     if (!mounted) return;
     setState(() {
-      _postAzanEligible = postAzanEligible;
       _cachedTimes = times;
       _period = nextPeriod;
       _completed = completed;
@@ -156,7 +152,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
       child: Builder(
         builder: (context) {
           if (_loading ||
-              !_postAzanEligible ||
               _cachedTimes == null ||
               _period == null ||
               _cards.every((card) => _completed.contains(card.$1))) {

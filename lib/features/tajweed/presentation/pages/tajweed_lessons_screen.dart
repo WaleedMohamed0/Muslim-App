@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/features/tajweed/data/tajweed_lessons.dart';
 import 'package:muslim/features/tajweed/presentation/pages/tajweed_lesson_details_screen.dart';
 import 'package:muslim/features/tajweed/presentation/widgets/tajweed_lesson_card.dart';

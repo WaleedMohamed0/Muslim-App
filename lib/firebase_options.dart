@@ -21,19 +21,17 @@ abstract final class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBtqxxeDDeUVbq28MGZl6MTrR9G6LX8iPc',
-    appId: '1:363027229688:android:1da9ca3022122e03a4040d',
+    appId: '1:363027229688:android:6b1451eebe77c40ea4040d',
     messagingSenderId: '363027229688',
     projectId: 'muslim-8ff5c',
     storageBucket: 'muslim-8ff5c.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBegBByC85MT3ZirbyTsE9qy6WVgB-L5cg',
-    appId: '1:363027229688:ios:fb9e2b63914e5639a4040d',
+    appId: '1:363027229688:ios:58a13a17bec21d25a4040d',
     messagingSenderId: '363027229688',
     projectId: 'muslim-8ff5c',
     storageBucket: 'muslim-8ff5c.firebasestorage.app',
-    iosClientId: '',
-    iosBundleId: 'com.example.muslim',
+    iosBundleId: 'com.waleed.muslimapp',
   );
 }

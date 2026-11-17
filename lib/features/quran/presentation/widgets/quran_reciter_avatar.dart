@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../domain/entities/quran_reciter.dart';
 
 /// Reciter identity image shared by the reader's mini players and sheets.

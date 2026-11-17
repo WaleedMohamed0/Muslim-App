@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../data/repositories/travel_prayer_progress_repository.dart';
 import '../../data/travel_prayer_content.dart';
 import '../widgets/travel_dua_card.dart';

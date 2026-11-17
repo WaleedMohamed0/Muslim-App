@@ -25,7 +25,7 @@ class KahfReminderService {
     final zone = await FlutterTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(zone.identifier));
     await _notifications.initialize(
-      const InitializationSettings(
+      settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/launcher_icon'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
@@ -115,7 +115,7 @@ class KahfReminderService {
 
   Future<void> schedule() async {
     await initialize();
-    await _notifications.cancel(_notificationId);
+    await _notifications.cancel(id: _notificationId);
     final now = tz.TZDateTime.now(tz.local);
     var nextFriday = tz.TZDateTime(
       tz.local,
@@ -145,11 +145,11 @@ class KahfReminderService {
     );
     try {
       await _notifications.zonedSchedule(
-        _notificationId,
-        'تذكير يوم الجمعة 🌿',
-        'لا تنسَ قراءة سورة الكهف، نورٌ ما بين الجمعتين.',
-        nextFriday,
-        details,
+        id: _notificationId,
+        title: 'تذكير يوم الجمعة 🌿',
+        body: 'لا تنسَ قراءة سورة الكهف، نورٌ ما بين الجمعتين.',
+        scheduledDate: nextFriday,
+        notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: route,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
@@ -158,11 +158,11 @@ class KahfReminderService {
       // Continue delivering on Android installs where exact-alarm access is
       // unavailable; the operating system may defer this fallback slightly.
       await _notifications.zonedSchedule(
-        _notificationId,
-        'تذكير يوم الجمعة 🌿',
-        'لا تنسَ قراءة سورة الكهف، نورٌ ما بين الجمعتين.',
-        nextFriday,
-        details,
+        id: _notificationId,
+        title: 'تذكير يوم الجمعة 🌿',
+        body: 'لا تنسَ قراءة سورة الكهف، نورٌ ما بين الجمعتين.',
+        scheduledDate: nextFriday,
+        notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: route,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
@@ -172,7 +172,7 @@ class KahfReminderService {
 
   Future<void> scheduleKhatmah({required bool enabled, required int hour, required int minute, bool skipToday = false}) async {
     await initialize();
-    await _notifications.cancel(_khatmahNotificationId);
+    await _notifications.cancel(id: _khatmahNotificationId);
     if (!enabled) return;
     final now = tz.TZDateTime.now(tz.local);
     var next = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
@@ -186,12 +186,12 @@ class KahfReminderService {
       iOS: DarwinNotificationDetails(presentAlert: true, presentBanner: true, presentSound: true),
     );
     try {
-      await _notifications.zonedSchedule(_khatmahNotificationId, 'وردك اليوم من القرآن 🌿', 'حان وقت متابعة خطة الختمة. افتح التطبيق لإكمال وردك اليومي.', next, details,
+      await _notifications.zonedSchedule(id: _khatmahNotificationId, title: 'وردك اليوم من القرآن 🌿', body: 'حان وقت متابعة خطة الختمة. افتح التطبيق لإكمال وردك اليومي.', scheduledDate: next, notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: khatmahRoute,
         matchDateTimeComponents: DateTimeComponents.time);
     } on PlatformException {
-      await _notifications.zonedSchedule(_khatmahNotificationId, 'وردك اليوم من القرآن 🌿', 'حان وقت متابعة خطة الختمة. افتح التطبيق لإكمال وردك اليومي.', next, details,
+      await _notifications.zonedSchedule(id: _khatmahNotificationId, title: 'وردك اليوم من القرآن 🌿', body: 'حان وقت متابعة خطة الختمة. افتح التطبيق لإكمال وردك اليومي.', scheduledDate: next, notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: khatmahRoute,
         matchDateTimeComponents: DateTimeComponents.time);

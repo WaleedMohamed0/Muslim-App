@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
 
 class PrayerScheduleItem {

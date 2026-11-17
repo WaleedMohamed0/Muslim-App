@@ -1,7 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audio_service/audio_service.dart';
@@ -26,6 +25,7 @@ import 'package:muslim/features/azkar/presentation/pages/azkar_hadeeth_screen.da
 import 'package:muslim/features/quran/presentation/pages/home_screen.dart';
 import 'package:muslim/features/quran/presentation/pages/surah_screen.dart';
 import 'package:muslim/features/app/data/services/kahf_reminder_service.dart';
+import 'package:muslim/features/app/data/services/post_prayer_adhkar_reminder_service.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_background_colors.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/prayer_times_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/elazan_screen.dart';
@@ -219,6 +219,10 @@ class _AppRouteObserver extends NavigatorObserver {
       routeName: '/khatmah',
       page: const KhatmahScreen(),
     ),
+    PostPrayerAdhkarReminderService.route => (
+      routeName: '/azkar-category-4',
+      page: const AzkarAndHadeethScreen(index: 4),
+    ),
     _ => null,
   };
 }
@@ -311,6 +315,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final kahfReminder = KahfReminderService.instance;
     kahfReminder.onNotificationTap = _openNotificationRoute;
     kahfReminder.consumePendingLaunch();
+    final postPrayerReminder = PostPrayerAdhkarReminderService.instance;
+    postPrayerReminder.onNotificationTap = _openNotificationRoute;
+    postPrayerReminder.consumePendingLaunch();
     // A widget tap can arrive after main() consumed the cold-start Intent but
     // before this MethodChannel handler was installed. MainActivity retains
     // that request; consume it again now so the route cannot be lost in that

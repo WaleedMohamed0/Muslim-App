@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/assets/app_assets.dart';
 
 class AppSplashScreen extends StatelessWidget {

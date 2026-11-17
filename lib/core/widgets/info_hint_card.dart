@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 
 /// A compact, theme-aware informational hint used at the top of content pages.

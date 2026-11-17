@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/widgets/app_switch.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';

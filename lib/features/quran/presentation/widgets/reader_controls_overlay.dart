@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
 

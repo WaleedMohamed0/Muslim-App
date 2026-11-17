@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/features/app/presentation/widgets/settings_page_app_bar.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';

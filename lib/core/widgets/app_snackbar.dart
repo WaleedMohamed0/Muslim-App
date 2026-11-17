@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One styled, RTL-aware message surface shared by UI actions and cubits.
 class AppSnackBar {

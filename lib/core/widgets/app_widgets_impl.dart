@@ -1,5 +1,5 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:muslim/core/theme/app_theme.dart';
@@ -14,7 +14,7 @@ Widget defaultText({
   required String text,
   double? fontsize,
   double? letterSpacing,
-  var txtDirection,
+  TextDirection? txtDirection,
   FontWeight? fontWeight,
   isUpperCase = false,
   textColor,
