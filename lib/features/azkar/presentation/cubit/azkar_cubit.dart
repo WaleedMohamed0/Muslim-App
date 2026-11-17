@@ -36,9 +36,10 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
   String? _activeLocalDate;
   static const _progressDateKey = 'azkar_progress_local_date';
   static const _progressKeyPrefix = 'azkar_progress_';
+  static const _morningCompletionKey = 'azkar_morning_completed_date_v1';
+  static const _eveningCompletionKey = 'azkar_evening_completed_date_v1';
   static const _favoriteEntryIdsKey = 'azkar_favorite_entry_ids';
   static const _postPrayerPeriodKey = 'azkar_post_prayer_period_v1';
-  static const _lastAdhanResetKey = 'azkar_post_prayer_last_adhan_reset_v1';
   static const MethodChannel _shareChannel = MethodChannel('com.muslim/quran_share');
   bool isOnline = false;
   void setConnectivity(bool connected) => isOnline = connected;
@@ -177,9 +178,9 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
     return _progress[entry.id] ?? 0;
   }
 
-  /// Starts the post-prayer session, clearing only that category when its
-  /// prayer period changes. Other adhkar and tasbeeh progress stay untouched.
-  Future<void> beginPostPrayerSession(String period) async {
+  /// Resets post-prayer counters once when the prayer period changes,
+  /// independently of whether Adhan audio is enabled.
+  Future<void> resetPostPrayerSessionForPeriod(String period) async {
     if (isClosed) return;
     await loadContent();
     final preferences = await SharedPreferences.getInstance();
@@ -188,16 +189,12 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
     await preferences.setString(_postPrayerPeriodKey, period);
   }
 
-  /// Clears post-prayer counters once when a new adhan starts, even if the
-  /// user already opened the post-prayer session during this prayer period.
-  Future<void> resetPostPrayerSessionForAdhan(String period) async {
-    if (isClosed) return;
-    await loadContent();
+  Future<void> beginPostPrayerSession(String period) =>
+      resetPostPrayerSessionForPeriod(period);
+
+  Future<String?> currentPostPrayerSessionPeriod() async {
     final preferences = await SharedPreferences.getInstance();
-    if (preferences.getString(_lastAdhanResetKey) == period) return;
-    await _resetPostPrayerEntries(preferences);
-    await preferences.setString(_lastAdhanResetKey, period);
-    await preferences.setString(_postPrayerPeriodKey, period);
+    return preferences.getString(_postPrayerPeriodKey);
   }
 
   Future<void> _resetPostPrayerEntries(SharedPreferences preferences) async {
@@ -253,6 +250,28 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
     _emitProgress();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_progressKey(entry.id), _progress[entry.id]!);
+    await _saveAzkarCompletionIfComplete(entry.category, prefs);
+  }
+
+  Future<void> _saveAzkarCompletionIfComplete(
+    String categoryName,
+    SharedPreferences preferences,
+  ) async {
+    final category = switch (categoryName) {
+      'أذكار الصباح' => 0,
+      'أذكار المساء' => 1,
+      _ => -1,
+    };
+    if (category < 0) return;
+    final entries = entriesFor(category);
+    if (entries.isEmpty || !entries.every((item) {
+      final required = item.repetitionCount ?? 1;
+      return progressFor(item) >= required;
+    })) return;
+    await preferences.setString(
+      category == 0 ? _morningCompletionKey : _eveningCompletionKey,
+      _localDateKey(),
+    );
   }
 
   Future<void> resetEntry(AzkarEntry entry) async {
@@ -310,6 +329,8 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
       for (final key in oldProgressKeys) {
         await preferences.remove(key);
       }
+      await preferences.remove(_morningCompletionKey);
+      await preferences.remove(_eveningCompletionKey);
       _progress.clear();
       if (_content != null) {
         azkarTimes = List.filled(entriesFor(5).length, 0);

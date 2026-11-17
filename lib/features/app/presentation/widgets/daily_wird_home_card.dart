@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/features/khatmah/presentation/cubit/khatmah_cubit.dart';
@@ -22,11 +24,21 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
   DailyWirdSession? _session;
   DailyWirdStreakStats? _streak;
   int? _pagesPerDay;
+  Timer? _dayRefreshTimer;
+  String _loadedDate = _todayKey();
+
+  static String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month}-${now.day}';
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _dayRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_loadedDate != _todayKey()) _load();
+    });
     DailyWirdConfigurationRepository.configurationVersion.addListener(
       _onConfigurationChanged,
     );
@@ -44,6 +56,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
       _onConfigurationChanged,
     );
     WidgetsBinding.instance.removeObserver(this);
+    _dayRefreshTimer?.cancel();
     super.dispose();
   }
 
@@ -75,6 +88,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
     final plan = context.read<KhatmahCubit>().state;
     final session = pages == null ? null : await _progress.prepareSession(pages, checkpointPage: plan?.checkpointPage ?? 1, checkpointSurah: plan?.checkpointSurah ?? 1, checkpointAyah: plan?.checkpointAyah ?? 1);
     final streak = await _progress.loadStreakStats();
+    _loadedDate = _todayKey();
     if (!mounted) return;
     setState(() {
       _pagesPerDay = pages;
@@ -104,6 +118,13 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
     1 => 'صفحة',
     2 => 'صفحتان',
     _ => 'صفحات',
+  };
+
+  String _streakDuration(int count) => switch (count) {
+    1 => 'يوم واحد',
+    2 => 'يومان',
+    >= 3 && <= 10 => '${toArabicIndicDigits(count)} أيام',
+    _ => '${toArabicIndicDigits(count)} يومًا',
   };
 
   @override
@@ -151,17 +172,15 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
                             textDirection: TextDirection.rtl,
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 3),
-                        Text(
-                          _pagesPerDay == null
-                              ? 'اضبط وردك اليومي وابدأ القراءة'
-                              : session?.completed == true
-                                  ? 'أتممت وردك اليوم، تقبّل الله منك'
-                                  : 'هدف اليوم ${_pageCount(_pagesPerDay ?? total)}',
-                          textDirection: TextDirection.rtl,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colors.onSurfaceVariant),
-                        ),
+                        if (_pagesPerDay == null) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            'اضبط وردك اليومي وابدأ القراءة',
+                            textDirection: TextDirection.rtl,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -206,13 +225,21 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '${toArabicIndicDigits(percent)}٪',
-                  textAlign: TextAlign.end,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: session?.completed == true ? colors.tertiary : colors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('المتبقي ${_pageCount((total - completedPages).clamp(0, total))}',
+                      textDirection: TextDirection.rtl,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                    Text(
+                      '${toArabicIndicDigits(percent)}٪',
+                      textAlign: TextAlign.end,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: session?.completed == true ? colors.tertiary : colors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ],
               if ((_streak?.currentStreak ?? 0) > 0) ...[
@@ -223,9 +250,7 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
                   child: Row(textDirection: TextDirection.rtl, children: [
                     Icon(Icons.local_fire_department_rounded, size: 20, color: colors.tertiary),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('سلسلة وردك: ${toArabicIndicDigits(_streak!.currentStreak)} يوم — داوم على تلاوة القرآن', textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700))),
-                    const SizedBox(width: 8),
-                    Icon(Icons.radio_button_unchecked_rounded, size: 19, color: colors.onSurfaceVariant),
+                    Expanded(child: Text('سلسلة وردك: ${_streakDuration(_streak!.currentStreak)} — داوم على تلاوة القرآن', textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700))),
                   ]),
                 ),
               ],

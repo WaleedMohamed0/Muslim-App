@@ -4,8 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/core/widgets/app_back_arrow.dart';
-import 'package:muslim/features/app/domain/entities/prayer_wird_period.dart';
-import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import 'package:muslim/features/prayer_times/domain/entities/next_prayer.dart'
     as prayer_logic;
@@ -85,17 +83,6 @@ class _PrayerExperienceCardState extends State<PrayerExperienceCard>
       if (!mounted) return;
       final isPlaying = state['playing'] == true;
       final prayer = isPlaying ? state['prayer'] as String? : null;
-      if (isPlaying && !_isPlaying) {
-        final period = prayerWirdPeriodKey(
-          context.read<PrayerTimesCubit>().state.prayerTimes,
-          DateTime.now(),
-        );
-        if (period != null) {
-          unawaited(
-            context.read<AzkarCubit>().resetPostPrayerSessionForAdhan(period),
-          );
-        }
-      }
       if (_isPlaying != isPlaying || _playingPrayer != prayer) {
         setState(() {
           _isPlaying = isPlaying;

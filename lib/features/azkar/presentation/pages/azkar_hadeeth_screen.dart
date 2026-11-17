@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
+import 'package:muslim/features/app/data/services/post_prayer_adhkar_reminder_service.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_state.dart';
 import 'package:muslim/features/azkar/domain/entities/azkar_entry.dart';
@@ -360,6 +361,14 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
         );
       },
     );
+    if (!mounted) return;
+    final period = await context
+        .read<AzkarCubit>()
+        .currentPostPrayerSessionPeriod();
+    if (period != null) {
+      await PostPrayerAdhkarReminderService.instance
+          .cancelForCompletedPeriod(period);
+    }
     if (mounted) Navigator.of(context).pop(true);
   }
 

@@ -171,19 +171,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   void _publishPrayerTimes(PrayerTimes times) {
     DiagnosticContext.log('Prayer times: loaded');
     prayerTimesModel = times;
-    // final testTime = DateTime.now().add(const Duration(seconds: 5));
-    // if (times.alarmTimes.length > 2) {
-    //   unawaited(
-    //       PrayerAdhanService.instance
-    //           .updateSchedule([
-    //             PrayerAlarmTime(
-    //               prayerId: times.alarmTimes[3].prayerId,
-    //               at: testTime,
-    //             ),
-    //           ])
-    //           .catchError((Object _) {}),
-    //     );
-    // }
     unawaited(
       PrayerAdhanService.instance
           .updateSchedule(times.alarmTimes)

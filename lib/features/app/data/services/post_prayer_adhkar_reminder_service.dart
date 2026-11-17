@@ -14,8 +14,17 @@ class PostPrayerAdhkarReminderService {
   static final instance = PostPrayerAdhkarReminderService._();
   static const route = 'post_prayer_adhkar';
   static const _idsKey = 'post_prayer_adhkar_scheduled_ids_v1';
+  static const _completedPeriodsKey =
+      'post_prayer_adhkar_completed_periods_v1';
   static const _idBase = 62000000;
   static const _channelId = 'post_prayer_adhkar_reminders';
+  static const _prayerIds = <String>[
+    'fajr',
+    'dhuhr',
+    'asr',
+    'maghrib',
+    'isha',
+  ];
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
@@ -75,6 +84,32 @@ class PostPrayerAdhkarReminderService {
     if (pending != null) onNotificationTap?.call(pending);
   }
 
+  /// Cancels and suppresses the reminder for a completed prayer period.
+  Future<void> cancelForCompletedPeriod(String period) async {
+    await initialize();
+    final parts = period.split(':');
+    if (parts.length != 2) return;
+    final date = DateTime.tryParse(parts.first);
+    final prayerIndex = _prayerIds.indexOf(parts.last);
+    if (date == null || prayerIndex < 0) return;
+
+    final id = _notificationId(date, prayerIndex);
+    await _notifications.cancel(id: id);
+
+    final preferences = await SharedPreferences.getInstance();
+    final ids = preferences.getStringList(_idsKey) ?? const <String>[];
+    await preferences.setStringList(
+      _idsKey,
+      ids.where((scheduledId) => scheduledId != '$id').toList(),
+    );
+    final completed =
+        preferences.getStringList(_completedPeriodsKey) ?? const <String>[];
+    await preferences.setStringList(
+      _completedPeriodsKey,
+      {...completed, period}.toList(growable: false),
+    );
+  }
+
   Future<void> schedule(PrayerTimes times) async {
     await initialize();
     final preferences = await SharedPreferences.getInstance();
@@ -85,6 +120,11 @@ class PostPrayerAdhkarReminderService {
     }
 
     final now = tz.TZDateTime.now(tz.local);
+    final todayKey = _dateKey(now);
+    final completedPeriods =
+        (preferences.getStringList(_completedPeriodsKey) ?? const <String>[])
+            .where((period) => period.split(':').first.compareTo(todayKey) >= 0)
+            .toSet();
     final prayers = <(String, DateTime)>[
       ('الفجر', times.fajr),
       ('الظهر', times.dhuhr),
@@ -118,10 +158,9 @@ class PostPrayerAdhkarReminderService {
           reminder.second,
         );
         if (!scheduled.isAfter(now)) continue;
-        final dayNumber = DateTime.utc(date.year, date.month, date.day)
-                .millisecondsSinceEpoch ~/
-            Duration.millisecondsPerDay;
-        final id = _idBase + dayNumber * prayers.length + index;
+        final period = '${_dateKey(date)}:${_prayerIds[index]}';
+        if (completedPeriods.contains(period)) continue;
+        final id = _notificationId(date, index);
         final title = 'تذكير بأذكار ما بعد صلاة ${prayers[index].$1} 🌿';
         final details = const NotificationDetails(
           android: AndroidNotificationDetails(
@@ -163,5 +202,21 @@ class PostPrayerAdhkarReminderService {
       }
     }
     await preferences.setStringList(_idsKey, ids);
+    await preferences.setStringList(
+      _completedPeriodsKey,
+      completedPeriods.toList(growable: false),
+    );
   }
+
+  int _notificationId(DateTime date, int prayerIndex) {
+    final dayNumber = DateTime.utc(date.year, date.month, date.day)
+            .millisecondsSinceEpoch ~/
+        Duration.millisecondsPerDay;
+    return _idBase + dayNumber * _prayerIds.length + prayerIndex;
+  }
+
+  String _dateKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }
