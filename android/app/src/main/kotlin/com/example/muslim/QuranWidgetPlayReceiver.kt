@@ -12,6 +12,7 @@ import android.view.KeyEvent
 class QuranWidgetPlayReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_TOGGLE) return
+        QuranAudioWidgetProvider.reflectPlayPauseTap(context)
         dispatch(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
     }
 

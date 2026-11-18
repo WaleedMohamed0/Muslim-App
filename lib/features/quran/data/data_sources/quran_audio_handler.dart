@@ -127,7 +127,6 @@ class QuranAudioHandler extends BaseAudioHandler
       MediaControl.skipToNext,
       isPlaying ? MediaControl.pause : MediaControl.play,
       MediaControl.skipToPrevious,
-      MediaControl.stop,
     ];
     playbackState.add(
       PlaybackState(

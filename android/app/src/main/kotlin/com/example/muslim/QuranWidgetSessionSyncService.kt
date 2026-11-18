@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.os.SystemClock
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -30,25 +29,6 @@ class QuranWidgetSessionSyncService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        // The app's task can be dismissed before the media session reports
-        // destruction. Snapshot its current position and freeze the widget
-        // directly from this lifecycle callback.
-        val playbackState = controller?.playbackState
-        val positionMs = playbackState?.let { state ->
-            val elapsedMs = (SystemClock.elapsedRealtime() - state.lastPositionUpdateTime)
-                .coerceAtLeast(0L)
-            val runningMs = if (state.state == PlaybackStateCompat.STATE_PLAYING) {
-                (elapsedMs * state.playbackSpeed).toLong()
-            } else {
-                0L
-            }
-            (state.position + runningMs).coerceAtLeast(0L)
-        }
-        QuranAudioWidgetProvider.stopForTaskRemoval(this, positionMs)
-        super.onTaskRemoved(rootIntent)
-    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Android restarts START_STICKY services with a null Intent after

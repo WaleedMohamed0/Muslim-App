@@ -286,6 +286,34 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
             runCatching { context.startService(intent) }
         }
 
+        /** Reflect a user transport tap immediately; the MediaSession callback reconciles it. */
+        fun reflectPlayPauseTap(context: Context) {
+            val state = readState(context)
+            if (state.surahNumber !in 1..114) return
+
+            val playing = !state.playing
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_PLAYING, playing)
+                .apply()
+
+            val views = RemoteViews(context.packageName, R.layout.quran_audio_widget).apply {
+                setImageViewResource(
+                    R.id.quran_widget_play_pause,
+                    if (playing) R.drawable.quran_widget_pause else R.drawable.quran_widget_play,
+                )
+                setContentDescription(
+                    R.id.quran_widget_play_pause,
+                    if (playing) "إيقاف التلاوة مؤقتًا" else "استئناف التلاوة",
+                )
+            }
+            val manager = AppWidgetManager.getInstance(context)
+            val component = ComponentName(context, QuranAudioWidgetProvider::class.java)
+            manager.getAppWidgetIds(component).forEach { id ->
+                manager.partiallyUpdateAppWidget(id, views)
+            }
+        }
+
         /**
          * Keep the transport controls stable during progress updates. Flutter
          * and the MediaSession both publish playback position; those updates

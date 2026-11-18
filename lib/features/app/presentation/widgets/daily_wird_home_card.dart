@@ -24,23 +24,20 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
   DailyWirdSession? _session;
   DailyWirdStreakStats? _streak;
   int? _pagesPerDay;
-  bool _completedToday = false;
   bool _hasLoaded = false;
   Timer? _dayRefreshTimer;
   String _loadedDate = _todayKey();
 
   static String _todayKey() {
     final now = DateTime.now();
-    return '${now.year}-${now.month}-${now.day}';
+    return '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _dayRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (_loadedDate != _todayKey()) _load();
-    });
+    _scheduleMidnightRefresh();
     DailyWirdConfigurationRepository.configurationVersion.addListener(
       _onConfigurationChanged,
     );
@@ -49,6 +46,16 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
 
   void _onConfigurationChanged() {
     _load();
+  }
+
+  void _scheduleMidnightRefresh() {
+    _dayRefreshTimer?.cancel();
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    _dayRefreshTimer = Timer(midnight.difference(now), () async {
+      if (_loadedDate != _todayKey()) await _load();
+      if (mounted) _scheduleMidnightRefresh();
+    });
   }
 
   @override
@@ -82,21 +89,25 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _load();
+      _scheduleMidnightRefresh();
     }
   }
 
   Future<void> _load() async {
-    final completedToday = await _progress.isCompletedToday();
     final pages = await _configuration.loadPagesPerDay();
     final plan = context.read<KhatmahCubit>().state;
-    final session = pages == null || completedToday
+    final session = pages == null
         ? null
-        : await _progress.prepareSession(pages, checkpointPage: plan?.checkpointPage ?? 1, checkpointSurah: plan?.checkpointSurah ?? 1, checkpointAyah: plan?.checkpointAyah ?? 1);
+        : await _progress.prepareSession(
+            pages,
+            checkpointPage: plan?.checkpointPage ?? 1,
+            checkpointSurah: plan?.checkpointSurah ?? 1,
+            checkpointAyah: plan?.checkpointAyah ?? 1,
+          );
     final streak = await _progress.loadStreakStats();
     _loadedDate = _todayKey();
     if (!mounted) return;
     setState(() {
-      _completedToday = completedToday;
       _pagesPerDay = pages;
       _session = session;
       _streak = streak;
@@ -136,134 +147,179 @@ class _DailyWirdHomeCardState extends State<DailyWirdHomeCard>
 
   @override
   Widget build(BuildContext context) {
-    if (!_hasLoaded || _completedToday || _session?.completed == true) {
+    if (!_hasLoaded || _session?.completed == true) {
       return const SizedBox.shrink();
     }
     final colors = Theme.of(context).colorScheme;
     final session = _session;
-    final total = session == null
-        ? (_pagesPerDay ?? 0)
-        : session.endPage - session.startPage + 1;
-    final completedPages = session == null
-        ? 0
-        : session.completed
-        ? total
-        : (session.checkpointPage - session.startPage).clamp(0, total).toInt();
-    final fraction = total == 0 ? 0.0 : completedPages / total;
+    final total = session == null ? (_pagesPerDay ?? 0) : session.totalPages;
+    final completedPages = session?.completedPages ?? 0;
+    final fraction = session?.progress ?? 0;
     final percent = (fraction * 100).round();
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 14),
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-        onTap: _openReader,
-        child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: colors.primaryContainer,
-                    child: Icon(Icons.menu_book_rounded,
-                        color: colors.onPrimaryContainer),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('الورد اليومي',
+          onTap: _openReader,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: colors.primaryContainer,
+                      child: Icon(
+                        Icons.menu_book_rounded,
+                        color: colors.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'الورد اليومي',
                             textDirection: TextDirection.rtl,
                             style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w800)),
-                        if (_pagesPerDay == null) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            'اضبط وردك اليومي وابدأ القراءة',
-                            textDirection: TextDirection.rtl,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: colors.onSurfaceVariant),
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
+                          if (_pagesPerDay == null) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              'اضبط وردك اليومي وابدأ القراءة',
+                              textDirection: TextDirection.rtl,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant),
+                            ),
+                          ],
                         ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.tonal(
+                      onPressed: _openReader,
+                      child: Text(
+                        session?.completed == true
+                            ? 'مراجعة الورد'
+                            : 'متابعة الورد',
+                      ),
+                    ),
+                  ],
+                ),
+                if (_pagesPerDay != null) ...[
+                  const SizedBox(height: 12),
+                  if (session != null)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        'ابدأ من الصفحة ${toArabicIndicDigits(session.nextPage)}',
+                        textDirection: TextDirection.rtl,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'تقدم اليوم',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                      Text(
+                        '${toArabicIndicDigits(completedPages)} / ${toArabicIndicDigits(total)} ${_pageUnit(total)}',
+                        textDirection: TextDirection.rtl,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: fraction),
+                      duration: const Duration(milliseconds: 360),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, _) => LinearProgressIndicator(
+                        value: value,
+                        minHeight: 6,
+                        backgroundColor: colors.surfaceContainerHighest,
+                        color: session?.completed == true
+                            ? colors.tertiary
+                            : colors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'المتبقي ${_pageCount(session?.remainingPages ?? total)}',
+                        textDirection: TextDirection.rtl,
+                        style: Theme.of(context).textTheme.labelSmall
+                            ?.copyWith(color: colors.onSurfaceVariant),
+                      ),
+                      Text(
+                        '${toArabicIndicDigits(percent)}٪',
+                        textAlign: TextAlign.end,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: session?.completed == true
+                              ? colors.tertiary
+                              : colors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if ((_streak?.currentStreak ?? 0) > 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      textDirection: TextDirection.rtl,
+                      children: [
+                        Icon(
+                          Icons.local_fire_department_rounded,
+                          size: 20,
+                          color: colors.tertiary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'سلسلة وردك: ${_streakDuration(_streak!.currentStreak)} — داوم على تلاوة القرآن',
+                            textDirection: TextDirection.rtl,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton.tonal(
-                    onPressed: _openReader,
-                    child: Text(session?.completed == true
-                        ? 'مراجعة الورد'
-                        : 'متابعة الورد'),
-                  ),
                 ],
-              ),
-              if (_pagesPerDay != null) ...[
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('تقدم اليوم', style: Theme.of(context).textTheme.labelSmall),
-                    Text(
-                      '${toArabicIndicDigits(completedPages)} / ${toArabicIndicDigits(total)} ${_pageUnit(total)}',
-                      textDirection: TextDirection.rtl,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: fraction),
-                    duration: const Duration(milliseconds: 360),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, value, _) => LinearProgressIndicator(
-                      value: value,
-                      minHeight: 6,
-                      backgroundColor: colors.surfaceContainerHighest,
-                      color: session?.completed == true ? colors.tertiary : colors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('المتبقي ${_pageCount((total - completedPages).clamp(0, total))}',
-                      textDirection: TextDirection.rtl,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
-                    Text(
-                      '${toArabicIndicDigits(percent)}٪',
-                      textAlign: TextAlign.end,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: session?.completed == true ? colors.tertiary : colors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
               ],
-              if ((_streak?.currentStreak ?? 0) > 0) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                  decoration: BoxDecoration(color: colors.primaryContainer.withValues(alpha: .45), borderRadius: BorderRadius.circular(14)),
-                  child: Row(textDirection: TextDirection.rtl, children: [
-                    Icon(Icons.local_fire_department_rounded, size: 20, color: colors.tertiary),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text('سلسلة وردك: ${_streakDuration(_streak!.currentStreak)} — داوم على تلاوة القرآن', textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700))),
-                  ]),
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.Manifest
 import android.app.AlarmManager
 import android.hardware.GeomagneticField
+import android.media.AudioManager
 import android.view.KeyEvent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -174,7 +175,12 @@ class MainActivity: AudioServiceActivity() {
             }
             if (event.action == KeyEvent.ACTION_DOWN) {
                 if (event.keyCode in adhanVolumeKeysDown) return true
-                if (PrayerAdhanPlaybackService.stopForVisibleVolumeKey()) {
+                val direction = if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+                    AudioManager.ADJUST_RAISE
+                } else {
+                    AudioManager.ADJUST_LOWER
+                }
+                if (PrayerAdhanPlaybackService.stopForVisibleVolumeKey(direction)) {
                     adhanVolumeKeysDown.add(event.keyCode)
                     return true
                 }

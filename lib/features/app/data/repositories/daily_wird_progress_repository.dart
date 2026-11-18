@@ -17,6 +17,19 @@ class DailyWirdSession {
   final int checkpointSurah;
   final int checkpointAyah;
   final bool completed;
+
+  int get totalPages => endPage - startPage + 1;
+
+  /// The checkpoint is the next page to read, so pages before it are complete.
+  int get completedPages => completed
+      ? totalPages
+      : (checkpointPage - startPage).clamp(0, totalPages).toInt();
+
+  int get remainingPages => (totalPages - completedPages).clamp(0, totalPages).toInt();
+
+  double get progress => totalPages == 0 ? 0 : completedPages / totalPages;
+
+  int get nextPage => completed ? startPage : checkpointPage;
 }
 
 class DailyWirdStreakStats {
@@ -51,7 +64,11 @@ class DailyWirdProgressRepository {
     final prefs = await SharedPreferences.getInstance();
     final today = _dateKey();
     final savedDay = prefs.getString(_dayKey);
-    var start = checkpointPage.clamp(1, 604).toInt();
+    var start = (savedDay == today
+            ? (prefs.getInt(_startPageKey) ?? checkpointPage)
+            : checkpointPage)
+        .clamp(1, 604)
+        .toInt();
     var end = prefs.getInt(_endPageKey) ?? _endFor(start, pagesPerDay);
     var assignNewRange = savedDay == null;
 
@@ -76,23 +93,25 @@ class DailyWirdProgressRepository {
       await prefs.remove(_ayahKey);
     }
 
-    if (assignNewRange) {
-      end = _endFor(start, pagesPerDay);
-    }
+    final expectedEnd = _endFor(start, pagesPerDay);
+    if (assignNewRange || end != expectedEnd) end = expectedEnd;
     await prefs.setString(_dayKey, today);
     await prefs.setInt(_startPageKey, start);
     await prefs.setInt(_endPageKey, end);
 
+    // Progress is measured from this day's Wird start. The general Quran
+    // checkpoint is only used to choose the first-ever start above; using it
+    // here on later days would carry prior reading into today's progress.
     final checkpoint = savedDay == today
-        ? (prefs.getInt(_pageKey) ?? checkpointPage)
-        : checkpointPage;
+        ? (prefs.getInt(_pageKey) ?? start)
+        : start;
     final first = MushafLineLayoutData.pageData(checkpoint).first;
     final surah = savedDay == today
         ? (prefs.getInt(_surahKey) ?? checkpointSurah)
-        : (checkpointPage == 1 ? 1 : checkpointSurah);
+        : (first['surah'] as num).toInt();
     final ayah = savedDay == today
         ? (prefs.getInt(_ayahKey) ?? checkpointAyah)
-        : (checkpointPage == 1 ? 1 : checkpointAyah);
+        : (first['start'] as num).toInt();
     return DailyWirdSession(
       startPage: start,
       endPage: end,
