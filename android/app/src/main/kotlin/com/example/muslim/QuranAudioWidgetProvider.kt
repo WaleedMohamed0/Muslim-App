@@ -630,15 +630,11 @@ class QuranAudioWidgetProvider : AppWidgetProvider() {
             val hours = totalSeconds / 3600L
             val minutes = (totalSeconds / 60L) % 60L
             val seconds = totalSeconds % 60L
-            val westernDigits = if (hours > 0L) {
+            return if (hours > 0L) {
                 String.format(Locale.ROOT, "%d:%02d:%02d", hours, minutes, seconds)
             } else {
                 String.format(Locale.ROOT, "%02d:%02d", totalSeconds / 60L, seconds)
             }
-            return westernDigits.map { digit ->
-                if (digit in '0'..'9') (digit.code + 0x0660 - 0x0030).toChar()
-                else digit
-            }.joinToString("")
         }
 
         private fun statusText(state: WidgetState): String = when {

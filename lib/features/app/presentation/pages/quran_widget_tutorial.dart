@@ -78,16 +78,26 @@ class QuranWidgetIntroductionSheet extends StatelessWidget {
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              child: FilledButton.icon(
+              child: FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                icon: const Icon(Icons.arrow_back_rounded),
-                label: const Text('اعرف إزاي تضيف الويدجت'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   textStyle: const TextStyle(fontWeight: FontWeight.w700),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
+                ),
+                child: Row(
+                  textDirection: TextDirection.ltr,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Icon(Icons.arrow_back_rounded),
+                    ),
+                    SizedBox(width: 8),
+                    Text('اعرف إزاي تضيف الويدجت', textDirection: TextDirection.rtl),
+                  ],
                 ),
               ),
             ),
