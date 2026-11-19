@@ -17,12 +17,15 @@ class DevicePermissionsScreen extends StatefulWidget {
 class _DevicePermissionsScreenState extends State<DevicePermissionsScreen>
     with WidgetsBindingObserver {
   final PrayerAdhanService _service = PrayerAdhanService.instance;
-  Map<String, bool> _permissions = const {};
-  bool _loading = true;
+  late Map<String, bool> _permissions;
+  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
+    final cachedPermissions = _service.cachedPermissions;
+    _permissions = cachedPermissions ?? const {};
+    _loading = cachedPermissions == null;
     WidgetsBinding.instance.addObserver(this);
     unawaited(_refreshPermissions());
   }

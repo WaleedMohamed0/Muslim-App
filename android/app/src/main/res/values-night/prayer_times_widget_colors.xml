@@ -1,0 +1,10 @@
+<resources>
+    <color name="prayer_widget_surface">#FF102B23</color>
+    <color name="prayer_widget_border">#FF29483D</color>
+    <color name="prayer_widget_primary_text">#FFF3F6F1</color>
+    <color name="prayer_widget_secondary_text">#FF9DB5A7</color>
+    <color name="prayer_widget_accent">#FFD5E4D6</color>
+    <color name="prayer_widget_upcoming_surface">#FF1B3B30</color>
+    <color name="prayer_widget_cell_surface">#FF17352B</color>
+    <color name="prayer_widget_highlight_surface">#FF285343</color>
+</resources>

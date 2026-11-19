@@ -77,6 +77,18 @@ class MainActivity: AudioServiceActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.muslim/prayer_times_widget")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "updateSchedule") {
+                    val arguments = call.arguments as? Map<*, *>
+                    if (arguments == null) {
+                        result.error("INVALID_WIDGET_STATE", "Prayer schedule is required", null)
+                    } else {
+                        PrayerTimesWidgetProvider.update(this, arguments)
+                        result.success(null)
+                    }
+                } else result.notImplemented()
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, qiblaCompassChannel)
             .setMethodCallHandler { call, result ->
                 if (call.method != "magneticDeclination") {

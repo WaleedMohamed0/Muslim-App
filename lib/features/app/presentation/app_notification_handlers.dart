@@ -162,6 +162,25 @@ extension _AppNotificationHandlers on _MyAppState {
     }
     final routeName = destination.routeName;
     final page = destination.page;
+    if (route == 'prayer_times') {
+      if (AppHomeShell.selectTab(3)) {
+        if (_appRouteObserver.containsRoute('/home')) {
+          navigator.popUntil((route) => route.settings.name == '/home');
+        }
+      } else {
+        navigator.pushAndRemoveUntil<void>(
+          MaterialPageRoute<void>(
+            settings: const RouteSettings(name: '/home'),
+            builder: (_) => AppHomeShell(
+              key: AppHomeShell.navigationKey,
+              initialSelectedIndex: 3,
+            ),
+          ),
+          (_) => false,
+        );
+      }
+      return;
+    }
     final isDailyReminderDestination =
         routeName.startsWith('/azkar-category-') ||
         routeName == '/quran-home' ||

@@ -10,7 +10,9 @@ class AppEntryNavigation {
       MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/home'),
         builder:
-            (context) => homeBuilder?.call(context) ?? const AppHomeShell(),
+            (context) =>
+                homeBuilder?.call(context) ??
+                AppHomeShell(key: AppHomeShell.navigationKey),
       ),
     );
   }
@@ -26,7 +28,7 @@ class AppEntryNavigation {
       navigator.pushAndRemoveUntil<void>(
         MaterialPageRoute<void>(
           settings: const RouteSettings(name: '/home'),
-          builder: (_) => const AppHomeShell(),
+          builder: (_) => AppHomeShell(key: AppHomeShell.navigationKey),
         ),
         (_) => false,
       );

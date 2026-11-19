@@ -1,0 +1,4 @@
+<resources>
+    <string name="prayer_times_widget_label">مواقيت الصلاة</string>
+    <string name="prayer_times_widget_description">مواقيت الصلاة والعد التنازلي للصلاة القادمة</string>
+</resources>

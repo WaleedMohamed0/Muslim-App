@@ -24,6 +24,7 @@ import 'package:muslim/features/app/presentation/pages/startup_screen.dart';
 import 'package:muslim/features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
 import 'package:muslim/features/khatmah/presentation/pages/khatmah_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
+import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/elazan_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/prayer_adhan_settings_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/prayer_times_screen.dart';
@@ -52,6 +53,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   StreamSubscription<bool>? _mediaNotificationClickSubscription;
   StreamSubscription? _quranWidgetStateSubscription;
+  StreamSubscription? _prayerWidgetStateSubscription;
   String? _lastQuranWidgetState;
   String? _lastLiveNotificationRoute;
   Timer? _quranWidgetProgressTimer;
@@ -64,6 +66,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _quranWidgetStateSubscription = quranCubit.stream.listen(
       (_) => _syncQuranAudioWidget(quranCubit),
     );
+    final prayerCubit = context.read<PrayerTimesCubit>();
+    _prayerWidgetStateSubscription = prayerCubit.stream.listen((state) {
+      _syncPrayerTimesWidget(state);
+    });
+    _syncPrayerTimesWidget(prayerCubit.state);
     _quranWidgetProgressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (quranCubit.quranSoundActive) _syncQuranAudioWidget(quranCubit);
     });
@@ -95,12 +102,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     unawaited(_consumePendingNotificationRoute());
   }
 
+  void _syncPrayerTimesWidget(PrayerTimesState state) {
+    final times = state.prayerTimes;
+    if (times == null) return;
+    unawaited(_prayerTimesWidgetChannel.invokeMethod<void>('updateSchedule', {
+      'fajr': times.fajr.millisecondsSinceEpoch,
+      'sunrise': times.sunrise.millisecondsSinceEpoch,
+      'dhuhr': times.dhuhr.millisecondsSinceEpoch,
+      'asr': times.asr.millisecondsSinceEpoch,
+      'maghrib': times.maghrib.millisecondsSinceEpoch,
+      'isha': times.isha.millisecondsSinceEpoch,
+      'city': state.cityName,
+    }).catchError((Object _) {}));
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _quranWidgetProgressTimer?.cancel();
     _mediaNotificationClickSubscription?.cancel();
     _quranWidgetStateSubscription?.cancel();
+    _prayerWidgetStateSubscription?.cancel();
     super.dispose();
   }
 

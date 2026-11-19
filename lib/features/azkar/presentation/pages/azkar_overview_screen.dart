@@ -27,10 +27,15 @@ class AzkarOverviewScreen extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: AlignmentDirectional.topStart,
                       end: AlignmentDirectional.bottomEnd,
-                      colors: [
-                        scheme.primary,
-                        Color.lerp(scheme.primary, scheme.tertiary, .45)!,
-                      ],
+                      colors: theme.brightness == Brightness.dark
+                          ? [
+                              scheme.primary,
+                              scheme.primary.withValues(alpha: .82),
+                            ]
+                          : [
+                              scheme.primary,
+                              Color.lerp(scheme.primary, scheme.tertiary, .45)!,
+                            ],
                     ),
                     borderRadius: BorderRadius.circular(AppRadii.card),
                   ),

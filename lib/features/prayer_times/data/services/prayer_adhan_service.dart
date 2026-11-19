@@ -50,6 +50,7 @@ class PrayerAdhanService {
   Future<void> _scheduleUpdates = Future<void>.value();
   PrayerAdhanSettings? _cachedSettings;
   List<Map<String, dynamic>>? _cachedDailyReminders;
+  Map<String, bool>? _cachedPermissions;
 
   PrayerAdhanSettings? get cachedSettings =>
       _cachedSettings ?? (CacheHelper.sharedPreferences == null
@@ -62,6 +63,10 @@ class PrayerAdhanService {
           : _cachedDailyReminders!
               .map((reminder) => Map<String, dynamic>.from(reminder))
               .toList(growable: false);
+
+  Map<String, bool>? get cachedPermissions => _cachedPermissions == null
+      ? null
+      : Map<String, bool>.from(_cachedPermissions!);
 
   Future<PrayerAdhanSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -159,7 +164,7 @@ class PrayerAdhanService {
 
   Future<Map<String, bool>> permissionStatus() async {
     final result = await _channel.invokeMapMethod<String, dynamic>('permissionStatus') ?? {};
-    return {
+    return _cachedPermissions = {
       'exactAlarms': result['exactAlarms'] == true,
       'notifications': result['notifications'] == true,
       'location': result['location'] == true,

@@ -205,10 +205,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
     if (!mounted) return;
     await introPreferences.markShown();
     if (!mounted) return;
-    await showQuranWidgetIntroduction(
-      context,
-      onDismiss: introPreferences.markShown,
-    );
+    await showQuranWidgetIntroduction(context);
   }
 
   @override

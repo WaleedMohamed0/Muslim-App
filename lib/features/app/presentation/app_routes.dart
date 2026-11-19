@@ -7,6 +7,9 @@ const MethodChannel _notificationNavigationChannel = MethodChannel(
 const MethodChannel _quranAudioWidgetChannel = MethodChannel(
   'com.muslim/quran_audio_widget',
 );
+const MethodChannel _prayerTimesWidgetChannel = MethodChannel(
+  'com.muslim/prayer_times_widget',
+);
 final _appRouteObserver = _AppRouteObserver();
 final ValueNotifier<String?> _activeRouteName = ValueNotifier<String?>(null);
 
@@ -143,7 +146,13 @@ class _AppRouteObserver extends NavigatorObserver {
       routeName: '/adhan-settings',
       page: const PrayerAdhanSettingsScreen(),
     ),
-    'prayer_times' => (routeName: '/prayer-times', page: const PrayerTimes()),
+    'prayer_times' => (
+      routeName: '/home',
+      page: AppHomeShell(
+        key: AppHomeShell.navigationKey,
+        initialSelectedIndex: 3,
+      ),
+    ),
     'elazan_screen:fajr' => (
       routeName: '/elazan-screen/fajr',
       page: const ElAzanScreen(prayer: 'الفجر'),
@@ -195,7 +204,9 @@ class _AppRouteObserver extends NavigatorObserver {
 
 Widget? _pageForRouteName(String routeName) {
   if (routeName == '/') return const AppEntryScreen();
-  if (routeName == '/home') return const AppHomeShell();
+  if (routeName == '/home') {
+    return AppHomeShell(key: AppHomeShell.navigationKey);
+  }
   if (routeName == '/adhan-settings') {
     return const PrayerAdhanSettingsScreen();
   }

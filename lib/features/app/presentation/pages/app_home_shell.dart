@@ -7,14 +7,28 @@ import 'package:muslim/features/prayer_times/presentation/pages/prayer_times_scr
 import 'package:muslim/features/quran/presentation/pages/home_screen.dart';
 
 class AppHomeShell extends StatefulWidget {
-  const AppHomeShell({super.key});
+  const AppHomeShell({super.key, this.initialSelectedIndex = 0});
+
+  final int initialSelectedIndex;
+
+  static final GlobalKey<AppHomeShellState> navigationKey =
+      GlobalKey<AppHomeShellState>();
+
+  static bool selectTab(int index) =>
+      navigationKey.currentState?._selectTab(index) ?? false;
 
   @override
-  State<AppHomeShell> createState() => _AppHomeShellState();
+  State<AppHomeShell> createState() => AppHomeShellState();
 }
 
-class _AppHomeShellState extends State<AppHomeShell> {
-  int _selectedIndex = 0;
+class AppHomeShellState extends State<AppHomeShell> {
+  late int _selectedIndex = widget.initialSelectedIndex.clamp(0, 4);
+
+  bool _selectTab(int index) {
+    if (index < 0 || index >= 5 || !mounted) return false;
+    setState(() => _selectedIndex = index);
+    return true;
+  }
   late final List<Widget> _pages = [
     const StartUpScreen(),
     const HomeScreen(),

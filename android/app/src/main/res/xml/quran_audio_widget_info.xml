@@ -1,4 +1,5 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="@string/quran_audio_widget_label"
     android:description="@string/quran_audio_widget_description"
     android:initialLayout="@layout/quran_audio_widget"
     android:minWidth="250dp"

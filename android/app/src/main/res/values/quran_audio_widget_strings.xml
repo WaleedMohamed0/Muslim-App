@@ -1,3 +1,4 @@
 <resources>
+    <string name="quran_audio_widget_label">القرآن الكريم</string>
     <string name="quran_audio_widget_description">عنصر للتحكم في تلاوة الْقُرْآن</string>
 </resources>

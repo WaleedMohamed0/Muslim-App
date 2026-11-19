@@ -73,6 +73,7 @@
         </receiver>
         <receiver
             android:name=".QuranAudioWidgetProvider"
+            android:label="@string/quran_audio_widget_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -82,6 +83,25 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quran_audio_widget_info" />
         </receiver>
+        <receiver
+            android:name=".PrayerTimesWidgetProvider"
+            android:label="@string/prayer_times_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/prayer_times_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".PrayerTimesWidgetTickReceiver"
+            android:exported="false" />
         <receiver
             android:name=".PrayerAlarmReceiver"
             android:exported="false" />

@@ -79,36 +79,31 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            _SectionTitle(title: 'إعدادات الْقُرْآن الكريم'),
+            _SectionTitle(title: 'الأدوات'),
             const SizedBox(height: 10),
             Card(
               clipBehavior: Clip.antiAlias,
               child: ListTile(
-                leading: const _SettingsLeadingIcon(icon: Icons.menu_book_rounded),
-                title: const Text('الورد اليومي'),
-                subtitle: const Text('تحديد نطاق صفحات وردك اليومي بشكل مستقل'),
+                leading: const _SettingsLeadingIcon(icon: Icons.widgets_rounded),
+                title: const Text('أدوات الشاشة الرئيسية'),
+                subtitle: const Text('تعرّف على ويدجت القرآن ومواقيت الصلاة'),
                 trailing: const _SettingsNavigationArrow(),
-                onTap: () => Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    settings: const RouteSettings(name: '/daily-wird-settings'),
-                    builder: (_) => const DailyWirdSettingsScreen(),
-                  ),
-                ),
+                onTap: () => showQuranWidgetIntroduction(context),
               ),
             ),
-            const SizedBox(height: 8),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: ListTile(
-                leading: const _SettingsLeadingIcon(
-                  icon: Icons.widgets_rounded,
-                ),
-                title: const Text('ويدجت القرآن'),
-                subtitle: const Text('تعرّف على طريقة إضافته للشاشة الرئيسية'),
-                trailing: const _SettingsNavigationArrow(),
-                onTap: () => showQuranWidgetTutorial(context),
-              ),
-            ),
+            const SizedBox(height: 24),
+            _SectionTitle(title: 'إعدادات الْقُرْآن الكريم'),
+            const SizedBox(height: 10),
+            Card(clipBehavior: Clip.antiAlias, child: ListTile(
+              leading: const _SettingsLeadingIcon(icon: Icons.auto_stories_rounded),
+              title: const Text('الورد اليومي'),
+              subtitle: const Text('تحديد نطاق صفحات وردك اليومي بشكل مستقل'),
+              trailing: const _SettingsNavigationArrow(),
+              onTap: () => Navigator.of(context).push<void>(MaterialPageRoute<void>(
+                settings: const RouteSettings(name: '/daily-wird-settings'),
+                builder: (_) => const DailyWirdSettingsScreen(),
+              )),
+            )),
             const SizedBox(height: 8),
             Card(
               clipBehavior: Clip.antiAlias,

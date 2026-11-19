@@ -318,8 +318,10 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                       return AzkarTextCard(
                         text: text,
                         sectionLabel: category == 9 ? entry.subCategory : null,
-                        repetitionCount: entry.repetitionCount,
-                        counter: entry.counterEnabled
+                        repetitionCount: category == 9
+                            ? null
+                            : entry.repetitionCount,
+                        counter: category != 9 && entry.counterEnabled
                             ? cubit.progressFor(entry)
                             : null,
                         reference: category != 2 && entry.verified
