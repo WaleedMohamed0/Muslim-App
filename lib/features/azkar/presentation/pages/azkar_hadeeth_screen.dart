@@ -329,6 +329,20 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                             ? entry.instructions
                             : null,
                         showVirtueInfo: category == 5,
+                        infoIcon: category == 10 && entry.id == 'adhan_repeat_muezzin'
+                            ? Icons.volume_up_rounded
+                            : category == 10 && entry.id == 'adhan_between_prayer_dua'
+                                ? Icons.favorite_rounded
+                                : null,
+                        infoLabel: category == 10 && entry.id == 'adhan_repeat_muezzin'
+                            ? 'توجيه'
+                            : category == 10 && entry.id == 'adhan_between_prayer_dua'
+                                ? 'تذكير'
+                                : null,
+                        emphasizeInfo: category == 10 && entry.id == 'adhan_between_prayer_dua',
+                        showCopy: !(category == 10 &&
+                            (entry.id == 'adhan_repeat_muezzin' ||
+                                entry.id == 'adhan_between_prayer_dua')),
                         onVirtueTap: category == 5
                             ? () => _showTasbeehVirtue(context, entry)
                             : null,

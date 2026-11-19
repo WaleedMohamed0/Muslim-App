@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:muslim/core/storage/cache_helper.dart';
 import 'package:muslim/features/prayer_times/domain/entities/prayer_alarm_time.dart';
 import 'package:muslim/features/prayer_times/domain/entities/adhan_audio_option.dart';
 
@@ -47,9 +48,24 @@ class PrayerAdhanService {
   static const _prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
   String? _lastScheduleSignature;
   Future<void> _scheduleUpdates = Future<void>.value();
+  PrayerAdhanSettings? _cachedSettings;
+  List<Map<String, dynamic>>? _cachedDailyReminders;
+
+  PrayerAdhanSettings? get cachedSettings =>
+      _cachedSettings ?? (CacheHelper.sharedPreferences == null
+          ? null
+          : _settingsFromPrefs(CacheHelper.sharedPreferences!));
+
+  List<Map<String, dynamic>>? get cachedDailyReminders =>
+      _cachedDailyReminders == null
+          ? null
+          : _cachedDailyReminders!
+              .map((reminder) => Map<String, dynamic>.from(reminder))
+              .toList(growable: false);
+
   Future<PrayerAdhanSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    return _settingsFromPrefs(prefs);
+    return _cachedSettings = _settingsFromPrefs(prefs);
   }
 
   PrayerAdhanSettings _settingsFromPrefs(SharedPreferences prefs) =>
@@ -72,6 +88,7 @@ class PrayerAdhanService {
       });
 
   Future<void> saveSettings(PrayerAdhanSettings settings) async {
+    _cachedSettings = settings;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_enabledKey, settings.enabled);
     await prefs.setDouble(_volumeKey, settings.volume.clamp(0, 1).toDouble());
@@ -120,7 +137,7 @@ class PrayerAdhanService {
   Future<List<Map<String, dynamic>>> getDailyReminders() async {
     final result = await _channel.invokeListMethod<dynamic>('getDailyReminders') ??
         const <dynamic>[];
-    return result
+    return _cachedDailyReminders = result
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
@@ -134,7 +151,7 @@ class PrayerAdhanService {
           reminders,
         ) ??
         const <dynamic>[];
-    return result
+    return _cachedDailyReminders = result
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);

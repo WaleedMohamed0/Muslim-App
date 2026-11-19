@@ -17,6 +17,10 @@ class AzkarTextCard extends StatelessWidget {
     this.sectionLabel,
     this.showVirtueInfo = false,
     this.onVirtueTap,
+    this.infoIcon,
+    this.infoLabel,
+    this.emphasizeInfo = false,
+    this.showCopy = true,
   });
   final String text;
   final int? counter;
@@ -32,6 +36,10 @@ class AzkarTextCard extends StatelessWidget {
   final String? sectionLabel;
   final bool showVirtueInfo;
   final VoidCallback? onVirtueTap;
+  final IconData? infoIcon;
+  final String? infoLabel;
+  final bool emphasizeInfo;
+  final bool showCopy;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -44,6 +52,24 @@ class AzkarTextCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (infoIcon != null && infoLabel != null) ...[
+              Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  Icon(infoIcon, size: 19, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    infoLabel!,
+                    textDirection: TextDirection.rtl,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
             if (sectionLabel != null && sectionLabel!.isNotEmpty) ...[
               Align(
                 alignment: AlignmentDirectional.centerStart,
@@ -107,7 +133,11 @@ class AzkarTextCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontSize: (Theme.of(context).textTheme.titleMedium?.fontSize ?? 16) + 2,
-                  height: 1.9,
+                  height: emphasizeInfo ? 1.65 : 1.9,
+                  fontWeight: emphasizeInfo ? FontWeight.w700 : null,
+                  color: emphasizeInfo
+                      ? Theme.of(context).colorScheme.onSurface
+                      : null,
                 ),
               ),
             if (!showVirtueInfo && instructions != null && instructions!.isNotEmpty) ...[
@@ -244,14 +274,15 @@ class AzkarTextCard extends StatelessWidget {
                     const Spacer(),
                   ] else
                     const Spacer(),
-                  _TasbeehActionButton(
-                    onPressed: onCopy,
-                    tooltip: 'نسخ الذِّكْر',
-                    icon: Icons.content_copy_rounded,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    foregroundColor:
-                        Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                  if (showCopy)
+                    _TasbeehActionButton(
+                      onPressed: onCopy,
+                      tooltip: 'نسخ الذِّكْر',
+                      icon: Icons.content_copy_rounded,
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      foregroundColor:
+                          Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                 ],
               ],
             ),

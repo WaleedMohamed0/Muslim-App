@@ -15,14 +15,17 @@ class DailyReminderSettingsScreen extends StatefulWidget {
 class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScreen>
     with WidgetsBindingObserver {
   final _service = PrayerAdhanService.instance;
-  List<Map<String, dynamic>> _reminders = const [];
-  bool _loading = true;
+  late List<Map<String, dynamic>> _reminders;
+  bool _loading = false;
   bool _saving = false;
   Map<String, bool> _permissions = const {};
 
   @override
   void initState() {
     super.initState();
+    final cachedReminders = _service.cachedDailyReminders;
+    _reminders = cachedReminders ?? const [];
+    _loading = cachedReminders == null;
     WidgetsBinding.instance.addObserver(this);
     _load();
   }

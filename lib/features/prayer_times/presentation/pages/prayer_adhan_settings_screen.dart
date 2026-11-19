@@ -21,9 +21,9 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
   final _service = PrayerAdhanService.instance;
   final _previewPlayer = AudioPlayer();
   late final StreamSubscription<PlayerState> _previewStateSubscription;
-  PrayerAdhanSettings _settings = const PrayerAdhanSettings();
+  late PrayerAdhanSettings _settings;
   Map<String, bool> _permissions = const {};
-  bool _loading = true;
+  bool _loading = false;
   bool _enablingAdhan = false;
   String? _previewingId;
 
@@ -38,6 +38,9 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
   @override
   void initState() {
     super.initState();
+    final cachedSettings = _service.cachedSettings;
+    _settings = cachedSettings ?? const PrayerAdhanSettings();
+    _loading = cachedSettings == null;
     WidgetsBinding.instance.addObserver(this);
     _previewStateSubscription = _previewPlayer.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed &&
