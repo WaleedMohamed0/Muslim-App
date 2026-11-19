@@ -19,6 +19,7 @@ class LocalAzkarRepository implements AzkarRepository {
       7 => 'أدعية الْأَنْبِيَاء',
       8 => 'أدعية من السُّنَّة النبوية',
       9 => 'أدعية للمواقف اليومية',
+      10 => 'أذكار عند سماع الأذان',
       _ => null,
     };
     return name == null ? const [] : dataSource.readEntries(name);

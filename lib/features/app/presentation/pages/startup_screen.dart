@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:muslim/core/theme/app_colors.dart';
+import 'package:muslim/features/azkar/presentation/azkar_categories.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/core/widgets/app_back_arrow.dart';
 import 'package:muslim/features/asmaa_allah/presentation/pages/asmaa_allah_screen.dart';
@@ -95,7 +95,7 @@ class _AzkarDiscoveryCarouselState extends State<_AzkarDiscoveryCarousel>
               itemBuilder: (context, displayIndex) {
                 final index = widget.displayOrder[displayIndex];
                 return WirdCard(
-                  item: AppColors.azkarCategories[index],
+                  item: azkarCategories[index],
                   onTap:
                       () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
@@ -166,7 +166,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
 
   // Keep category indices tied to their existing routes/data while putting
   // the most frequently used Azkar shortcuts first in the carousel.
-  static const _azkarDisplayOrder = [0, 1, 5, 2, 3, 4, 6, 7, 8, 9, 10];
+  static const _azkarDisplayOrder = [0, 1, 5, 2, 3, 4, 6, 7, 8, 9, 10, 11];
   final ValueNotifier<double> _miniPlayerHeight = ValueNotifier(0);
   bool _widgetIntroFlowStarted = false;
 
@@ -423,7 +423,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         HomeSectionHeader(
-                          title: 'زادك الإيماني',
+                          title: 'أقسام أخرى',
                           subtitle: 'تعرّف إلى أسماء الله واستقبل قبلتك',
                         ),
                         const SizedBox(height: 12),

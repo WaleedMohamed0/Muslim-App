@@ -109,14 +109,17 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
     if (!streak.completedToday) return;
     await showDialog<void>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder:
-          (dialogContext) => _DailyWirdCompletionDialog(
-            onReturnHome: () {
-              Navigator.of(dialogContext).pop();
-              if (mounted) Navigator.of(context).pop();
-            },
-            milestone: streak.newMilestone,
+          (dialogContext) => PopScope(
+            canPop: false,
+            child: _DailyWirdCompletionDialog(
+              onReturnHome: () {
+                Navigator.of(dialogContext).pop();
+                if (mounted) Navigator.of(context).pop();
+              },
+              milestone: streak.newMilestone,
+            ),
           ),
     );
   }
@@ -172,8 +175,11 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
       0,
       session.endPage - session.startPage + 1,
     ).toInt();
+    final displayedCompletedPages = session.completed
+        ? session.totalPages
+        : completedPages;
     final percent =
-        ((completedPages /
+        ((displayedCompletedPages /
                     (session.endPage - session.startPage + 1)) *
                 100)
             .round();
@@ -252,7 +258,7 @@ class _DailyWirdReaderScreenState extends State<DailyWirdReaderScreen> {
                       }),
                       child: _DailyWirdProgress(
                         key: _progressCardKey,
-                        completed: completedPages,
+                        completed: displayedCompletedPages,
                         total: session.endPage - session.startPage + 1,
                         percent: percent,
                         progress: progress,

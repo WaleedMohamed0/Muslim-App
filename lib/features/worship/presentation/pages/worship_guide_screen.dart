@@ -428,7 +428,15 @@ class _StepPicker extends StatelessWidget {
                     : Theme.of(context).colorScheme.onSurface,
           ),
           selectedColor: Theme.of(context).colorScheme.primary,
-          shape: const StadiumBorder(),
+          shape: StadiumBorder(
+            side: BorderSide(
+              color:
+                  Theme.of(context).brightness == Brightness.light
+                      ? const Color(0xFF52665A)
+                      : Theme.of(context).colorScheme.outline,
+              width: 2,
+            ),
+          ),
         );
       },
     ),

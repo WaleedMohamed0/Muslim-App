@@ -71,7 +71,7 @@ extension _AppMaterialAppConfiguration on _MyAppState {
       onUnknownRoute:
           (settings) => MaterialPageRoute<void>(
             settings: settings,
-            builder: (_) => const StartUpScreen(),
+            builder: (_) => const AppHomeShell(),
           ),
       initialRoute: '/',
       onGenerateInitialRoutes:
@@ -85,7 +85,7 @@ extension _AppMaterialAppConfiguration on _MyAppState {
                     ))) ...[
               MaterialPageRoute<void>(
                 settings: const RouteSettings(name: '/home'),
-                builder: (_) => const StartUpScreen(),
+                builder: (_) => const AppHomeShell(),
               ),
               MaterialPageRoute<void>(
                 settings: RouteSettings(name: initialDestination.routeName),

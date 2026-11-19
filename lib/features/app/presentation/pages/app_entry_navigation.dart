@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:muslim/features/app/presentation/pages/startup_screen.dart';
+import 'package:muslim/features/app/presentation/pages/app_home_shell.dart';
 
 class AppEntryNavigation {
   const AppEntryNavigation._();
@@ -10,7 +10,7 @@ class AppEntryNavigation {
       MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/home'),
         builder:
-            (context) => homeBuilder?.call(context) ?? const StartUpScreen(),
+            (context) => homeBuilder?.call(context) ?? const AppHomeShell(),
       ),
     );
   }
@@ -26,7 +26,7 @@ class AppEntryNavigation {
       navigator.pushAndRemoveUntil<void>(
         MaterialPageRoute<void>(
           settings: const RouteSettings(name: '/home'),
-          builder: (_) => const StartUpScreen(),
+          builder: (_) => const AppHomeShell(),
         ),
         (_) => false,
       );

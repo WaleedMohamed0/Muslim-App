@@ -8,9 +8,9 @@ import 'package:quran/quran.dart' as quran;
 import 'package:muslim/features/quran/data/data_sources/mushaf_line_layout_data.dart';
 import 'package:muslim/core/error_reporting/diagnostic_context.dart';
 import '../../../../core/storage/cache_helper.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../data/data_sources/quran_audio_player.dart';
+import '../../data/data_sources/quran_audio_constants.dart';
 import '../../data/data_sources/quran_audio_handler.dart';
 import '../../data/data_sources/quran_reciter_artwork_cache.dart';
 import '../../data/repositories/quran_audio_repository.dart';
@@ -1290,7 +1290,7 @@ class QuranCubit extends Cubit<QuranState> {
 
   String? _legacyAlafasyUrl(int number) =>
       selectedReciter.id == QuranReciter.all.first.id
-          ? '${AppColors.quranSoundUrl}$number.mp3'
+          ? '$defaultQuranSoundUrl$number.mp3'
           : null;
 
   void setCurrentPageNumber(int pageNumber) {

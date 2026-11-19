@@ -195,7 +195,7 @@ class _AppRouteObserver extends NavigatorObserver {
 
 Widget? _pageForRouteName(String routeName) {
   if (routeName == '/') return const AppEntryScreen();
-  if (routeName == '/home') return const StartUpScreen();
+  if (routeName == '/home') return const AppHomeShell();
   if (routeName == '/adhan-settings') {
     return const PrayerAdhanSettingsScreen();
   }
@@ -224,7 +224,7 @@ Widget? _pageForRouteName(String routeName) {
     final index = int.tryParse(routeName.substring(categoryPrefix.length));
     if (index != null &&
         index >= 0 &&
-        index < AppColors.azkarCategories.length) {
+        index < azkarCategories.length) {
       return AzkarAndHadeethScreen(index: index);
     }
   }

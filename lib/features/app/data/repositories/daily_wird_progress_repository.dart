@@ -154,7 +154,18 @@ class DailyWirdProgressRepository {
     final prefs = await SharedPreferences.getInstance();
     final today = _dateKey();
     final completedDays = (prefs.getStringList(_completedDaysKey) ?? <String>[]).toSet();
-    if (completedDays.contains(today)) return _stats(prefs, completedDays, today, completedToday: false);
+    if (prefs.getString(_completedKey) == today) {
+      return _stats(prefs, completedDays, today, completedToday: false);
+    }
+    // Persist the completed checkpoint as the final required page. This keeps
+    // the stored progress consistent with the completion flag for every view.
+    final end = prefs.getInt(_endPageKey);
+    if (prefs.getString(_dayKey) == today && end != null) {
+      await prefs.setInt(_pageKey, end);
+      final last = MushafLineLayoutData.pageData(end).last;
+      await prefs.setInt(_surahKey, (last['surah'] as num).toInt());
+      await prefs.setInt(_ayahKey, (last['end'] as num).toInt());
+    }
     await prefs.setString(_completedKey, today);
     completedDays.add(today);
     await prefs.setStringList(_completedDaysKey, completedDays.toList()..sort());

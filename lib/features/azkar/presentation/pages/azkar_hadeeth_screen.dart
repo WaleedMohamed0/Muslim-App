@@ -38,22 +38,23 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
     7 => 'أدعية الْأَنْبِيَاء',
     8 => 'أدعية من السُّنَّة النبوية',
     9 => 'أدعية للمواقف اليومية',
+    10 => 'أذكار عند سماع الأذان',
     _ => 'الْأَحَادِيث النبوية',
   };
 
   @override
   void initState() {
     super.initState();
-    if (widget.index != 10) {
+    if (widget.index != 11) {
       context.read<AzkarCubit>().loadContent();
     }
-    if (widget.index == 10) context.read<HadeethCubit>().getHadeeth();
+    if (widget.index == 11) context.read<HadeethCubit>().getHadeeth();
   }
 
   @override
   Widget build(BuildContext context) {
     final category = widget.index;
-    if (category == 10) {
+    if (category == 11) {
       return BlocBuilder<HadeethCubit, HadeethState>(
         builder: (context, state) {
           if (state.isLoading) {
@@ -165,6 +166,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
         const postPrayerSourceUrl = 'https://www.islambook.com/app/ar/azkr/9';
         const quranDuaSourceUrl = 'https://www.islambook.com/app/ar/azkr/15';
         const prophetsDuaSourceUrl = 'https://www.islambook.com/app/ar/azkr/21';
+        const adhanSourceUrl = 'https://www.islambook.com/ar/azkr/5';
         return Scaffold(
           appBar: defaultAppBar(context: context, text: title),
           body: entries.isEmpty
@@ -182,7 +184,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                         1 +
                         (category == 2 ? 1 : 0) +
                         (category == 0 || category == 1 ? 1 : 0) +
-                        (category == 3 || category == 4 || category == 5 || category == 6 || category == 7 ? 1 : 0),
+                        (category == 3 || category == 4 || category == 5 || category == 6 || category == 7 || category == 10 ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return AzkarSectionHeader(
@@ -279,6 +281,20 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                           ),
                         );
                       }
+                      if (category == 10 && index == entries.length + 1) {
+                        return Padding(
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                            12,
+                            16,
+                            12,
+                            24,
+                          ),
+                          child: const ExternalLinkButton(
+                            url: adhanSourceUrl,
+                            label: 'المصدر: $adhanSourceUrl',
+                          ),
+                        );
+                      }
                       if (category == 2 && index == entries.length + 1) {
                         return Padding(
                           padding: const EdgeInsetsDirectional.fromSTEB(
@@ -303,7 +319,9 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                         text: text,
                         sectionLabel: category == 9 ? entry.subCategory : null,
                         repetitionCount: entry.repetitionCount,
-                        counter: cubit.progressFor(entry),
+                        counter: entry.counterEnabled
+                            ? cubit.progressFor(entry)
+                            : null,
                         reference: category != 2 && entry.verified
                             ? _entryReference(entry)
                             : null,
@@ -316,7 +334,9 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
                             : null,
                         onCopy:
                             () => Clipboard.setData(ClipboardData(text: text)),
-                        onIncrement: () => cubit.incrementEntry(entry),
+                        onIncrement: entry.counterEnabled
+                            ? () => cubit.incrementEntry(entry)
+                            : null,
                       );
                     },
                   ),

@@ -58,7 +58,15 @@ class WorshipStepCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(30)),
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: theme.brightness == Brightness.light
+                          ? colors.outline
+                          : colors.outlineVariant,
+                    ),
+                  ),
                   child: Text(WorshipUiStrings.stepProgress(current: toArabicIndicDigits(index + 1), total: toArabicIndicDigits(total)), style: theme.textTheme.labelLarge?.copyWith(color: colors.onPrimaryContainer, fontWeight: FontWeight.w800)),
                 ),
                 const Spacer(),

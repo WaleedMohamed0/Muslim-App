@@ -9,6 +9,7 @@ class AzkarEntry {
     this.description = '',
     this.reference = '',
     this.instructions = '',
+    this.counterEnabled = true,
     this.verified = false,
     this.authenticityGrade = '',
     this.alternateContent = '',
@@ -29,6 +30,7 @@ class AzkarEntry {
         description: json['description'] as String? ?? '',
         reference: json['reference'] as String? ?? '',
         instructions: json['instructions'] as String? ?? '',
+        counterEnabled: json['counterEnabled'] as bool? ?? true,
         verified: json['verified'] == true,
         authenticityGrade: json['authenticityGrade'] as String? ?? '',
         alternateContent: json['alternateContent'] as String? ?? '',
@@ -53,6 +55,7 @@ class AzkarEntry {
   final String description;
   final String reference;
   final String instructions;
+  final bool counterEnabled;
   final bool verified;
   final String authenticityGrade;
   final String alternateContent;
