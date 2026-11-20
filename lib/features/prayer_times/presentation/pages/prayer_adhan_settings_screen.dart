@@ -22,7 +22,8 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
   final _previewPlayer = AudioPlayer();
   late final StreamSubscription<PlayerState> _previewStateSubscription;
   late PrayerAdhanSettings _settings;
-  Map<String, bool> _permissions = const {};
+  Map<String, bool> _permissions =
+      PrayerAdhanService.instance.cachedPermissions ?? const {};
   bool _loading = false;
   bool _enablingAdhan = false;
   String? _previewingId;
