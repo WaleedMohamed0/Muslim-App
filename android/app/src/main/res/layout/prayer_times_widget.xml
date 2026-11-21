@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="sans"
             android:gravity="start"
-            android:maxLines="1"
+            android:maxLines="2"
             android:includeFontPadding="false"
             android:text="مواقيت الصلاة"
             android:textColor="@color/prayer_widget_primary_text"
@@ -34,28 +34,28 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:orientation="horizontal">
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/prayer_widget_day"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="end"
+                android:maxLines="1"
+                android:includeFontPadding="false"
+                android:textColor="@color/prayer_widget_secondary_text"
+                android:textSize="11sp" />
             <TextView
                 android:id="@+id/prayer_widget_date"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginTop="2dp"
                 android:gravity="end"
                 android:maxLines="1"
                 android:includeFontPadding="false"
                 android:text="موقعك الحالي"
                 android:textColor="@color/prayer_widget_secondary_text"
                 android:textSize="10sp" />
-            <TextView
-                android:id="@+id/prayer_widget_day"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:gravity="end"
-                android:maxLines="1"
-                android:includeFontPadding="false"
-                android:textColor="@color/prayer_widget_secondary_text"
-                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 
