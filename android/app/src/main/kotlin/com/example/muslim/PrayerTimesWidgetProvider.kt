@@ -154,8 +154,17 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
                 minWidth < 360 -> 12
                 else -> 16
             }
-            val verticalPadding = if (minHeight < 250) 7 else 10
-            fun dp(value: Int): Int = (value * context.resources.displayMetrics.density).toInt()
+            val verticalPadding = when {
+                minHeight < 220 -> 4
+                minHeight < 280 -> 7
+                else -> 10
+            }
+            val density = context.resources.displayMetrics.density
+            fun dp(value: Int): Int = (value * density).toInt()
+            // RemoteViews text uses SP by default, which can grow beyond the space
+            // reserved by launcher widget grids. PX keeps the chosen dp size stable
+            // across system font scales while density still maps it to physical pixels.
+            fun textPx(value: Float): Float = value * density
 
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             val times = entries.mapNotNull { (name, key) ->
@@ -182,24 +191,24 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
                 )
                 setTextViewTextSize(
                     R.id.prayer_widget_heading,
-                    TypedValue.COMPLEX_UNIT_SP,
-                    if (compact) 14f else 17f,
+                    TypedValue.COMPLEX_UNIT_PX,
+                    textPx(if (compact) 14f else 17f),
                 )
                 setTextViewTextSize(
                     R.id.prayer_widget_date,
-                    TypedValue.COMPLEX_UNIT_SP,
-                    if (minWidth < 280) 10f else 11f,
+                    TypedValue.COMPLEX_UNIT_PX,
+                    textPx(if (minWidth < 280) 9f else 10f),
                 )
                 setTextViewTextSize(
                     R.id.prayer_widget_countdown_title,
-                    TypedValue.COMPLEX_UNIT_SP,
-                    if (compact) 12f else 14f,
+                    TypedValue.COMPLEX_UNIT_PX,
+                    textPx(if (compact) 11f else 13f),
                 )
-                setTextViewTextSize(R.id.prayer_widget_next_name, TypedValue.COMPLEX_UNIT_SP, if (compact) 17f else 20f)
+                setTextViewTextSize(R.id.prayer_widget_next_name, TypedValue.COMPLEX_UNIT_PX, textPx(if (compact) 15f else 18f))
                 setTextViewTextSize(
                     R.id.prayer_widget_countdown,
-                    TypedValue.COMPLEX_UNIT_SP,
-                    if (compact) 16f else 20f,
+                    TypedValue.COMPLEX_UNIT_PX,
+                    textPx(if (compact) 15f else 18f),
                 )
                 setTextViewText(R.id.prayer_widget_countdown_title, "الصلاة القادمة")
                 setTextViewText(R.id.prayer_widget_next_name, next?.first ?: "المواقيت غير متاحة")
@@ -225,8 +234,8 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
                     } else "--:--"
                     setTextViewText(nameId, name)
                     setTextViewText(timeId, time)
-                    setTextViewTextSize(nameId, TypedValue.COMPLEX_UNIT_SP, cellNameSize)
-                    setTextViewTextSize(timeId, TypedValue.COMPLEX_UNIT_SP, cellTimeSize)
+                    setTextViewTextSize(nameId, TypedValue.COMPLEX_UNIT_PX, textPx(cellNameSize))
+                    setTextViewTextSize(timeId, TypedValue.COMPLEX_UNIT_PX, textPx(cellTimeSize))
                     setTextColor(
                         nameId,
                         ContextCompat.getColor(

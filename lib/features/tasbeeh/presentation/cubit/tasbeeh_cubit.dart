@@ -4,7 +4,9 @@ import 'package:muslim/features/tasbeeh/data/repositories/tasbeeh_repository.dar
 import 'package:muslim/features/tasbeeh/domain/entities/tasbeeh_state.dart';
 
 class TasbeehCubit extends Cubit<TasbeehState> {
-  TasbeehCubit(this._repository) : super(const TasbeehState());
+  TasbeehCubit(TasbeehRepository repository)
+      : _repository = repository,
+        super(repository.cachedState ?? const TasbeehState());
   final TasbeehRepository _repository;
 
   Future<void> load() async {

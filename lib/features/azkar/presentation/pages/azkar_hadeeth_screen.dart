@@ -519,6 +519,15 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen> {
         );
       },
     );
+    if (!mounted) return;
+    final period = await context
+        .read<AzkarCubit>()
+        .currentPostPrayerSessionPeriod();
+    if (period != null) {
+      await PostPrayerAdhkarReminderService.instance
+          .cancelForCompletedPeriod(period);
+      await PrayerWirdProgressRepository().markCompleted(period, 'azkar');
+    }
     if (mounted) Navigator.of(context).pop(true);
   }
 

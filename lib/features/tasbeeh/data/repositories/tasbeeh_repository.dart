@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:muslim/core/storage/cache_helper.dart';
 import 'package:muslim/features/tasbeeh/domain/entities/tasbeeh_item.dart';
 import 'package:muslim/features/tasbeeh/domain/entities/tasbeeh_state.dart';
 
@@ -23,6 +24,35 @@ class TasbeehRepository {
   String get _today => DateTime.now().toIso8601String().substring(0, 10);
   String _countKeyFor(String dhikr) => '$_dhikrCountPrefix${Uri.encodeComponent(dhikr)}';
   String _targetKeyFor(String dhikr) => '$_targetPrefix${Uri.encodeComponent(dhikr)}';
+
+  TasbeehState? get cachedState {
+    final prefs = CacheHelper.sharedPreferences;
+    if (prefs == null) return null;
+
+    final savedDhikr = prefs.getString(_dhikrKey);
+    final selectedDhikr = dhikrs.contains(savedDhikr) ? savedDhikr! : dhikrs.first;
+    final legacyCount = prefs.getInt(_countKey) ?? 0;
+    final legacyTarget = prefs.getInt(_targetKey) ?? 33;
+    final items = [
+      for (final dhikr in dhikrs)
+        TasbeehItem(
+          dhikr: dhikr,
+          count: prefs.getInt(_countKeyFor(dhikr)) ??
+              (dhikr == selectedDhikr ? legacyCount : 0),
+          target: prefs.getInt(_targetKeyFor(dhikr)) ??
+              (dhikr == selectedDhikr ? legacyTarget : 33),
+        ),
+    ];
+    final dailyTotal = prefs.getString(_dailyDateKey) == _today
+        ? prefs.getInt(_dailyTotalKey) ?? 0
+        : 0;
+
+    return TasbeehState(
+      items: items,
+      selectedDhikr: selectedDhikr,
+      dailyTotal: dailyTotal,
+    );
+  }
 
   Future<TasbeehState> load() async {
     final prefs = await SharedPreferences.getInstance();
