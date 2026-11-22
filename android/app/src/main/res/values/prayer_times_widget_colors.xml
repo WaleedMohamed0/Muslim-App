@@ -1,10 +1,11 @@
 <resources>
-    <color name="prayer_widget_surface">#FF102B23</color>
-    <color name="prayer_widget_border">#FF29483D</color>
-    <color name="prayer_widget_primary_text">#FFF3F6F1</color>
-    <color name="prayer_widget_secondary_text">#FF9DB5A7</color>
-    <color name="prayer_widget_accent">#FFD5E4D6</color>
-    <color name="prayer_widget_upcoming_surface">#FF1B3B30</color>
-    <color name="prayer_widget_cell_surface">#FF17352B</color>
-    <color name="prayer_widget_highlight_surface">#FF285343</color>
+    <!-- Opaque enough to keep text legible over changing wallpapers. -->
+    <color name="prayer_widget_surface">#E6F2F6F2</color>
+    <color name="prayer_widget_border">#8A718078</color>
+    <color name="prayer_widget_primary_text">#FF1D3028</color>
+    <color name="prayer_widget_secondary_text">#FF596960</color>
+    <color name="prayer_widget_accent">#FF245C43</color>
+    <color name="prayer_widget_upcoming_surface">#FFD7E8DD</color>
+    <color name="prayer_widget_cell_surface">#00000000</color>
+    <color name="prayer_widget_highlight_surface">#FFD7E8DD</color>
 </resources>

@@ -16,6 +16,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Calendar
 import java.util.Locale
+import android.icu.util.IslamicCalendar
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Renders the schedule calculated by Flutter. Native code only tracks time and formats it. */
 class PrayerTimesWidgetProvider : AppWidgetProvider() {
@@ -51,7 +54,6 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
         )
         private val cellIds = mapOf(
             "fajr" to (R.id.prayer_cell_fajr to (R.id.prayer_name_fajr to R.id.prayer_time_fajr)),
-            "sunrise" to (R.id.prayer_cell_sunrise to (R.id.prayer_name_sunrise to R.id.prayer_time_sunrise)),
             "dhuhr" to (R.id.prayer_cell_dhuhr to (R.id.prayer_name_dhuhr to R.id.prayer_time_dhuhr)),
             "asr" to (R.id.prayer_cell_asr to (R.id.prayer_name_asr to R.id.prayer_time_asr)),
             "maghrib" to (R.id.prayer_cell_maghrib to (R.id.prayer_name_maghrib to R.id.prayer_time_maghrib)),
@@ -65,7 +67,17 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
             }
             entries.forEach { (_, key) ->
                 val epoch = (values[key] as? Number)?.toLong() ?: return
-            editor.putLong(key, epoch)
+                editor.putLong(key, epoch)
+            }
+            (values["upcoming"] as? List<*>)?.let { schedule ->
+                val json = JSONArray()
+                schedule.forEach { value ->
+                    val item = value as? Map<*, *> ?: return@forEach
+                    val prayer = item["id"] as? String ?: return@forEach
+                    val at = (item["at"] as? Number)?.toLong() ?: return@forEach
+                    json.put(JSONObject().put("id", prayer).put("at", at))
+                }
+                editor.putString("upcoming", json.toString())
             }
             val fajr = values["fajr"] as? Number
             if (fajr != null) editor.putString("schedule_day", dayKey(fajr.toLong()))
@@ -93,11 +105,14 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
             val now = System.currentTimeMillis()
             val nextPrayer = listOf("fajr", "dhuhr", "asr", "maghrib", "isha")
                 .map { prefs.getLong(it, 0L) }.firstOrNull { it > now }
+            val nextSunIconChange = listOf("sunrise", "maghrib")
+                .map { prefs.getLong(it, 0L) }.firstOrNull { it > now }
             val midnight = Calendar.getInstance().apply {
                 add(Calendar.DAY_OF_YEAR, 1)
                 set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 1); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }.timeInMillis
-            val trigger = minOf(nextPrayer ?: Long.MAX_VALUE, midnight).coerceAtLeast(now + 60_000L)
+            val trigger = minOf(nextPrayer ?: Long.MAX_VALUE, nextSunIconChange ?: Long.MAX_VALUE, midnight)
+                .coerceAtLeast(now + 60_000L)
             alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pending)
         }
 
@@ -132,6 +147,20 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
 
         private fun dayKey(epoch: Long): String = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(epoch))
 
+        private fun hijriDate(date: Date): String {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) return ""
+            return try {
+                val calendar = IslamicCalendar(Locale("ar")).apply {
+                    setCalculationType(IslamicCalendar.CalculationType.ISLAMIC_UMALQURA)
+                    time = date
+                }
+                val day = calendar.get(IslamicCalendar.DAY_OF_MONTH)
+                val month = listOf("محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة")[calendar.get(IslamicCalendar.MONTH)]
+                fun arabicDigits(value: Int) = value.toString().map { (it.code + 1584).toChar() }.joinToString("")
+                "${arabicDigits(day)} $month"
+            } catch (_: Exception) { "" }
+        }
+
         private fun render(context: Context, manager: AppWidgetManager, id: Int) {
             val options = manager.getAppWidgetOptions(id)
             val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, MIN_WIDTH_DP)
@@ -139,35 +168,26 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
             val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, MIN_HEIGHT_DP)
                 .coerceAtLeast(MIN_HEIGHT_DP)
             val compact = minWidth < 300
-            val cellNameSize = when {
-                minWidth < 280 -> 10f
-                minWidth < 360 -> 11f
-                else -> 12f
-            }
-            val cellTimeSize = when {
-                minWidth < 280 -> 11f
-                minWidth < 360 -> 12f
-                else -> 14f
-            }
+            val cellNameSize = when { minWidth < 240 -> 9f; minWidth < 300 -> 10f; else -> 12f }
+            val cellTimeSize = when { minWidth < 240 -> 10f; minWidth < 300 -> 11f; else -> 13f }
             val horizontalPadding = when {
-                minWidth < 280 -> 8
-                minWidth < 360 -> 12
-                else -> 16
+                minWidth < 240 -> 5
+                minWidth < 300 -> 8
+                else -> 12
             }
             val verticalPadding = when {
                 minHeight < 220 -> 4
-                minHeight < 280 -> 7
-                else -> 10
+                minHeight < 280 -> 6
+                else -> 8
             }
             val density = context.resources.displayMetrics.density
             fun dp(value: Int): Int = (value * density).toInt()
-            // RemoteViews text uses SP by default, which can grow beyond the space
-            // reserved by launcher widget grids. PX keeps the chosen dp size stable
-            // across system font scales while density still maps it to physical pixels.
-            fun textPx(value: Float): Float = value * density
+            // SP honors accessibility font scaling; weighted rows and ellipsized
+            // header slots keep text inside the available widget bounds.
+            fun textSize(value: Float): Float = value
 
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val times = entries.mapNotNull { (name, key) ->
+            val times = entries.filter { it.second != "sunrise" }.mapNotNull { (name, key) ->
                 prefs.getLong(key, 0L).takeIf { it > 0 }?.let { Triple(name, key, it) }
             }
             val now = System.currentTimeMillis()
@@ -176,10 +196,21 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
                 SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(it)) == today
             } == true
             val obligatoryTimes = times.filter { it.second != "sunrise" }
-            val nextIndex = if (scheduleIsToday) obligatoryTimes.indexOfFirst { it.third > now } else -1
-            val next = if (nextIndex >= 0) obligatoryTimes[nextIndex]
-                else if (scheduleIsToday) obligatoryTimes.firstOrNull() else null
-            val nextAt = next?.third?.let { if (it <= now) it + DAY_MS else it }
+            val upcoming = runCatching {
+                val saved = JSONArray(prefs.getString("upcoming", "[]"))
+                (0 until saved.length()).mapNotNull { index ->
+                    val item = saved.getJSONObject(index)
+                    val id = item.getString("id")
+                    val at = item.getLong("at")
+                    val name = entries.firstOrNull { it.second == id }?.first ?: return@mapNotNull null
+                    Triple(name, id, at)
+                }.filter { it.third > now }.minByOrNull { it.third }
+            }.getOrNull() ?: obligatoryTimes.filter { it.third > now }.minByOrNull { it.third }
+            val next = upcoming
+            val nextAt = next?.third
+            val sunrise = prefs.getLong("sunrise", 0L)
+            val maghrib = prefs.getLong("maghrib", 0L)
+            val isDaytime = sunrise > 0L && maghrib > sunrise && now >= sunrise && now < maghrib
             val remaining = nextAt?.minus(now)?.coerceAtLeast(0L) ?: 0L
             val views = RemoteViews(context.packageName, R.layout.prayer_times_widget).apply {
                 setViewPadding(
@@ -189,28 +220,19 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
                     dp(horizontalPadding),
                     dp(verticalPadding),
                 )
-                setTextViewTextSize(
-                    R.id.prayer_widget_heading,
-                    TypedValue.COMPLEX_UNIT_PX,
-                    textPx(if (compact) 14f else 17f),
+                setTextViewTextSize(R.id.prayer_widget_date, TypedValue.COMPLEX_UNIT_SP, textSize(if (compact) 10f else 12f))
+                setTextViewTextSize(R.id.prayer_widget_gregorian, TypedValue.COMPLEX_UNIT_SP, textSize(if (compact) 10f else 12f))
+                setTextViewTextSize(R.id.prayer_widget_day, TypedValue.COMPLEX_UNIT_SP, textSize(if (compact) 10f else 12f))
+                setImageViewResource(
+                    R.id.prayer_widget_moon_icon,
+                    if (isDaytime) R.drawable.prayer_widget_sun else R.drawable.prayer_widget_moon,
                 )
-                setTextViewTextSize(
-                    R.id.prayer_widget_date,
-                    TypedValue.COMPLEX_UNIT_PX,
-                    textPx(if (minWidth < 280) 9f else 10f),
-                )
-                setTextViewTextSize(
-                    R.id.prayer_widget_countdown_title,
-                    TypedValue.COMPLEX_UNIT_PX,
-                    textPx(if (compact) 11f else 13f),
-                )
-                setTextViewTextSize(R.id.prayer_widget_next_name, TypedValue.COMPLEX_UNIT_PX, textPx(if (compact) 15f else 18f))
+                setTextViewTextSize(R.id.prayer_widget_next_name, TypedValue.COMPLEX_UNIT_SP, textSize(if (compact) 11f else 13f))
                 setTextViewTextSize(
                     R.id.prayer_widget_countdown,
-                    TypedValue.COMPLEX_UNIT_PX,
-                    textPx(if (compact) 15f else 18f),
+                    TypedValue.COMPLEX_UNIT_SP,
+                    textSize(if (compact) 11f else 13f),
                 )
-                setTextViewText(R.id.prayer_widget_countdown_title, "الصلاة القادمة")
                 setTextViewText(R.id.prayer_widget_next_name, next?.first ?: "المواقيت غير متاحة")
                 setChronometer(
                     R.id.prayer_widget_countdown,
@@ -234,8 +256,8 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
                     } else "--:--"
                     setTextViewText(nameId, name)
                     setTextViewText(timeId, time)
-                    setTextViewTextSize(nameId, TypedValue.COMPLEX_UNIT_PX, textPx(cellNameSize))
-                    setTextViewTextSize(timeId, TypedValue.COMPLEX_UNIT_PX, textPx(cellTimeSize))
+                    setTextViewTextSize(nameId, TypedValue.COMPLEX_UNIT_SP, textSize(cellNameSize))
+                    setTextViewTextSize(timeId, TypedValue.COMPLEX_UNIT_SP, textSize(cellTimeSize))
                     setTextColor(
                         nameId,
                         ContextCompat.getColor(
@@ -257,8 +279,10 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
                     )
                 }
                 setTextViewText(R.id.prayer_widget_date, prefs.getString("city", null).orEmpty())
-                setTextViewText(R.id.prayer_widget_day,
-                    SimpleDateFormat("EEEE، d MMMM", Locale("ar")).format(Date()))
+                val currentDate = Date()
+                setTextViewText(R.id.prayer_widget_day, hijriDate(currentDate))
+                setTextViewText(R.id.prayer_widget_gregorian,
+                    SimpleDateFormat("EEEE، d MMMM", Locale("ar")).format(currentDate))
                 val open = Intent(context, MainActivity::class.java).putExtra("notification_route", "prayer_times")
                 val tap = PendingIntent.getActivity(context, 8105, open,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -269,7 +293,7 @@ class PrayerTimesWidgetProvider : AppWidgetProvider() {
 
         private const val DAY_MS = 86_400_000L
         private const val MIN_WIDTH_DP = 180
-        private const val MIN_HEIGHT_DP = 180
+        private const val MIN_HEIGHT_DP = 110
     }
 }
 

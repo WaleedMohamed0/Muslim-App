@@ -14,22 +14,26 @@ import Flutter
         binaryMessenger: controller.binaryMessenger
       )
       shareChannel.setMethodCallHandler { [weak controller] call, result in
-        guard call.method == "shareText" else {
+        guard call.method == "shareText" || call.method == "shareImage" else {
           result(FlutterMethodNotImplemented)
           return
         }
-        guard
-          let arguments = call.arguments as? [String: Any],
-          let text = arguments["text"] as? String,
-          !text.isEmpty,
-          let controller = controller
-        else {
-          result(FlutterError(code: "INVALID_TEXT", message: "Text to share is required", details: nil))
+        guard let arguments = call.arguments as? [String: Any], let controller = controller else {
+          result(FlutterError(code: "INVALID_ARGUMENTS", message: "Share details are required", details: nil))
           return
         }
 
         let title = arguments["title"] as? String ?? ""
-        let activityController = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        let item: Any
+        if call.method == "shareText", let text = arguments["text"] as? String, !text.isEmpty {
+          item = text
+        } else if call.method == "shareImage", let path = arguments["path"] as? String, let image = UIImage(contentsOfFile: path) {
+          item = image
+        } else {
+          result(FlutterError(code: "INVALID_SHARE_ITEM", message: "Share item is unavailable", details: nil))
+          return
+        }
+        let activityController = UIActivityViewController(activityItems: [item], applicationActivities: nil)
         activityController.setValue(title, forKey: "subject")
         if let popover = activityController.popoverPresentationController {
           popover.sourceView = controller.view

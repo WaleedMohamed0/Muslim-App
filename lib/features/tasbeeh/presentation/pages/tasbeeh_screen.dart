@@ -30,18 +30,25 @@ class _TasbeehView extends StatelessWidget {
     if (value != null && value > 0) await cubit.setTarget(value);
   }
 
+  String _excessCountLabel(int count) {
+    if (count == 1) return 'تسبيحة';
+    if (count == 2) return 'تسبيحتين';
+    if (count >= 3 && count <= 10) return 'تسابيح';
+    return 'تسبيحة';
+  }
+
   @override
   Widget build(BuildContext context) => Directionality(
     textDirection: TextDirection.rtl,
     child: Scaffold(
-      appBar: AppBar(title: const Text('المسبحة الإلكترونية', style: TextStyle(fontWeight: FontWeight.w800))),
+      appBar: AppBar(title: const Text('السبحة الإلكترونية', style: TextStyle(fontWeight: FontWeight.w800))),
       body: BlocBuilder<TasbeehCubit, TasbeehState>(builder: (context, state) {
         final colors = Theme.of(context).colorScheme;
         final theme = Theme.of(context);
         return SafeArea(child: LayoutBuilder(builder: (context, constraints) {
           final compact = constraints.maxHeight < 720;
           final diameter = (constraints.maxWidth - 72).clamp(220.0, compact ? 280.0 : 316.0);
-          return ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 20), children: [
+          return ListView(padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 12, 16), children: [
             const SizedBox(height: 8),
             Text('وِردُكَ الآن', textAlign: TextAlign.center, style: theme.textTheme.labelLarge?.copyWith(color: colors.onSurfaceVariant, letterSpacing: .5)),
             const SizedBox(height: 8),
@@ -62,6 +69,26 @@ class _TasbeehView extends StatelessWidget {
               ]),
             )))),
             if (state.isComplete) Padding(padding: const EdgeInsets.only(top: 2), child: Text('تقبّل الله منك', textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: colors.tertiary, fontWeight: FontWeight.w600))),
+            if (state.target > 0 && state.count > state.target)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(top: 8, start: 12, end: 12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colors.tertiaryContainer.withValues(alpha: .55),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    'أحسنت! تجاوزت هدفك بـ ${toArabicIndicDigits(state.count - state.target)} ${_excessCountLabel(state.count - state.target)}.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onTertiaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 16),
             Row(children: [
               const Spacer(),
@@ -85,7 +112,7 @@ class _TasbeehView extends StatelessWidget {
             const SizedBox(height: 14),
             Row(children: [Expanded(child: Text('الذكر', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800))), Text('اسحب للاختيار', style: theme.textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant))]),
             const SizedBox(height: 10),
-            SizedBox(height: 46, child: ListView.separated(scrollDirection: Axis.horizontal, itemCount: TasbeehScreen._azkar.length, separatorBuilder: (_, _) => const SizedBox(width: 8), itemBuilder: (context, index) {
+            SizedBox(height: 46, child: ListView.separated(padding: EdgeInsets.zero, scrollDirection: Axis.horizontal, itemCount: TasbeehScreen._azkar.length, separatorBuilder: (_, _) => const SizedBox(width: 8), itemBuilder: (context, index) {
               final dhikr = TasbeehScreen._azkar[index];
               final selected = state.dhikr == dhikr;
               final lightMode = theme.brightness == Brightness.light;

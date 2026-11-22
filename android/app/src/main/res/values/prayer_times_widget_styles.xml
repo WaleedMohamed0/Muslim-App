@@ -3,7 +3,7 @@
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:layout_weight">1</item>
-        <item name="android:layout_margin">2dp</item>
+        <item name="android:layout_margin">1dp</item>
         <item name="android:background">@drawable/prayer_widget_cell_background</item>
         <item name="android:gravity">center</item>
         <item name="android:orientation">vertical</item>
@@ -17,7 +17,7 @@
         <item name="android:gravity">center</item>
         <item name="android:maxLines">1</item>
         <item name="android:textColor">@color/prayer_widget_secondary_text</item>
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">10sp</item>
     </style>
     <style name="PrayerWidgetCellTime">
         <item name="android:layout_width">match_parent</item>
@@ -28,7 +28,7 @@
         <item name="android:text">--:--</item>
         <item name="android:textColor">@color/prayer_widget_primary_text</item>
         <item name="android:textDirection">locale</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">11sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 </resources>

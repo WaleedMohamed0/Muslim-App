@@ -338,127 +338,119 @@ class PrayerTimesWidgetPreview extends StatelessWidget {
   const PrayerTimesWidgetPreview({super.key});
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final surface = dark ? const Color(0xff142a23) : const Color(0xffe6f2f6f2);
+    final border = dark ? const Color(0xff3a5f50) : const Color(0x8a718078);
+    final primaryText = dark ? const Color(0xfff0f4f1) : const Color(0xff1d3028);
+    final secondaryText = dark ? const Color(0xffb0bdb5) : const Color(0xff596960);
+    final selectedSurface = dark ? const Color(0xff285343) : const Color(0xffd7e8dd);
+    final selectedText = dark ? const Color(0xff82c8ac) : const Color(0xff245c43);
+    return Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(13),
+    padding: const EdgeInsets.all(8),
     decoration: BoxDecoration(
-      color: const Color(0xff102b23),
-      border: Border.all(color: const Color(0xff29483d)),
-      borderRadius: BorderRadius.circular(20),
+      color: surface,
+      border: Border.all(color: border),
+      borderRadius: BorderRadius.circular(24),
     ),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Row(
+        Row(
+          textDirection: TextDirection.ltr,
           children: [
-            Expanded(
-              child: Text(
-                'مواقيت الصلاة',
-                textDirection: TextDirection.rtl,
-                style: TextStyle(
-                  color: Color(0xfff3f6f1),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            Text(
-              'القاهرة',
-              textDirection: TextDirection.rtl,
-              style: TextStyle(color: Color(0xff9db5a7), fontSize: 10),
-            ),
+            Expanded(child: _PrayerWidgetMeta(icon: Icons.nights_stay_outlined, text: '١٥ رمضان', textDirection: TextDirection.ltr, color: secondaryText)),
+            Expanded(child: _PrayerWidgetMeta(icon: Icons.calendar_today_outlined, text: 'السبت، ١٥ مارس', color: secondaryText)),
           ],
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xff1b3b30),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'الصلاة القادمة',
-                textDirection: TextDirection.rtl,
-                style: TextStyle(color: Color(0xff9db5a7), fontSize: 11),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'الظهر',
-                textDirection: TextDirection.rtl,
-                style: TextStyle(
-                  color: Color(0xfff3f6f1),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 17,
-                ),
-              ),
-              Text(
-                'الوقت المتبقي للأذان',
-                textDirection: TextDirection.rtl,
-                style: TextStyle(color: Color(0xff9db5a7), fontSize: 9),
-              ),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text(
-                  '٠١:٢٤:٣٦',
-                  textDirection: TextDirection.ltr,
-                  style: TextStyle(
-                    color: Color(0xfff3f6f1),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          runSpacing: 6,
+        SizedBox(height: 4),
+        Row(
+          textDirection: TextDirection.ltr,
           children: [
-            _PrayerPreviewCell('الفجر', '٤:٣٢'),
-            _PrayerPreviewCell('الشروق', '٦:٠٥'),
-            _PrayerPreviewCell('الظهر', '١١:٤٢'),
-            _PrayerPreviewCell('العصر', '٣:٠٨'),
-            _PrayerPreviewCell('المغرب', '٥:٣٦'),
-            _PrayerPreviewCell('العشاء', '٦:٥٥'),
+            Expanded(
+              child: Row(
+                textDirection: TextDirection.ltr,
+                children: [
+                  Icon(Icons.access_time_rounded, size: 14, color: secondaryText),
+                  SizedBox(width: 4),
+                  Text('الظهر بعد ٠١:٢٤', textDirection: TextDirection.rtl, style: TextStyle(color: primaryText, fontSize: 11)),
+                ],
+              ),
+            ),
+            Expanded(child: _PrayerWidgetMeta(icon: Icons.location_on_outlined, text: 'القاهرة', color: secondaryText)),
+          ],
+        ),
+        SizedBox(height: 5),
+        Divider(height: 5, thickness: 1, color: border),
+        SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(child: _PrayerPreviewCell('الفجر', '٤:٣٢', primaryText: primaryText, secondaryText: secondaryText, selectedSurface: selectedSurface, selectedText: selectedText)),
+            Expanded(child: _PrayerPreviewCell('الظهر', '١١:٤٢', selected: true, primaryText: primaryText, secondaryText: secondaryText, selectedSurface: selectedSurface, selectedText: selectedText)),
+            Expanded(child: _PrayerPreviewCell('العصر', '٣:٠٨', primaryText: primaryText, secondaryText: secondaryText, selectedSurface: selectedSurface, selectedText: selectedText)),
+            Expanded(child: _PrayerPreviewCell('المغرب', '٥:٣٦', primaryText: primaryText, secondaryText: secondaryText, selectedSurface: selectedSurface, selectedText: selectedText)),
+            Expanded(child: _PrayerPreviewCell('العشاء', '٦:٥٥', primaryText: primaryText, secondaryText: secondaryText, selectedSurface: selectedSurface, selectedText: selectedText)),
           ],
         ),
       ],
     ),
   );
+  }
+}
+
+class _PrayerWidgetMeta extends StatelessWidget {
+  const _PrayerWidgetMeta({required this.icon, required this.text, required this.color, this.textDirection = TextDirection.rtl});
+
+  final IconData icon;
+  final String text;
+  final TextDirection textDirection;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    textDirection: textDirection,
+    children: [
+      Icon(icon, size: 14, color: color),
+      const SizedBox(width: 4),
+      Flexible(
+        child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: color, fontSize: 9)),
+      ),
+    ],
+  );
 }
 
 class _PrayerPreviewCell extends StatelessWidget {
-  const _PrayerPreviewCell(this.name, this.time);
+  const _PrayerPreviewCell(this.name, this.time, {this.selected = false, required this.primaryText, required this.secondaryText, required this.selectedSurface, required this.selectedText});
 
   final String name, time;
+  final bool selected;
+  final Color primaryText, secondaryText, selectedSurface, selectedText;
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 76,
-    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+    margin: const EdgeInsets.symmetric(horizontal: 1),
+    padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 1),
     decoration: BoxDecoration(
-      color: const Color(0xff17352b),
-      borderRadius: BorderRadius.circular(9),
+      color: selected ? selectedSurface : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
     ),
     child: Column(
       children: [
         Text(
           name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           textDirection: TextDirection.rtl,
-          style: const TextStyle(color: Color(0xff9db5a7), fontSize: 9),
+          style: TextStyle(color: selected ? selectedText : secondaryText, fontSize: 8),
         ),
         Text(
           time,
           textDirection: TextDirection.rtl,
-          style: const TextStyle(
-            color: Color(0xfff3f6f1),
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
+          style: TextStyle(
+            color: selected ? selectedText : primaryText,
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],

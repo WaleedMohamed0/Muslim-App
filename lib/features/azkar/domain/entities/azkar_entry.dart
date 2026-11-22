@@ -65,4 +65,10 @@ class AzkarEntry {
 
   /// Returns the count stored in JSON, or null when it is absent/non-numeric.
   int? get repetitionCount => int.tryParse(countText.trim());
+
+  /// Whether this entry has a usable, predefined repetition target.
+  bool get hasPredefinedRepetitionCount =>
+      counterEnabled &&
+      countStatus != 'unspecified' &&
+      (repetitionCount ?? 0) > 0;
 }

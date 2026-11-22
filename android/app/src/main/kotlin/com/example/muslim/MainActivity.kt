@@ -117,21 +117,31 @@ class MainActivity: AudioServiceActivity() {
             }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, shareChannel)
             .setMethodCallHandler { call, result ->
-                if (call.method != "shareText") {
+                if (call.method != "shareText" && call.method != "shareImage") {
                     result.notImplemented()
                     return@setMethodCallHandler
                 }
 
-                val text = call.argument<String>("text")
                 val title = call.argument<String>("title")
-                if (text.isNullOrBlank()) {
-                    result.error("INVALID_TEXT", "Text to share is required", null)
-                    return@setMethodCallHandler
-                }
-
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, text)
+                val intent = Intent(Intent.ACTION_SEND)
+                if (call.method == "shareText") {
+                    val text = call.argument<String>("text")
+                    if (text.isNullOrBlank()) {
+                        result.error("INVALID_TEXT", "Text to share is required", null)
+                        return@setMethodCallHandler
+                    }
+                    intent.type = "text/plain"
+                    intent.putExtra(Intent.EXTRA_TEXT, text)
+                } else {
+                    val path = call.argument<String>("path")
+                    val file = path?.let { java.io.File(it) }
+                    if (file == null || !file.exists()) {
+                        result.error("INVALID_IMAGE", "Image to share was not found", null)
+                        return@setMethodCallHandler
+                    }
+                    intent.type = "image/png"
+                    intent.putExtra(Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", file))
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 startActivity(Intent.createChooser(intent, title))
                 result.success(null)

@@ -112,6 +112,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       'asr': times.asr.millisecondsSinceEpoch,
       'maghrib': times.maghrib.millisecondsSinceEpoch,
       'isha': times.isha.millisecondsSinceEpoch,
+      'upcoming': times.alarmTimes
+          .where((alarm) => alarm.at.isAfter(DateTime.now()))
+          .take(12)
+          .map((alarm) => {
+                'id': alarm.prayerId,
+                'at': alarm.at.millisecondsSinceEpoch,
+              })
+          .toList(),
       'city': state.cityName,
     }).catchError((Object _) {}));
   }
