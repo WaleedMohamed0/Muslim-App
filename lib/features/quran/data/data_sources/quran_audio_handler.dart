@@ -462,7 +462,7 @@ Future<AudioHandler> initializeQuranAudioService() async {
       androidNotificationChannelId: 'com.example.muslim.quran_audio',
       androidNotificationChannelName: 'تلاوة الْقُرْآن الكريم',
       androidNotificationChannelDescription: 'تشغيل تلاوة الْقُرْآن في الخلفية',
-      androidNotificationIcon: 'mipmap/launcher_icon',
+      androidNotificationIcon: 'drawable/notification_icon',
       // Keep the media service and its lock-screen controls available while
       // paused. audio_service requires ongoing=false for this configuration.
       androidNotificationOngoing: false,

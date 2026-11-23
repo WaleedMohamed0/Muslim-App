@@ -39,7 +39,7 @@ class PostPrayerAdhkarReminderService {
     tz.setLocalLocation(tz.getLocation(zone.identifier));
     await _notifications.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/launcher_icon'),
+        android: AndroidInitializationSettings('notification_icon'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,
@@ -156,6 +156,7 @@ class PostPrayerAdhkarReminderService {
         android: AndroidNotificationDetails(
           _channelId,
           'أذكار ما بعد الصلاة',
+          icon: 'notification_icon',
           channelDescription: 'تذكير بأذكار ما بعد الصلاة',
           importance: Importance.high,
           priority: Priority.high,

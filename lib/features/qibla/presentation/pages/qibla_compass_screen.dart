@@ -135,7 +135,7 @@ class _CompassContent extends StatelessWidget {
                   child: _DirectionValueCard(
                     label: 'اتجاه الْقِبْلَة',
                     value: '${toArabicIndicDigits(bearing.round() % 360)}°',
-                    icon: Icons.mosque_rounded,
+                    icon: const QiblaKaabaIcon(size: 30),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -146,7 +146,7 @@ class _CompassContent extends StatelessWidget {
                         heading == null
                             ? '—'
                             : '${toArabicIndicDigits(heading.round() % 360)}°',
-                    icon: Icons.explore_rounded,
+                    icon: const Icon(Icons.explore_rounded),
                   ),
                 ),
               ],
@@ -280,7 +280,7 @@ class _DirectionValueCard extends StatelessWidget {
 
   final String label;
   final String value;
-  final IconData icon;
+  final Widget icon;
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +294,19 @@ class _DirectionValueCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: colors.primary, size: 20),
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: IconTheme(
+              data: IconThemeData(color: colors.onPrimaryContainer, size: 20),
+              child: icon,
+            ),
+          ),
           const SizedBox(height: 7),
           Text(
             label,

@@ -29,10 +29,16 @@ double quranMiniPlayerBottomInset(
 
 /// A compact Quran playback card shared by the Surah list and Quran reader.
 class QuranAudioMiniPlayer extends StatelessWidget {
-  const QuranAudioMiniPlayer({super.key, this.onTap, this.onHeightChanged});
+  const QuranAudioMiniPlayer({
+    super.key,
+    this.onTap,
+    this.onHeightChanged,
+    this.compactWithBottomNavigation = false,
+  });
 
   final VoidCallback? onTap;
   final ValueChanged<double>? onHeightChanged;
+  final bool compactWithBottomNavigation;
 
   @override
   Widget build(BuildContext context) => BlocBuilder<QuranCubit, QuranState>(
@@ -46,6 +52,7 @@ class QuranAudioMiniPlayer extends StatelessWidget {
                 cubit: cubit,
                 palette: QuranReaderPalette.fromTheme(context),
                 onTap: onTap,
+                compactWithBottomNavigation: compactWithBottomNavigation,
               )
             : const SizedBox.shrink(
                 key: ValueKey('quran-mini-player-hidden'),

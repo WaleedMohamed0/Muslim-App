@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 180" fill="none">
+  <path d="M22 52 79 24l59 28-58 30L22 52Z" fill="#242825"/>
+  <path d="M22 52 80 82v72l-58-31V52Z" fill="#111412"/>
+  <path d="M80 82 138 52v72l-58 30V82Z" fill="#1C201E"/>
+
+  <!-- Kiswa belt wraps across both visible faces. -->
+  <path d="m22 68 58 30v10L22 78V68Z" fill="#C69A45"/>
+  <path d="m80 98 58-30v10l-58 30V98Z" fill="#D4AD5D"/>
+  <path d="m22 68 58 30m0 0 58-30" stroke="#F0D58F" stroke-width="1.5"/>
+  <path d="m22 78 58 30m0 0 58-30" stroke="#8D682E" stroke-width="1.3"/>
+
+  <!-- Golden door on the front face. -->
+  <path d="m45 103 21 11v38l-21-11v-38Z" fill="#B88732"/>
+  <path d="m49 109 13 7v29l-13-7v-29Z" fill="#D8B45F"/>
+  <path d="m49 109 13 7m-13-7v29m13-22v29m-13-7 13 7" stroke="#F1D58D" stroke-width="1.4"/>
+  <path d="m59 129 2 1" stroke="#70501F" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Quiet edge shading keeps the vector crisp at small sizes. -->
+  <path d="m22 52 58 30v72l-58-31V52Z" stroke="#303632" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M80 82 138 52v72l-58 30V82Z" stroke="#383E3A" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

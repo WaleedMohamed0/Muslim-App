@@ -60,6 +60,7 @@ flutter:
     - assets/features/prayer_times/images/
     - assets/features/quran/data/
     - assets/features/quran/images/surah_header_frame.svg
+    - assets/features/qibla/images/kaaba_isometric.svg
     - assets/images/reciters/
     # Bundles static worship lesson illustrations.
     - assets/features/worship/illustrations/

@@ -26,7 +26,7 @@ class KahfReminderService {
     tz.setLocalLocation(tz.getLocation(zone.identifier));
     await _notifications.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/launcher_icon'),
+        android: AndroidInitializationSettings('notification_icon'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,
@@ -131,6 +131,7 @@ class KahfReminderService {
       android: AndroidNotificationDetails(
         'kahf_friday_reminder',
         'تذكير سورة الكهف',
+        icon: 'notification_icon',
         channelDescription: 'تذكير أسبوعي بقراءة سورة الكهف يوم الجمعة',
         importance: Importance.high,
         priority: Priority.high,
@@ -182,6 +183,7 @@ class KahfReminderService {
     }
     const details = NotificationDetails(
       android: AndroidNotificationDetails('khatmah_daily_reminder', 'تذكير خطة الختمة',
+        icon: 'notification_icon',
         channelDescription: 'تذكير يومي بورد القرآن في خطة الختمة', importance: Importance.high, priority: Priority.high),
       iOS: DarwinNotificationDetails(presentAlert: true, presentBanner: true, presentSound: true),
     );

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 
 class QiblaCompassDial extends StatelessWidget {
@@ -17,9 +18,16 @@ class QiblaCompassDial extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = constraints.maxWidth;
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 330.0;
+        final availableHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : availableWidth;
+        final size = math.min(math.min(availableWidth, availableHeight), 330.0);
         final markerAngle = (qiblaBearing - heading - 90) * math.pi / 180;
-        final radius = size / 2 - 35;
+        const markerSize = 48.0;
+        final radius = math.max(0.0, size / 2 - markerSize / 2 - 18);
         final center = size / 2;
         final markerCenterX = center + math.cos(markerAngle) * radius;
         final markerCenterY = center + math.sin(markerAngle) * radius;
@@ -37,9 +45,9 @@ class QiblaCompassDial extends StatelessWidget {
                 ),
               ),
               Positioned(
-                left: markerCenterX - 17,
-                top: markerCenterY - 17,
-                child: const _KaabaMarker(),
+                left: markerCenterX - markerSize / 2,
+                top: markerCenterY - markerSize / 2,
+                child: const QiblaKaabaIcon(),
               ),
               Center(
                 child: Container(
@@ -60,40 +68,19 @@ class QiblaCompassDial extends StatelessWidget {
   }
 }
 
-class _KaabaMarker extends StatelessWidget {
-  const _KaabaMarker();
+class QiblaKaabaIcon extends StatelessWidget {
+  const QiblaKaabaIcon({super.key, this.size = 48});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ornament = isDark ? const Color(0xFFD8B46A) : colors.secondary;
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: const Color(0xFF202923),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: ornament, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .2),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Container(
-          margin: const EdgeInsets.only(top: 9),
-          height: 4,
-          decoration: BoxDecoration(
-            color: ornament,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
-          ),
-        ),
-      ),
+    return SvgPicture.asset(
+      'assets/features/qibla/images/kaaba_isometric.svg',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      excludeFromSemantics: true,
     );
   }
 }
@@ -190,15 +177,31 @@ class _CompassPainter extends CustomPainter {
     }
 
     final qiblaAngle = (qiblaBearing - heading - 90) * math.pi / 180;
-    final tip = Offset(
-      center.dx + math.cos(qiblaAngle) * (radius - 36),
-      center.dy + math.sin(qiblaAngle) * (radius - 36),
+    // Stop the arrow before the Kaaba marker so its arrowhead stays visible.
+    const markerSize = 48.0;
+    final kaabaRadius = math.max(
+      0.0,
+      math.min(size.width, size.height) / 2 - markerSize / 2 - 18,
     );
+    final arrowTipRadius = math.max(0.0, kaabaRadius - markerSize / 2.5);
+    final tip = Offset(
+      center.dx + math.cos(qiblaAngle) * arrowTipRadius,
+      center.dy + math.sin(qiblaAngle) * arrowTipRadius,
+    );
+    final directionColor =
+        scheme.brightness == Brightness.dark
+            ? const Color(0xFF55D68B)
+            : const Color(0xFF167A45);
+    final arrowOutline = Paint()
+      ..color = scheme.surface
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(center, tip, arrowOutline);
     canvas.drawLine(
       center,
       tip,
       Paint()
-        ..color = scheme.primary
+        ..color = directionColor
         ..strokeWidth = 3.5
         ..strokeCap = StrokeCap.round,
     );
@@ -214,7 +217,12 @@ class _CompassPainter extends CustomPainter {
             tip.dy - math.sin(qiblaAngle + .42) * 13,
           )
           ..close();
-    canvas.drawPath(arrow, Paint()..color = scheme.primary);
+    canvas.drawPath(
+      arrow,
+      Paint()
+        ..color = directionColor
+        ..style = PaintingStyle.fill,
+    );
   }
 
   @override

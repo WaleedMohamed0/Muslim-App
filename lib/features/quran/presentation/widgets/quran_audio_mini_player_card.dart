@@ -12,11 +12,13 @@ class QuranAudioMiniPlayerCard extends StatelessWidget {
     required this.cubit,
     required this.palette,
     this.onTap,
+    this.compactWithBottomNavigation = false,
   });
 
   final QuranCubit cubit;
   final QuranReaderPalette palette;
   final VoidCallback? onTap;
+  final bool compactWithBottomNavigation;
 
   @override
   Widget build(BuildContext context) {
@@ -30,14 +32,22 @@ class QuranAudioMiniPlayerCard extends StatelessWidget {
               toArabicIndicDigits(cubit.currentSurahVerseCount)
         : 'سورة ${cubit.surahName}  ·  توقيت الآية غير متاح';
 
-    final navigationInset = MediaQuery.viewPaddingOf(context).bottom;
+    final navigationInset = compactWithBottomNavigation
+        ? 0.0
+        : MediaQuery.viewPaddingOf(context).bottom;
+    final scheme = Theme.of(context).colorScheme;
 
     return Material(
         color: palette.surface,
         elevation: 2,
         shadowColor: Colors.black.withValues(alpha: .12),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(18),
+        shape: RoundedRectangleBorder(
+          borderRadius: compactWithBottomNavigation
+              ? BorderRadius.circular(18)
+              : const BorderRadius.vertical(top: Radius.circular(18)),
+          side: compactWithBottomNavigation
+              ? BorderSide(color: scheme.outlineVariant.withValues(alpha: .55))
+              : BorderSide.none,
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -46,8 +56,8 @@ class QuranAudioMiniPlayerCard extends StatelessWidget {
             padding: EdgeInsetsDirectional.fromSTEB(
               11,
               7,
-              7,
-              7 + navigationInset,
+              compactWithBottomNavigation ? 5 : 7,
+              (compactWithBottomNavigation ? 5 : 7) + navigationInset,
             ),
             child: Directionality(
               textDirection: TextDirection.rtl,

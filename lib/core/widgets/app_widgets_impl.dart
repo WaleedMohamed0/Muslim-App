@@ -6,6 +6,7 @@ import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/pages/surah_screen.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_audio_mini_player.dart';
+import 'package:muslim/features/app/presentation/widgets/app_bottom_navigation_scope.dart';
 
 void navigateTo(context, nextPage) =>
     Navigator.push(context, MaterialPageRoute(builder: (context) => nextPage));
@@ -173,6 +174,14 @@ Widget myPanel({
   required ValueChanged<double> onMiniPlayerHeightChanged,
 }) {
   final playerVisible = cubit.quranSoundActive;
+  final withBottomNavigation = AppBottomNavigationScope.isVisible(context);
+  final horizontalSafeInset = MediaQuery.viewPaddingOf(context).left >
+          MediaQuery.viewPaddingOf(context).right
+      ? MediaQuery.viewPaddingOf(context).left
+      : MediaQuery.viewPaddingOf(context).right;
+  final playerSideMargin = withBottomNavigation
+      ? (horizontalSafeInset > 16 ? horizontalSafeInset : 16.0)
+      : 0.0;
   return Stack(
     fit: StackFit.expand,
     children: [
@@ -181,9 +190,9 @@ Widget myPanel({
         child: screen,
       ),
       PositionedDirectional(
-        start: 0,
-        end: 0,
-        bottom: 0,
+        start: playerSideMargin,
+        end: playerSideMargin,
+        bottom: withBottomNavigation ? 8 : 0,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
           reverseDuration: const Duration(milliseconds: 180),
@@ -209,6 +218,7 @@ Widget myPanel({
           child: playerVisible
               ? QuranAudioMiniPlayer(
                   key: const ValueKey('quran-mini-player-visible'),
+                  compactWithBottomNavigation: withBottomNavigation,
                   onHeightChanged: onMiniPlayerHeightChanged,
                   onTap: () {
                     Navigator.push(

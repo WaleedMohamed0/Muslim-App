@@ -388,7 +388,7 @@ internal object DailyAzkarReminderScheduler {
             salawatMessages[(day + reminder.id.hashCode().ushr(1)) % salawatMessages.size]
         } else reminder.message
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.mipmap.launcher_icon)
+            .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle(reminder.title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -724,7 +724,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             "حان وقت الصلاة. يلزم السماح بالمنبهات الدقيقة لتشغيل الأذان صوتيًا."
         }
         val notification = NotificationCompat.Builder(context, PrayerAdhanStorage.CHANNEL_ALERT)
-            .setSmallIcon(R.mipmap.launcher_icon)
+            .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle("أذان صلاة ${prayerNameArabic(prayer)}")
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -757,7 +757,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             )
         }
         val notification = NotificationCompat.Builder(context, PrayerAdhanStorage.CHANNEL_CALL_REMINDER)
-            .setSmallIcon(R.mipmap.launcher_icon)
+            .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle("أذان صلاة ${prayerNameArabic(prayer)}")
             .setContentIntent(elAzanPendingIntent(context, prayer))
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -1126,7 +1126,7 @@ class PrayerAdhanPlaybackService : Service() {
             PrayerAdhanStorage.CHANNEL_ALERT
         }
         val builder = NotificationCompat.Builder(this, channel)
-            .setSmallIcon(R.mipmap.launcher_icon)
+            .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle(
                 if (prayer.isBlank()) "الأذان"
                 else "أذان صلاة ${prayerNameArabic(prayer)}",
