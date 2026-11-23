@@ -18,6 +18,7 @@ import 'package:muslim/features/app/presentation/cubit/app_cubit.dart';
 import 'package:muslim/features/app/presentation/cubit/app_state.dart';
 import 'package:muslim/features/app/presentation/daily_wird_route_observer.dart';
 import 'package:muslim/features/app/presentation/pages/app_entry_screen.dart';
+import 'package:muslim/features/app/presentation/pages/app_entry_navigation.dart';
 import 'package:muslim/features/app/presentation/pages/app_home_shell.dart';
 import 'package:muslim/features/app/presentation/pages/daily_wird_reader_screen.dart';
 import 'package:muslim/features/app/presentation/pages/startup_screen.dart';

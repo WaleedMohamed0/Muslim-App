@@ -41,12 +41,10 @@ class AppEntryNavigation {
       return;
     }
     if (routeName?.startsWith('/quran-reader/') == true) {
-      navigator.pushAndRemoveUntil<void>(
-        MaterialPageRoute<void>(
-          settings: RouteSettings(name: routeName),
-          builder: (_) => destination,
-        ),
-        (_) => false,
+      openFromRootNavigator(
+        navigator,
+        destination: destination,
+        routeName: routeName!,
       );
       return;
     }
@@ -57,5 +55,35 @@ class AppEntryNavigation {
       ),
       (_) => false,
     );
+  }
+
+  /// Opens an external destination above the app shell, creating the shell
+  /// only when this is a cold start without one already in the route stack.
+  static void openFromRootNavigator(
+    NavigatorState navigator, {
+    required Widget destination,
+    required String routeName,
+  }) {
+    // The shell key identifies an existing shell and preserves its tab state.
+    if (AppHomeShell.navigationKey.currentState != null) {
+      navigator.popUntil((route) => route.settings.name == '/home');
+    } else {
+      navigator.pushAndRemoveUntil<void>(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: '/home'),
+          builder: (_) => AppHomeShell(key: AppHomeShell.navigationKey),
+        ),
+        (_) => false,
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!navigator.mounted) return;
+      navigator.push<void>(
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: routeName),
+          builder: (_) => destination,
+        ),
+      );
+    });
   }
 }

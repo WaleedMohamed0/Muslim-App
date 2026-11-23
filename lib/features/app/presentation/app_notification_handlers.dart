@@ -214,12 +214,10 @@ extension _AppNotificationHandlers on _MyAppState {
           );
         });
       } else {
-        navigator.pushAndRemoveUntil<void>(
-          MaterialPageRoute<void>(
-            settings: RouteSettings(name: routeName),
-            builder: (_) => page,
-          ),
-          (_) => false,
+        AppEntryNavigation.openFromRootNavigator(
+          navigator,
+          destination: page,
+          routeName: routeName,
         );
       }
       return;
@@ -276,30 +274,16 @@ extension _AppNotificationHandlers on _MyAppState {
     final pageNumber =
         requestedPage == correctPage ? requestedPage : correctPage;
     final routeName = '/quran-reader/$surahNumber';
-    // Keep an app entry route beneath notification-launched readers so Back
-    // always returns to the app instead of dismissing the Activity.
+    // Keep the main navigation shell beneath externally launched readers.
     if (_appRouteObserver.currentRouteName == routeName) return;
-    navigator.pushAndRemoveUntil<void>(
-      MaterialPageRoute<void>(
-        settings: const RouteSettings(name: '/home'),
-        builder: (_) => const StartUpScreen(),
+    AppEntryNavigation.openFromRootNavigator(
+      navigator,
+      destination: SurahScreen(
+        surahNumber: surahNumber,
+        initialAyah: ayahNumber,
+        initialPageNumber: pageNumber,
       ),
-      (_) => false,
+      routeName: routeName,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || appNavigatorKey.currentState != navigator) return;
-      if (_appRouteObserver.currentRouteName == routeName) return;
-      navigator.push<void>(
-        MaterialPageRoute<void>(
-          settings: RouteSettings(name: routeName),
-          builder:
-              (_) => SurahScreen(
-                surahNumber: surahNumber,
-                initialAyah: ayahNumber,
-                initialPageNumber: pageNumber,
-              ),
-        ),
-      );
-    });
   }
 }

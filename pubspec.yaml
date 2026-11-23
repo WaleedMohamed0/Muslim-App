@@ -1,7 +1,7 @@
 name: muslim
 description: A Muslim companion app for Quran, azkar, prayer times, and more.
 publish_to: 'none'
-version: 1.0.0+6
+version: 1.0.1+6
 
 environment:
   sdk: ^3.14.0
