@@ -53,6 +53,7 @@ flutter:
   assets:
     - assets/data/tafsir_muyassar.json.gz
     - assets/features/app/images/quran_logo.webp
+    - assets/features/app/images/notification_icon.svg
     - assets/features/asmaa_allah/
     - assets/features/azkar/data/azkar.json
     - assets/images/azkar/

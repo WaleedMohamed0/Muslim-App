@@ -1,6 +1,8 @@
 class AppAssets {
   static const appLogo = 'assets/features/app/images/logo.png';
   static const quranLogo = 'assets/features/app/images/quran_logo.webp';
+  static const notificationLogo =
+      'assets/features/app/images/notification_icon.svg';
   static const quranFont =
       'assets/features/quran/fonts/UthmanicHafs-v-3.0.ttf';
   static const azan = 'assets/features/prayer_times/audio/المدينة المنورة.mp3';

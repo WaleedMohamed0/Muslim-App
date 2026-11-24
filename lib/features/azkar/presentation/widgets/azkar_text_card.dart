@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
+import 'package:muslim/features/app/presentation/widgets/notification_logo.dart';
 import 'package:flutter/rendering.dart';
 
 import 'azkar_share_card.dart';
@@ -75,6 +76,7 @@ class _AzkarTextCardState extends State<AzkarTextCard> {
   Future<void> _shareImage() async {
     OverlayEntry? entry;
     try {
+      await NotificationLogo.preload();
       final overlay = Overlay.of(context, rootOverlay: true);
       entry = OverlayEntry(
         builder: (_) => Positioned(

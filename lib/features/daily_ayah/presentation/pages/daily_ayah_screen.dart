@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
+import 'package:muslim/features/app/presentation/widgets/notification_logo.dart';
 import 'package:muslim/features/daily_ayah/domain/entities/daily_ayah.dart';
 import 'package:muslim/features/daily_ayah/presentation/widgets/daily_ayah_share_card.dart';
 import 'package:path_provider/path_provider.dart';
@@ -28,6 +29,7 @@ class _DailyAyahScreenState extends State<DailyAyahScreen> {
     setState(() => _sharing = true);
     OverlayEntry? entry;
     try {
+      await NotificationLogo.preload();
       entry = OverlayEntry(
         builder: (_) => Positioned(
           left: -10000,

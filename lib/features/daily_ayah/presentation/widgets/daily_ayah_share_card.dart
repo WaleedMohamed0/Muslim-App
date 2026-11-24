@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
+import 'package:muslim/features/app/presentation/widgets/notification_logo.dart';
 import 'package:muslim/features/daily_ayah/domain/entities/daily_ayah.dart';
 
 class DailyAyahShareCard extends StatelessWidget {
@@ -67,25 +68,10 @@ class DailyAyahShareCard extends StatelessWidget {
                     ?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 22),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    'assets/features/app/images/quran_logo.webp',
-                    width: 18,
-                    height: 18,
-                    color: scheme.primary.withValues(alpha: .78),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'مسلم',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: scheme.primary.withValues(alpha: .82),
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: .2,
-                    ),
-                  ),
-                ],
+              NotificationLogo(
+                color: dark
+                    ? const Color(0xFFB8F2D5)
+                    : scheme.onSurface,
               ),
             ],
           ),
