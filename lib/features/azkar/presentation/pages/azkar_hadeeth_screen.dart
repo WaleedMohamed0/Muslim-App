@@ -463,6 +463,8 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
                       final text = entry.content;
                       final isUnnumberedBedtimeDhikr = entry.sourceIds
                           .contains('sleep_bismika_amutu');
+                      final isLastTwoSleepCard = category == 2 &&
+                          itemIndex >= entries.length - 2;
                       // The legacy Quranic and Prophetic Dua lists use "01"
                       // as a display default, not as a prescribed repetition.
                       final supportsCounting =
@@ -502,10 +504,13 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
                                 ? 'تذكير'
                                 : null,
                         emphasizeInfo: category == 10 && entry.id == 'adhan_between_prayer_dua',
-                        showCopy: !(category == 10 &&
-                            (entry.id == 'adhan_repeat_muezzin' ||
-                                entry.id == 'adhan_between_prayer_dua')),
+                        showCopy: !isLastTwoSleepCard &&
+                            !(category == 10 &&
+                                (entry.id == 'adhan_repeat_muezzin' ||
+                                    entry.id == 'adhan_between_prayer_dua')),
+                        showShareAction: isLastTwoSleepCard,
                         shareInsteadOfCopy:
+                            isLastTwoSleepCard ||
                             (category >= 6 && category <= 9) ||
                             isUnnumberedBedtimeDhikr,
                         onVirtueTap: category == 5
@@ -527,7 +532,8 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
                         onReset: supportsCounting
                             ? () => cubit.resetEntry(entry)
                             : null,
-                        onShare: (entry.counterEnabled && category != 9) ||
+                        onShare: isLastTwoSleepCard ||
+                                (entry.counterEnabled && category != 9) ||
                                 (category >= 6 && category <= 9) ||
                                 isUnnumberedBedtimeDhikr
                             ? () => cubit.shareEntry(entry)

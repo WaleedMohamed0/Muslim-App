@@ -35,6 +35,7 @@ class AzkarTextCard extends StatefulWidget {
     this.emphasizeInfo = false,
     this.showCopy = true,
     this.shareInsteadOfCopy = false,
+    this.showShareAction = false,
   });
 
   final String text;
@@ -58,6 +59,7 @@ class AzkarTextCard extends StatefulWidget {
   final bool emphasizeInfo;
   final bool showCopy;
   final bool shareInsteadOfCopy;
+  final bool showShareAction;
 
   @override
   State<AzkarTextCard> createState() => _AzkarTextCardState();
@@ -75,13 +77,13 @@ class _AzkarTextCardState extends State<AzkarTextCard> {
     try {
       final overlay = Overlay.of(context, rootOverlay: true);
       entry = OverlayEntry(
-        builder: (context) => Positioned.fill(
-          child: Center(
-            child: AzkarShareCard(
-              text: widget.text,
-              category: widget.shareCategory,
-              captureKey: _captureKey,
-            ),
+        builder: (_) => Positioned(
+          left: -10000,
+          top: 0,
+          child: AzkarShareCard(
+            text: widget.text,
+            category: widget.shareCategory,
+            captureKey: _captureKey,
           ),
         ),
       );
@@ -442,7 +444,8 @@ class _AzkarTextCardState extends State<AzkarTextCard> {
                     const Spacer(),
                   ] else
                     const Spacer(),
-                  if (widget.showCopy)
+                  if (widget.showCopy ||
+                      (widget.showShareAction && widget.counter == null))
                     _TasbeehActionButton(
                       onPressed: widget.counter == null &&
                               !widget.shareInsteadOfCopy
@@ -482,7 +485,7 @@ class _AzkarTextCardState extends State<AzkarTextCard> {
                       ),
                     ),
                   ),
-                  if (widget.showCopy)
+                  if (widget.showCopy || widget.showShareAction)
                     _TasbeehActionButton(
                       onPressed: _showShareOptions,
                       tooltip: 'مشاركة الذِّكْر',

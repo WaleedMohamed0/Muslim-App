@@ -20,6 +20,7 @@ import 'package:muslim/features/quran/presentation/widgets/quran_audio_mini_play
 import 'package:muslim/features/app/presentation/widgets/startup_home_widgets.dart';
 import 'package:muslim/features/app/presentation/widgets/prayer_wird_home_section.dart';
 import 'package:muslim/features/app/presentation/widgets/daily_wird_home_card.dart';
+import 'package:muslim/features/daily_ayah/presentation/widgets/daily_ayah_home_card.dart';
 import 'package:muslim/features/app/presentation/pages/daily_reminder_settings_screen.dart';
 import 'package:muslim/features/app/presentation/pages/app_settings_screen.dart';
 import 'package:muslim/core/assets/app_assets.dart';
@@ -399,6 +400,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 20),
                   sliver: const SliverToBoxAdapter(child: AdhanSettingsCard()),
                 ),
+                const SliverToBoxAdapter(child: DailyAyahHomeCard()),
                 SliverPadding(
                   padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 0),
                   sliver: SliverToBoxAdapter(
@@ -618,7 +620,7 @@ class _StartUpScreenState extends State<StartUpScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          'المسبحة الإلكترونية',
+                                          'السبحة الإلكترونية',
                                           style: Theme.of(
                                             context,
                                           ).textTheme.titleSmall?.copyWith(
