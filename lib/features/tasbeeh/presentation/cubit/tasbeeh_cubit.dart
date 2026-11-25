@@ -63,4 +63,15 @@ class TasbeehCubit extends Cubit<TasbeehState> {
     emit(next);
     await _repository.save(next);
   }
+
+  Future<void> resetAll() async {
+    if (state.isLoading) return;
+    final next = state.copyWith(
+      items: state.items
+          .map((item) => item.copyWith(count: 0))
+          .toList(growable: false),
+    );
+    emit(next);
+    await _repository.save(next);
+  }
 }

@@ -181,12 +181,13 @@ internal object DailyAzkarReminderScheduler {
     fun deliver(context: Context, id: String) {
         val reminder = readReminders(context).firstOrNull { it.id == id } ?: return
         if (!reminder.enabled) return
-        if (id == "morning" || id == "evening") {
-            val completedKey = if (id == "morning") {
-                "flutter.azkar_morning_completed_date_v1"
-            } else {
-                "flutter.azkar_evening_completed_date_v1"
-            }
+        val completedKey = when (id) {
+            "morning" -> "flutter.azkar_morning_completed_date_v1"
+            "evening" -> "flutter.azkar_evening_completed_date_v1"
+            "daily_wird" -> "flutter.daily_wird_completed_day_v1"
+            else -> null
+        }
+        if (completedKey != null) {
             val today = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date())
             val azkarProgress = context.getSharedPreferences(
                 "FlutterSharedPreferences",

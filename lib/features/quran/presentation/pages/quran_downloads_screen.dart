@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/core/widgets/app_action_dialog.dart';
 import 'package:muslim/features/quran/domain/entities/quran_downloaded_audio.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
@@ -36,42 +37,16 @@ class _QuranDownloadsScreenState extends State<QuranDownloadsScreen> {
 
   Future<void> _remove(QuranDownloadedAudio audio) async {
     if (_deletingAudioUrls.contains(audio.url)) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppConfirmationDialog(
       context: context,
-      builder: (dialogContext) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          icon: Icon(
-            Icons.delete_outline_rounded,
-            color: Theme.of(dialogContext).colorScheme.error,
-          ),
-          title: const Text('حذف التسجيل'),
-          content: const Text(
-            'هل أنت متأكد أنك تريد حذف التسجيل الصوتي لهذه السورة؟',
-            textAlign: TextAlign.center,
-          ),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actionsPadding: const EdgeInsetsDirectional.fromSTEB(24, 0, 24, 16),
-          actionsOverflowButtonSpacing: 12,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              icon: const Icon(Icons.delete_rounded),
-              label: const Text('حذف'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(dialogContext).colorScheme.error,
-                foregroundColor: Theme.of(dialogContext).colorScheme.onError,
-              ),
-            ),
-          ],
-        ),
-      ),
+      icon: Icons.delete_outline_rounded,
+      title: 'حذف التسجيل',
+      message: 'هل أنت متأكد أنك تريد حذف التسجيل الصوتي لهذه السورة؟',
+      confirmLabel: 'حذف',
+      confirmBackgroundColor: Theme.of(context).colorScheme.error,
+      confirmForegroundColor: Theme.of(context).colorScheme.onError,
     );
-    if (confirmed != true ||
+    if (!confirmed ||
         !mounted ||
         _deletingAudioUrls.contains(audio.url)) {
       return;
@@ -264,6 +239,14 @@ class _QuranDownloadsScreenState extends State<QuranDownloadsScreen> {
                                         subtitle: Text(audio.reciter.nameArabic),
                                         trailing: IconButton(
                                           tooltip: 'حذف التنزيل',
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: theme
+                                                .colorScheme
+                                                .errorContainer,
+                                            foregroundColor: theme
+                                                .colorScheme
+                                                .onErrorContainer,
+                                          ),
                                           onPressed: isDeleting
                                               ? null
                                               : () => _remove(audio),
@@ -279,8 +262,6 @@ class _QuranDownloadsScreenState extends State<QuranDownloadsScreen> {
                                                 )
                                               : Icon(
                                                   Icons.delete_outline_rounded,
-                                                  color:
-                                                      theme.colorScheme.error,
                                                 ),
                                         ),
                                       ),

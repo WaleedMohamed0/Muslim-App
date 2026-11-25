@@ -36,6 +36,7 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
   String? _activeLocalDate;
   static const _progressDateKey = 'azkar_progress_local_date';
   static const _progressKeyPrefix = 'azkar_progress_';
+  static const _currentItemIndexPrefix = 'azkar_current_item_index_';
   static const _morningCompletionKey = 'azkar_morning_completed_date_v1';
   static const _eveningCompletionKey = 'azkar_evening_completed_date_v1';
   static const _favoriteEntryIdsKey = 'azkar_favorite_entry_ids';
@@ -182,6 +183,16 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
     return _progress[entry.id] ?? 0;
   }
 
+  Future<int> currentItemIndexFor(int category) async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getInt('$_currentItemIndexPrefix$category') ?? 0;
+  }
+
+  Future<void> saveCurrentItemIndex(int category, int index) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setInt('$_currentItemIndexPrefix$category', index < 0 ? 0 : index);
+  }
+
   /// Resets post-prayer counters once when the prayer period changes,
   /// independently of whether Adhan audio is enabled.
   Future<void> resetPostPrayerSessionForPeriod(String period) async {
@@ -315,6 +326,12 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
     await prefs.remove(_progressKey(entry.id));
   }
 
+  Future<void> resetEntries(Iterable<AzkarEntry> entries) async {
+    for (final entry in entries) {
+      await resetEntry(entry);
+    }
+  }
+
   String _progressKey(String id) => '$_progressKeyPrefix$id';
 
   String _localDateKey([DateTime? date]) {
@@ -352,6 +369,13 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
           )
           .toList(growable: false);
       for (final key in oldProgressKeys) {
+        await preferences.remove(key);
+      }
+      final oldPositionKeys = preferences
+          .getKeys()
+          .where((key) => key.startsWith(_currentItemIndexPrefix))
+          .toList(growable: false);
+      for (final key in oldPositionKeys) {
         await preferences.remove(key);
       }
       await preferences.remove(_morningCompletionKey);

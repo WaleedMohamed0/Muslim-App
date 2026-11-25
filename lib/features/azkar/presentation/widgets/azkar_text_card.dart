@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/theme/app_theme.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
+import 'package:muslim/core/widgets/app_action_dialog.dart';
 import 'package:muslim/features/app/presentation/widgets/notification_logo.dart';
 import 'package:flutter/rendering.dart';
 
@@ -138,26 +139,14 @@ class _AzkarTextCardState extends State<AzkarTextCard> {
   }
 
   Future<void> _confirmReset() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppConfirmationDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('إعادة ضبط العداد؟'),
-        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        content: const Text('سيتم تصفير عداد هذا الذكر.'),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('إعادة ضبط'),
-          ),
-        ],
-      ),
+      icon: Icons.restart_alt_rounded,
+      title: 'إعادة ضبط العداد؟',
+      message: 'سيتم تصفير عداد هذا الذكر.',
+      confirmLabel: 'إعادة ضبط',
     );
-    if (confirmed == true) widget.onReset?.call();
+    if (confirmed) widget.onReset?.call();
   }
 
   @override

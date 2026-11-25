@@ -14,6 +14,7 @@ import 'package:muslim/features/azkar/domain/entities/azkar_entry.dart';
 import 'package:muslim/features/hadeeth/presentation/cubit/hadeeth_cubit.dart';
 import 'package:muslim/features/hadeeth/presentation/cubit/hadeeth_state.dart';
 import 'package:muslim/features/hadeeth/domain/entities/hadeeth_entry.dart';
+import 'package:muslim/core/widgets/app_action_dialog.dart';
 
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../core/widgets/external_link_button.dart';
@@ -31,7 +32,10 @@ class AzkarAndHadeethScreen extends StatefulWidget {
 
 class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
     with WidgetsBindingObserver {
-  final ScrollController _azkarScrollController = ScrollController();
+  // Restore by the current entry index below, never by PageStorage's stale
+  // pixel offset from an earlier visit to this category.
+  final ScrollController _azkarScrollController =
+      ScrollController(keepScrollOffset: false);
   final Map<String, GlobalKey> _entryKeys = {};
   final AzkarCounterHintPreferences _counterHintPreferences =
       AzkarCounterHintPreferences.instance;
@@ -40,6 +44,9 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
   bool _reminderStatusLoaded = false;
   bool _reminderEnabled = false;
   bool _notificationsAllowed = true;
+  bool _restorationScheduled = false;
+  bool _restoringPosition = false;
+  int? _lastSavedVisibleIndex;
   late final String title = switch (widget.index) {
     0 => 'أَذْكَارُ الصَّبَاحِ',
     1 => 'أَذْكَارُ المساءِ',
@@ -59,6 +66,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _azkarScrollController.addListener(_saveVisibleEntryIndex);
     if (widget.index != 11) {
       context.read<AzkarCubit>().loadContent();
     }
@@ -86,6 +94,7 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _counterHintPreferences.shouldShow.removeListener(_onCounterHintChanged);
+    _azkarScrollController.removeListener(_saveVisibleEntryIndex);
     _azkarScrollController.dispose();
     super.dispose();
   }
@@ -100,6 +109,22 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
 
   void _onCounterHintChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _saveVisibleEntryIndex() {
+    if (_restoringPosition || !_azkarScrollController.hasClients) return;
+    final entries = context.read<AzkarCubit>().entriesFor(widget.index);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    for (var index = 0; index < entries.length; index++) {
+      final renderObject = _entryKeys[entries[index].id]?.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.hasSize) continue;
+      final top = renderObject.localToGlobal(Offset.zero).dy;
+      if (top + renderObject.size.height <= kToolbarHeight || top >= screenHeight) continue;
+      if (_lastSavedVisibleIndex == index) return;
+      _lastSavedVisibleIndex = index;
+      unawaited(context.read<AzkarCubit>().saveCurrentItemIndex(widget.index, index));
+      return;
+    }
   }
 
   Future<void> _refreshReminderStatus() async {
@@ -137,6 +162,22 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
     await _refreshReminderStatus();
   }
 
+  Future<void> _confirmResetAll(AzkarCubit cubit, List<AzkarEntry> entries) async {
+    final isTasbeehCategory = widget.index == 5;
+    final confirmed = await showAppConfirmationDialog(
+      context: context,
+      icon: Icons.restart_alt_rounded,
+      title: isTasbeehCategory
+          ? 'إعادة ضبط جميع التسابيح؟'
+          : 'إعادة ضبط جميع الأذكار؟',
+      message: isTasbeehCategory
+          ? 'سيتم تصفير عدادات جميع التسابيح في هذه الصفحة.'
+          : 'سيتم تصفير عدادات جميع الأذكار في هذه الصفحة.',
+      confirmLabel: 'إعادة الضبط',
+    );
+    if (confirmed && mounted) await cubit.resetEntries(entries);
+  }
+
   Future<void> _incrementEntry(
     AzkarCubit cubit,
     List<AzkarEntry> entries,
@@ -145,7 +186,12 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
   ) async {
     final wasComplete = cubit.progressFor(entry) >= (entry.repetitionCount ?? 1);
     await cubit.incrementEntry(entry);
-    if (wasComplete || !mounted || cubit.progressFor(entry) < (entry.repetitionCount ?? 1)) {
+    final completed = cubit.progressFor(entry) >= (entry.repetitionCount ?? 1);
+    await cubit.saveCurrentItemIndex(
+      widget.index,
+      completed && itemIndex + 1 < entries.length ? itemIndex + 1 : itemIndex,
+    );
+    if (wasComplete || !mounted || !completed) {
       return;
     }
 
@@ -279,6 +325,10 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
           );
         }
         final entries = state.entriesFor(category);
+        if (!_restorationScheduled && entries.isNotEmpty) {
+          _restorationScheduled = true;
+          unawaited(_restoreAzkarPosition(cubit, entries));
+        }
         const sleepSourceUrl = 'https://www.islambook.com/app/ar/azkr/11';
         const wakingSourceUrl = 'https://www.islambook.com/app/ar/azkr/12';
         const tasbeehSourceUrl = 'https://www.islambook.com/app/ar/azkr/3';
@@ -289,7 +339,23 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
         const prophetsDuaSourceUrl = 'https://www.islambook.com/app/ar/azkr/28';
         const adhanSourceUrl = 'https://www.islambook.com/ar/azkr/5';
         return Scaffold(
-          appBar: defaultAppBar(context: context, text: title),
+          appBar: defaultAppBar(
+            context: context,
+            text: title,
+            actions: category >= 6 && category <= 9
+                ? const []
+                : [
+                    IconButton(
+                      tooltip: category == 5
+                          ? 'إعادة ضبط جميع التسابيح'
+                          : 'إعادة ضبط جميع الأذكار',
+                      onPressed: entries.isEmpty
+                          ? null
+                          : () => _confirmResetAll(cubit, entries),
+                      icon: const Icon(Icons.restart_alt_rounded),
+                    ),
+                  ],
+          ),
           body: entries.isEmpty
                   ? const Center(child: Text('لا توجد بيانات للعرض'))
                   : ListView.builder(
@@ -544,6 +610,57 @@ class _AzkarAndHadeethScreenState extends State<AzkarAndHadeethScreen>
         );
       },
     );
+  }
+
+  Future<void> _restoreAzkarPosition(
+    AzkarCubit cubit,
+    List<AzkarEntry> entries,
+  ) async {
+    final savedIndex = await cubit.currentItemIndexFor(widget.index);
+    if (!mounted || entries.isEmpty) return;
+    final firstUnfinishedIndex = entries.indexWhere((entry) {
+      if (!entry.hasPredefinedRepetitionCount) return false;
+      return cubit.progressFor(entry) < entry.repetitionCount!;
+    });
+    final hasAdhanProgress = widget.index == 10 &&
+        entries.any((entry) => cubit.progressFor(entry) > 0);
+    final restoredIndex = widget.index == 10 && !hasAdhanProgress
+        ? 0
+        : firstUnfinishedIndex >= 0
+            ? firstUnfinishedIndex
+            : savedIndex;
+    final itemIndex = restoredIndex
+        .clamp(0, entries.length - 1);
+    _lastSavedVisibleIndex = itemIndex;
+    if (itemIndex == 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || !_azkarScrollController.hasClients) return;
+      _restoringPosition = true;
+      final estimatedOffset = (itemIndex * 300.0).clamp(
+        0.0,
+        _azkarScrollController.position.maxScrollExtent,
+      );
+      await _azkarScrollController.animateTo(
+        estimatedOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = _entryKeys[entries[itemIndex].id]?.currentContext;
+        if (!mounted || target == null) {
+          _restoringPosition = false;
+          return;
+        }
+        Scrollable.ensureVisible(
+          target,
+          alignment: 0.08,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutCubic,
+        );
+        _restoringPosition = false;
+      });
+    });
   }
 
   bool _isSectionComplete(AzkarCubit cubit, AzkarState state, int category) {

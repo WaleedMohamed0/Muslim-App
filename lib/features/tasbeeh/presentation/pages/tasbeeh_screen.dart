@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/utils/arabic_digits.dart';
+import 'package:muslim/core/widgets/app_action_dialog.dart';
 import 'package:muslim/features/tasbeeh/data/repositories/tasbeeh_repository.dart';
 import 'package:muslim/features/tasbeeh/domain/entities/tasbeeh_state.dart';
 import 'package:muslim/features/tasbeeh/presentation/cubit/tasbeeh_cubit.dart';
@@ -17,8 +18,36 @@ class TasbeehScreen extends StatelessWidget {
   );
 }
 
-class _TasbeehView extends StatelessWidget {
+class _TasbeehView extends StatefulWidget {
   const _TasbeehView();
+
+  @override
+  State<_TasbeehView> createState() => _TasbeehViewState();
+}
+
+class _TasbeehViewState extends State<_TasbeehView> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _selectedDhikrKey = GlobalKey();
+  String? _restoredDhikr;
+
+  Future<void> _confirmResetAll(BuildContext context) async {
+    final confirmed = await showAppConfirmationDialog(
+      context: context,
+      icon: Icons.restart_alt_rounded,
+      title: 'إعادة ضبط جميع التسابيح؟',
+      message: 'سيتم تصفير عدادات جميع التسابيح في شاشة التسبيح.',
+      confirmLabel: 'إعادة الضبط',
+    );
+    if (confirmed && context.mounted) {
+      await context.read<TasbeehCubit>().resetAll();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _chooseTarget(BuildContext context, TasbeehState state) async {
     final cubit = context.read<TasbeehCubit>();
@@ -41,18 +70,46 @@ class _TasbeehView extends StatelessWidget {
   Widget build(BuildContext context) => Directionality(
     textDirection: TextDirection.rtl,
     child: Scaffold(
-      appBar: AppBar(title: const Text('السبحة الإلكترونية', style: TextStyle(fontWeight: FontWeight.w800))),
+      appBar: AppBar(
+        title: const Text('السبحة الإلكترونية', style: TextStyle(fontWeight: FontWeight.w800)),
+        actions: [
+          Builder(
+            builder: (context) {
+              final state = context.watch<TasbeehCubit>().state;
+              return IconButton(
+                tooltip: 'إعادة ضبط جميع التسابيح',
+                onPressed: state.isLoading || state.items.isEmpty
+                    ? null
+                    : () => _confirmResetAll(context),
+                icon: const Icon(Icons.restart_alt_rounded),
+              );
+            },
+          ),
+        ],
+      ),
       body: BlocBuilder<TasbeehCubit, TasbeehState>(builder: (context, state) {
+        if (!state.isLoading && _restoredDhikr != state.selectedDhikr) {
+          _restoredDhikr = state.selectedDhikr;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final target = _selectedDhikrKey.currentContext;
+            if (!mounted || target == null) return;
+            Scrollable.ensureVisible(
+              target,
+              alignment: 0.2,
+              duration: Duration.zero,
+            );
+          });
+        }
         final colors = Theme.of(context).colorScheme;
         final theme = Theme.of(context);
         return SafeArea(child: LayoutBuilder(builder: (context, constraints) {
           final compact = constraints.maxHeight < 720;
           final diameter = (constraints.maxWidth - 72).clamp(220.0, compact ? 280.0 : 316.0);
-          return ListView(padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 12, 16), children: [
+          return ListView(controller: _scrollController, padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 12, 16), children: [
             const SizedBox(height: 8),
             Text('وِردُكَ الآن', textAlign: TextAlign.center, style: theme.textTheme.labelLarge?.copyWith(color: colors.onSurfaceVariant, letterSpacing: .5)),
             const SizedBox(height: 8),
-            AnimatedSwitcher(duration: const Duration(milliseconds: 220), child: Text(state.dhikr, key: ValueKey(state.dhikr), textAlign: TextAlign.center, style: theme.textTheme.headlineSmall?.copyWith(fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 24) + 2, fontWeight: FontWeight.w800, height: 1.7, color: colors.primary))),
+            AnimatedSwitcher(duration: const Duration(milliseconds: 220), child: Text(state.dhikr, key: _selectedDhikrKey, textAlign: TextAlign.center, style: theme.textTheme.headlineSmall?.copyWith(fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 24) + 2, fontWeight: FontWeight.w800, height: 1.7, color: colors.primary))),
             const SizedBox(height: 8),
             SizedBox(height: diameter + 16, child: Center(child: Semantics(button: true, label: 'التسبيح، العدد ${state.count} من ${state.target}', child: SizedBox(
               width: diameter, height: diameter, child: Stack(alignment: Alignment.center, children: [

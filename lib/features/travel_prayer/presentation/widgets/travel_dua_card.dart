@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:muslim/features/app/presentation/widgets/notification_logo.dart';
 import 'package:muslim/features/azkar/presentation/widgets/azkar_share_card.dart';
 import '../../data/travel_dua.dart';
 
@@ -28,6 +29,7 @@ class _TravelDuaCardState extends State<TravelDuaCard> {
   Future<void> _shareImage() async {
     OverlayEntry? entry;
     try {
+      await NotificationLogo.preload();
       entry = OverlayEntry(
         builder: (_) => Positioned(
           left: -10000,
@@ -120,7 +122,11 @@ class _TravelDuaCardState extends State<TravelDuaCard> {
               ),
             ]),
             const SizedBox(height: 12),
-            _DuaSection(title: 'عند بدء السفر', text: '${TravelDua.departureOpening}\n\n${TravelDua.departureSupplication}'),
+            _DuaSection(
+              title: 'عند بدء السفر',
+              text: TravelDua.departureSupplication,
+              showTravelVerseNumbers: true,
+            ),
             const SizedBox(height: 12),
             _DuaSection(title: 'عند الرجوع من السفر', text: TravelDua.returnSupplication),
             const SizedBox(height: 10),
@@ -134,9 +140,14 @@ class _TravelDuaCardState extends State<TravelDuaCard> {
 }
 
 class _DuaSection extends StatelessWidget {
-  const _DuaSection({required this.title, required this.text});
+  const _DuaSection({
+    required this.title,
+    required this.text,
+    this.showTravelVerseNumbers = false,
+  });
   final String title;
   final String text;
+  final bool showTravelVerseNumbers;
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +159,31 @@ class _DuaSection extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(title, style: theme.textTheme.labelLarge?.copyWith(color: colors.primary, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
-        Text(text, textDirection: TextDirection.rtl, textAlign: TextAlign.start, style: theme.textTheme.bodyLarge?.copyWith(height: 1.9)),
+        if (showTravelVerseNumbers) ...[
+          Text.rich(
+            TextSpan(
+              style: theme.textTheme.bodyLarge?.copyWith(height: 1.9),
+              children: [
+                TextSpan(text: TravelDua.departureVerseOne),
+                const TextSpan(
+                  text: ' ۝١٣',
+                  style: TextStyle(fontFamily: 'UthmanicHafs', fontSize: 20),
+                ),
+                TextSpan(text: ' ${TravelDua.departureVerseTwo}'),
+                const TextSpan(
+                  text: ' ۝١٤',
+                  style: TextStyle(fontFamily: 'UthmanicHafs', fontSize: 20),
+                ),
+                const TextSpan(text: ' {سورة الزُّخْرُف}'),
+              ],
+            ),
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 8),
+          Text(text, textDirection: TextDirection.rtl, textAlign: TextAlign.start, style: theme.textTheme.bodyLarge?.copyWith(height: 1.9)),
+        ] else
+          Text(text, textDirection: TextDirection.rtl, textAlign: TextAlign.start, style: theme.textTheme.bodyLarge?.copyWith(height: 1.9)),
       ]),
     );
   }

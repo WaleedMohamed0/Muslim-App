@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:muslim/core/widgets/app_switch.dart';
+import 'package:muslim/core/widgets/app_action_dialog.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
@@ -91,30 +92,17 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     } catch (_) {}
   }
 
-  Future<bool> _explainPermission(String title, String description) async =>
-      await showDialog<bool>(
+  Future<bool> _explainPermission(String title, String description) =>
+      showAppConfirmationDialog(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(title, textDirection: TextDirection.rtl),
-          content: Text(
-            description,
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.start,
-          ),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('ليس الآن'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('متابعة'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
+        title: title,
+        icon: Icons.notifications_active_outlined,
+        message: description,
+        confirmIcon: Icons.arrow_forward_rounded,
+        confirmIconAfterLabel: true,
+        confirmLabel: 'متابعة',
+        cancelLabel: 'ليس الآن',
+      );
 
   Future<void> _setAdhanEnabled(bool enabled) async {
     if (!enabled) {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
+import 'package:muslim/core/widgets/app_action_dialog.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import 'package:muslim/features/prayer_times/presentation/widgets/adhan_settings_widgets.dart';
 
@@ -117,24 +118,21 @@ class _DevicePermissionsScreenState extends State<DevicePermissionsScreen>
       _ => ('إيقاف الصلاحية؟', 'قد تتوقف بعض ميزات التطبيق عن العمل.'),
     };
 
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(title, textDirection: TextDirection.rtl),
-            content: Text(message, textDirection: TextDirection.rtl),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('إلغاء'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('متابعة إلى الإعدادات'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final icon = switch (key) {
+      'notifications' => Icons.notifications_off_outlined,
+      'location' => Icons.location_off_outlined,
+      'exactAlarms' => Icons.alarm_off_rounded,
+      _ => Icons.settings_outlined,
+    };
+
+    return showAppConfirmationDialog(
+      context: context,
+      icon: icon,
+      title: title,
+      message: message,
+      confirmLabel: 'متابعة إلى الإعدادات',
+      confirmIcon: Icons.settings_outlined,
+    );
   }
 
   @override

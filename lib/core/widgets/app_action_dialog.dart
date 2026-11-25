@@ -44,6 +44,82 @@ Future<void> showAppActionDialog({
     );
 }
 
+/// Shows a confirmation dialog using the shared app action dialog layout.
+Future<bool> showAppConfirmationDialog({
+  required BuildContext context,
+  required IconData icon,
+  required String title,
+  required String message,
+  required String confirmLabel,
+  IconData? confirmIcon,
+  String cancelLabel = 'إلغاء',
+  bool confirmIconAfterLabel = false,
+  Color? confirmBackgroundColor,
+  Color? confirmForegroundColor,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AppConfirmationDialog(
+      icon: icon,
+      title: title,
+      message: message,
+      confirmLabel: confirmLabel,
+      confirmIcon: confirmIcon,
+      confirmIconAfterLabel: confirmIconAfterLabel,
+      confirmBackgroundColor: confirmBackgroundColor,
+      confirmForegroundColor: confirmForegroundColor,
+      cancelLabel: cancelLabel,
+      onConfirm: () => Navigator.of(dialogContext).pop(true),
+      onCancel: () => Navigator.of(dialogContext).pop(false),
+    ),
+  );
+  return confirmed ?? false;
+}
+
+class AppConfirmationDialog extends StatelessWidget {
+  const AppConfirmationDialog({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.confirmLabel,
+    this.confirmIcon,
+    this.confirmIconAfterLabel = false,
+    this.confirmBackgroundColor,
+    this.confirmForegroundColor,
+    required this.cancelLabel,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String confirmLabel;
+  final IconData? confirmIcon;
+  final bool confirmIconAfterLabel;
+  final Color? confirmBackgroundColor;
+  final Color? confirmForegroundColor;
+  final String cancelLabel;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) => AppActionDialog(
+    icon: icon,
+    title: title,
+    message: message,
+    primaryLabel: confirmLabel,
+    primaryIcon: confirmIcon,
+    primaryIconAfterLabel: confirmIconAfterLabel,
+    primaryBackgroundColor: confirmBackgroundColor,
+    primaryForegroundColor: confirmForegroundColor,
+    onPrimary: onConfirm,
+    secondaryLabel: cancelLabel,
+    onSecondary: onCancel,
+  );
+}
+
 class AppActionDialog extends StatelessWidget {
   const AppActionDialog({
     super.key,
@@ -51,26 +127,32 @@ class AppActionDialog extends StatelessWidget {
     required this.title,
     required this.message,
     required this.primaryLabel,
-    required this.primaryIcon,
+    this.primaryIcon,
     required this.onPrimary,
     required this.secondaryLabel,
     required this.onSecondary,
     this.tertiaryLabel,
     this.tertiaryIcon,
     this.onTertiary,
+    this.primaryIconAfterLabel = false,
+    this.primaryBackgroundColor,
+    this.primaryForegroundColor,
   });
 
   final IconData icon;
   final String title;
   final String message;
   final String primaryLabel;
-  final IconData primaryIcon;
+  final IconData? primaryIcon;
   final VoidCallback onPrimary;
   final String secondaryLabel;
   final VoidCallback onSecondary;
   final String? tertiaryLabel;
   final IconData? tertiaryIcon;
   final VoidCallback? onTertiary;
+  final bool primaryIconAfterLabel;
+  final Color? primaryBackgroundColor;
+  final Color? primaryForegroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +171,7 @@ class AppActionDialog extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(24, 26, 24, 20),
+            padding: const EdgeInsetsDirectional.fromSTEB(20, 26, 20, 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -126,21 +208,43 @@ class AppActionDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   textDirection: TextDirection.rtl,
-                  spacing: 8,
-                  runSpacing: 6,
                   children: [
                     TextButton(
                       onPressed: onSecondary,
                       child: Text(secondaryLabel),
                     ),
-                    FilledButton.icon(
+                    FilledButton(
                       onPressed: onPrimary,
-                      icon: Icon(primaryIcon, size: 19),
-                      label: Text(primaryLabel),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: primaryBackgroundColor,
+                        foregroundColor: primaryForegroundColor,
+                      ),
+                      child: primaryIconAfterLabel
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              textDirection: TextDirection.rtl,
+                              children: [
+                                Text(primaryLabel),
+                                if (primaryIcon != null) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(primaryIcon, size: 19),
+                                ],
+                              ],
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              textDirection: TextDirection.rtl,
+                              children: [
+                                if (primaryIcon != null) ...[
+                                  Icon(primaryIcon, size: 19),
+                                  const SizedBox(width: 8),
+                                ],
+                                Text(primaryLabel),
+                              ],
+                            ),
                     ),
                     if (tertiaryLabel != null && onTertiary != null)
                       OutlinedButton.icon(
