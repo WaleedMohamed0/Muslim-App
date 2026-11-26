@@ -131,7 +131,6 @@ internal object DailyAzkarReminderScheduler {
     )
 
     fun getSettings(context: Context): List<Map<String, Any>> {
-        restore(context)
         return readReminders(context).map { reminder ->
             mapOf(
                 "id" to reminder.id,

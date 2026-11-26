@@ -158,6 +158,8 @@ class MainActivity: AudioServiceActivity() {
                     "saveSettings" -> saveSettings(call.arguments as? Map<*, *>, result)
                     "updateSchedule" -> updateSchedule(call.arguments as? Map<*, *>, result)
                     "getAdhanPlaybackState" -> result.success(PrayerAdhanPlaybackService.playbackState())
+                    // Reading settings must stay side-effect free. Alarm restoration is
+                    // handled by the boot/time-change receiver, not by opening a page.
                     "getDailyReminders" -> result.success(DailyAzkarReminderScheduler.getSettings(this))
                     "saveDailyReminders" -> saveDailyReminders(call.arguments as? List<*>, result)
                     "previewAudio" -> {

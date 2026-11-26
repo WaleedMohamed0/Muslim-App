@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:muslim/core/storage/cache_helper.dart';
@@ -45,6 +47,7 @@ class PrayerAdhanService {
   static const _enabledKey = 'adhan_enabled';
   static const _volumeKey = 'adhan_volume';
   static const _audioIdKey = 'adhan_audio_id';
+  static const _dailyRemindersCacheKey = 'daily_reminders_ui_cache_v1';
   static const _prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
   String? _lastScheduleSignature;
   Future<void> _scheduleUpdates = Future<void>.value();
@@ -57,12 +60,38 @@ class PrayerAdhanService {
           ? null
           : _settingsFromPrefs(CacheHelper.sharedPreferences!));
 
-  List<Map<String, dynamic>>? get cachedDailyReminders =>
-      _cachedDailyReminders == null
-          ? null
-          : _cachedDailyReminders!
-              .map((reminder) => Map<String, dynamic>.from(reminder))
-              .toList(growable: false);
+  List<Map<String, dynamic>>? get cachedDailyReminders {
+    final reminders = _cachedDailyReminders ?? _readCachedDailyReminders();
+    return reminders
+        ?.map((reminder) => Map<String, dynamic>.from(reminder))
+        .toList(growable: false);
+  }
+
+  List<Map<String, dynamic>>? _readCachedDailyReminders() {
+    final raw = CacheHelper.sharedPreferences?.getString(_dailyRemindersCacheKey);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      return _cachedDailyReminders = decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(growable: false);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _cacheDailyReminders(
+    List<Map<String, dynamic>> reminders,
+  ) async {
+    _cachedDailyReminders = reminders;
+    await CacheHelper.ensureInitialized();
+    await CacheHelper.sharedPreferences!.setString(
+      _dailyRemindersCacheKey,
+      jsonEncode(reminders),
+    );
+    return reminders;
+  }
 
   Map<String, bool>? get cachedPermissions => _cachedPermissions == null
       ? null
@@ -142,10 +171,11 @@ class PrayerAdhanService {
   Future<List<Map<String, dynamic>>> getDailyReminders() async {
     final result = await _channel.invokeListMethod<dynamic>('getDailyReminders') ??
         const <dynamic>[];
-    return _cachedDailyReminders = result
+    final reminders = result
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
+    return _cacheDailyReminders(reminders);
   }
 
   Future<List<Map<String, dynamic>>> saveDailyReminders(
@@ -156,10 +186,11 @@ class PrayerAdhanService {
           reminders,
         ) ??
         const <dynamic>[];
-    return _cachedDailyReminders = result
+    final saved = result
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
+    return _cacheDailyReminders(saved);
   }
 
   Future<Map<String, bool>> permissionStatus() async {
