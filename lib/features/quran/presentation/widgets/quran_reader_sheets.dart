@@ -87,10 +87,9 @@ class AyahActionSheet extends StatelessWidget {
           onTap: onCopy,
         ),
         _AyahActionTile(
-          icon:
-              isBookmarked
-                  ? Icons.bookmark_remove_outlined
-                  : Icons.bookmark_add_outlined,
+          icon: isBookmarked
+              ? Icons.bookmark_remove_outlined
+              : Icons.bookmark_add_outlined,
           label: isBookmarked ? 'إزالة العلامة' : 'حفظ كعلامة',
           color: palette.text,
           onTap: onBookmark,
@@ -113,23 +112,70 @@ class _AyahActionTile extends StatelessWidget {
     required this.color,
     required this.onTap,
   });
+
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    dense: true,
-    contentPadding: EdgeInsets.zero,
-    leading: Icon(icon, color: color),
-    title: Text(
-      label,
-      textAlign: TextAlign.start,
-      style: TextStyle(color: color),
-    ),
-    onTap: onTap,
-  );
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(14);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: colors.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(color: colors.outlineVariant.withValues(alpha: .65)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: SizedBox(
+            height: 52,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.start,
+                      style: TextStyle(color: color),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      color: colors.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class QuranTafsirSheet extends StatefulWidget {
@@ -169,130 +215,126 @@ class _QuranTafsirSheetState extends State<QuranTafsirSheet> {
       initialChildSize: .82,
       minChildSize: .46,
       maxChildSize: .96,
-          builder:
-              (context, scrollController) => SafeArea(
-            top: false,
-            bottom: false,
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsetsDirectional.fromSTEB(22, 8, 22, 24),
+      builder: (context, scrollController) => SafeArea(
+        top: false,
+        bottom: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsetsDirectional.fromSTEB(22, 8, 22, 24),
+                children: [
+                  Row(
                     children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'تفسير الآية',
-                        style: TextStyle(
-                          color: palette.text,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'إغلاق',
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.close_rounded, color: palette.muted),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${widget.surahName} • الآية ${toArabicIndicDigits(widget.verseNumber)}',
-                  style: TextStyle(color: palette.muted, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: palette.background,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Text(
-                    widget.verseText,
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'UthmanicHafs',
-                      fontSize: 23,
-                      height: 1.9,
-                      color: palette.text,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'التفسير الميسر',
-                  style: TextStyle(
-                    color: palette.accent,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FutureBuilder<String>(
-                  future: _tafsir,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState != ConnectionState.done) {
-                      return SizedBox(
-                        height: 120,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: palette.accent,
+                      Expanded(
+                        child: Text(
+                          'تفسير الآية',
+                          style: TextStyle(
+                            color: palette.text,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      );
-                    }
-                    if (snapshot.hasError || !snapshot.hasData) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'تعذر تحميل التفسير. تحقق من الاتصال وحاول مجددًا.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: palette.text),
-                            ),
-                            const SizedBox(height: 10),
-                            TextButton.icon(
-                              onPressed:
-                                  () => setState(
-                                    () => _tafsir = widget.loadTafsir(),
-                                  ),
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('إعادة المحاولة'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: palette.accent,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return Text(
-                      snapshot.data!,
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.start,
-                      style: TextStyle(
-                        color: palette.text,
-                        fontSize: 16,
-                        height: 1.9,
                       ),
-                    );
-                  },
-                ),
+                      IconButton(
+                        tooltip: 'إغلاق',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(Icons.close_rounded, color: palette.muted),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '${widget.surahName} • الآية ${toArabicIndicDigits(widget.verseNumber)}',
+                    style: TextStyle(color: palette.muted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: palette.background,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Text(
+                      widget.verseText,
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'UthmanicHafs',
+                        fontSize: 23,
+                        height: 1.9,
+                        color: palette.text,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'التفسير الميسر',
+                    style: TextStyle(
+                      color: palette.accent,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  FutureBuilder<String>(
+                    future: _tafsir,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return SizedBox(
+                          height: 120,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: palette.accent,
+                            ),
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError || !snapshot.hasData) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'تعذر تحميل التفسير. تحقق من الاتصال وحاول مجددًا.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: palette.text),
+                              ),
+                              const SizedBox(height: 10),
+                              TextButton.icon(
+                                onPressed: () => setState(
+                                  () => _tafsir = widget.loadTafsir(),
+                                ),
+                                icon: const Icon(Icons.refresh_rounded),
+                                label: const Text('إعادة المحاولة'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: palette.accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return Text(
+                        snapshot.data!,
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.start,
+                        style: TextStyle(
+                          color: palette.text,
+                          fontSize: 16,
+                          height: 1.9,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 }
-
-

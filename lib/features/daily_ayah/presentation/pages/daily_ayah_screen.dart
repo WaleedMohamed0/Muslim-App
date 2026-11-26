@@ -66,16 +66,10 @@ class _DailyAyahScreenState extends State<DailyAyahScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('آية اليوم'),
-        actions: [
-          IconButton(
-            tooltip: 'مشاركة الآية كصورة',
-            onPressed: _sharing ? null : _shareImage,
-            icon: _sharing ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.share_rounded),
-          ),
-        ],
       ),
       body: SafeArea(
         child: Center(
@@ -87,7 +81,16 @@ class _DailyAyahScreenState extends State<DailyAyahScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_stories_rounded, size: 30, color: colors.primary),
+                    SizedBox(
+                      height: 48,
+                      child: Center(
+                        child: Icon(
+                          Icons.auto_stories_rounded,
+                          size: 30,
+                          color: colors.primary,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     Text(
                       widget.ayah.text,
@@ -102,10 +105,48 @@ class _DailyAyahScreenState extends State<DailyAyahScreen> {
                     const SizedBox(height: 22),
                     Divider(color: colors.primary.withValues(alpha: .25)),
                     const SizedBox(height: 12),
-                    Text(
-                      '${widget.ayah.surahName} • ${toArabicIndicDigits(widget.ayah.ayahNumber)}',
-                      textDirection: TextDirection.rtl,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.onSurfaceVariant),
+                    Center(
+                      child: Text(
+                        '${widget.ayah.surahName} • ${toArabicIndicDigits(widget.ayah.ayahNumber)}',
+                        textDirection: TextDirection.rtl,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.onSurfaceVariant),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 28,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          NotificationLogo(
+                            color: dark
+                                ? const Color(0xFFB8F2D5)
+                                : colors.onSurface,
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: -10,
+                            child: IconButton(
+                              tooltip: 'مشاركة الآية كصورة',
+                              onPressed: _sharing ? null : _shareImage,
+                              style: IconButton.styleFrom(
+                                backgroundColor: colors.primaryContainer,
+                                foregroundColor: colors.onPrimaryContainer,
+                              ),
+                              icon: _sharing
+                                  ? const SizedBox.square(
+                                      dimension: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.share_rounded),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

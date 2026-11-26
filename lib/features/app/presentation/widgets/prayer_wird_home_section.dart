@@ -13,7 +13,6 @@ import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cub
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
 import 'package:muslim/features/azkar/presentation/pages/azkar_hadeeth_screen.dart';
 import 'package:muslim/features/azkar/presentation/cubit/azkar_cubit.dart';
-import 'package:muslim/features/app/presentation/daily_wird_route_observer.dart';
 
 class PrayerWirdHomeSection extends StatefulWidget {
   const PrayerWirdHomeSection({super.key});
@@ -23,8 +22,7 @@ class PrayerWirdHomeSection extends StatefulWidget {
 }
 
 class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
-    with WidgetsBindingObserver, RouteAware {
-  PageRoute<dynamic>? _subscribedRoute;
+    with WidgetsBindingObserver {
   final _progress = PrayerWirdProgressRepository();
   final _getPrayerTimes = GetPrayerTimes(
     PrayerTimesRepositoryImpl(PrayerLocationDataSource()),
@@ -35,8 +33,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
   Set<String> _completed = <String>{};
   bool _loading = true;
   bool _postAzanEligible = false;
-  bool _adhanDialogShowing = false;
-  String? _pendingAdhanPrayer;
   static const _cards = <(String, String, IconData)>[
     ('azkar', 'أذكار بعد الصلاة', Icons.volunteer_activism_rounded),
   ];
@@ -51,27 +47,9 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
 
   @override
   void dispose() {
-    dailyWirdRouteObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final route = ModalRoute.of(context);
-    if (route is PageRoute<dynamic> && route != _subscribedRoute) {
-      dailyWirdRouteObserver.unsubscribe(this);
-      _subscribedRoute = route;
-      dailyWirdRouteObserver.subscribe(this, route);
-    }
-  }
-
-  @override
-  void didPopNext() {
-    unawaited(_refresh());
-    unawaited(_showPendingAdhanDialog());
   }
 
   @override
@@ -112,11 +90,7 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
       return;
     }
     final postAzanEligible = await _progress.isPostAzanEligible(nextPeriod);
-    final previousPeriod = _period;
     await azkarCubit.resetPostPrayerSessionForPeriod(nextPeriod);
-    final newAdhanSession = await azkarCubit.beginAdhanSessionForPeriod(
-      nextPeriod,
-    );
     if (!mounted) return;
     final completed = await _progress.completedFor(nextPeriod);
     if (!mounted) return;
@@ -127,70 +101,6 @@ class _PrayerWirdHomeSectionState extends State<PrayerWirdHomeSection>
       _completed = completed;
       _loading = false;
     });
-    if (previousPeriod != null &&
-        previousPeriod != nextPeriod &&
-        newAdhanSession) {
-      _pendingAdhanPrayer = nextPeriod.split(':').last;
-      unawaited(_showPendingAdhanDialog());
-    }
-  }
-
-  Future<void> _showPendingAdhanDialog() async {
-    final prayer = _pendingAdhanPrayer;
-    if (!mounted ||
-        prayer == null ||
-        _adhanDialogShowing ||
-        ModalRoute.of(context)?.isCurrent != true) {
-      return;
-    }
-    _pendingAdhanPrayer = null;
-    _adhanDialogShowing = true;
-    final prayerName = switch (prayer) {
-      'fajr' => 'الفجر',
-      'dhuhr' => 'الظهر',
-      'asr' => 'العصر',
-      'maghrib' => 'المغرب',
-      'isha' => 'العشاء',
-      _ => 'الصلاة',
-    };
-    final openAzkar = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        final colors = Theme.of(dialogContext).colorScheme;
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-            side: BorderSide(color: colors.primary.withValues(alpha: .22)),
-          ),
-          icon: Icon(Icons.mosque_rounded, color: colors.primary, size: 34),
-          title: Text('حان وقت أذان $prayerName', textAlign: TextAlign.center),
-          content: const Text(
-            'ردّد مع المؤذن، وتذكّر أذكار سماع الأذان.',
-            textAlign: TextAlign.center,
-            textDirection: TextDirection.rtl,
-          ),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('لاحقًا'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('عرض الأذكار'),
-            ),
-          ],
-        );
-      },
-    );
-    _adhanDialogShowing = false;
-    if (!mounted || openAzkar != true) return;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        settings: const RouteSettings(name: '/azkar-category-10'),
-        builder: (_) => const AzkarAndHadeethScreen(index: 10),
-      ),
-    );
   }
 
   PrayerTimes _onDate(PrayerTimes times, DateTime date) {

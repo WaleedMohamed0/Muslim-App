@@ -31,14 +31,18 @@ class TasbeehRepository {
 
     final savedDhikr = prefs.getString(_dhikrKey);
     final selectedDhikr = dhikrs.contains(savedDhikr) ? savedDhikr! : dhikrs.first;
+    final needsDailyReset = prefs.getString(_dailyDateKey) != null &&
+        prefs.getString(_dailyDateKey) != _today;
     final legacyCount = prefs.getInt(_countKey) ?? 0;
     final legacyTarget = prefs.getInt(_targetKey) ?? 33;
     final items = [
       for (final dhikr in dhikrs)
         TasbeehItem(
           dhikr: dhikr,
-          count: prefs.getInt(_countKeyFor(dhikr)) ??
-              (dhikr == selectedDhikr ? legacyCount : 0),
+          count: needsDailyReset
+              ? 0
+              : prefs.getInt(_countKeyFor(dhikr)) ??
+                  (dhikr == selectedDhikr ? legacyCount : 0),
           target: prefs.getInt(_targetKeyFor(dhikr)) ??
               (dhikr == selectedDhikr ? legacyTarget : 33),
         ),
@@ -56,6 +60,7 @@ class TasbeehRepository {
 
   Future<TasbeehState> load() async {
     final prefs = await SharedPreferences.getInstance();
+    await _ensureCurrentLocalDate(prefs);
     final savedDhikr = prefs.getString(_dhikrKey);
     // Older builds displayed all four phrases as one combined label. Keep that
     // saved counter attached to the first phrase when migrating it.
@@ -75,13 +80,28 @@ class TasbeehRepository {
       items.add(TasbeehItem(dhikr: dhikr, count: count, target: target));
     }
 
-    final total = prefs.getString(_dailyDateKey) == _today ? (prefs.getInt(_dailyTotalKey) ?? 0) : 0;
-    if (prefs.getString(_dailyDateKey) != _today) {
-      await prefs.setString(_dailyDateKey, _today);
-      await prefs.setInt(_dailyTotalKey, 0);
-    }
+    final total = prefs.getInt(_dailyTotalKey) ?? 0;
     await prefs.setString(_dhikrKey, selectedDhikr);
     return TasbeehState(items: items, selectedDhikr: selectedDhikr, dailyTotal: total, isLoading: false);
+  }
+
+  Future<void> _ensureCurrentLocalDate(SharedPreferences prefs) async {
+    final today = _today;
+    final savedDate = prefs.getString(_dailyDateKey);
+    // An absent date is an existing installation that has not recorded the
+    // daily marker yet; preserve its saved counter during the one-time setup.
+    if (savedDate != null && savedDate != today) {
+      for (final dhikr in dhikrs) {
+        await prefs.setInt(_countKeyFor(dhikr), 0);
+      }
+      await prefs.setInt(_countKey, 0);
+      await prefs.setInt(_dailyTotalKey, 0);
+    } else if (savedDate == null) {
+      // Preserve counters during first marker setup, while keeping the
+      // existing daily-total initialization behavior.
+      await prefs.setInt(_dailyTotalKey, 0);
+    }
+    if (savedDate != today) await prefs.setString(_dailyDateKey, today);
   }
 
   Future<void> save(TasbeehState state) async {

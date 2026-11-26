@@ -257,7 +257,6 @@ class _SurahScreenState extends State<SurahScreen> {
           zoomScale: _reader.zoomScale,
           controlsVisible: _reader.controlsVisible,
           bookmarked: _reader.isCurrentPageBookmarked,
-          bookmarkAyah: _reader.bookmarkAyahForPlayback,
           surahName: _reader.surahName,
           surahNumber: _reader.visibleSurahNumber,
           currentAyah: _reader.currentAyah,

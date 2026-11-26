@@ -20,7 +20,6 @@ class SurahReaderView extends StatelessWidget {
     required this.zoomScale,
     required this.controlsVisible,
     required this.bookmarked,
-    required this.bookmarkAyah,
     required this.surahName,
     required this.surahNumber,
     required this.currentAyah,
@@ -51,7 +50,6 @@ class SurahReaderView extends StatelessWidget {
   final double zoomScale;
   final bool controlsVisible;
   final bool bookmarked;
-  final int? bookmarkAyah;
   final String surahName;
   final int surahNumber;
   final int currentAyah;
@@ -194,7 +192,6 @@ class SurahReaderView extends StatelessWidget {
                     surahName: surahName,
                     surahNumber: surahNumber,
                     juzNumber: quran.getJuzNumber(surahNumber, currentAyah),
-                    bookmarkAyah: bookmarkAyah,
                     primaryAction: playIconButton(
                       cubit: cubit,
                       context: context,

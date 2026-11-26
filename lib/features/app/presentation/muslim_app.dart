@@ -26,6 +26,7 @@ import 'package:muslim/features/azkar/presentation/pages/azkar_hadeeth_screen.da
 import 'package:muslim/features/khatmah/presentation/pages/khatmah_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_state.dart';
+import 'package:muslim/features/prayer_times/domain/entities/prayer_alarm_time.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/elazan_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/prayer_adhan_settings_screen.dart';
 import 'package:muslim/features/prayer_times/presentation/pages/prayer_times_screen.dart';
@@ -55,6 +56,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   StreamSubscription<bool>? _mediaNotificationClickSubscription;
   StreamSubscription? _quranWidgetStateSubscription;
   StreamSubscription? _prayerWidgetStateSubscription;
+  StreamSubscription<PrayerAlarmTime>? _duePrayerSubscription;
   String? _lastQuranWidgetState;
   String? _lastLiveNotificationRoute;
   Timer? _quranWidgetProgressTimer;
@@ -68,6 +70,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       (_) => _syncQuranAudioWidget(quranCubit),
     );
     final prayerCubit = context.read<PrayerTimesCubit>();
+    _duePrayerSubscription = prayerCubit.duePrayers.listen(_openAzanForPrayer);
     _prayerWidgetStateSubscription = prayerCubit.stream.listen((state) {
       _syncPrayerTimesWidget(state);
     });
@@ -132,6 +135,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _mediaNotificationClickSubscription?.cancel();
     _quranWidgetStateSubscription?.cancel();
     _prayerWidgetStateSubscription?.cancel();
+    _duePrayerSubscription?.cancel();
     super.dispose();
   }
 

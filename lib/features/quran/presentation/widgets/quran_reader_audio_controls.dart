@@ -18,7 +18,6 @@ class QuranReaderAudioControls extends StatelessWidget {
     required this.surahName,
     required this.surahNumber,
     required this.juzNumber,
-    this.bookmarkAyah,
     required this.primaryAction,
   });
 
@@ -27,7 +26,6 @@ class QuranReaderAudioControls extends StatelessWidget {
   final String surahName;
   final int surahNumber;
   final int juzNumber;
-  final int? bookmarkAyah;
   final Widget primaryAction;
 
   @override
@@ -101,17 +99,6 @@ class QuranReaderAudioControls extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (bookmarkAyah != null) ...[
-                    _ReaderTransportButton(
-                      palette: palette,
-                      tooltip: 'تشغيل من العلامة المرجعية',
-                      icon: Icons.play_circle_outline_rounded,
-                      onPressed: () => unawaited(
-                        cubit.playFromAyahBookmark(surahNumber, bookmarkAyah!),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
                   _ReaderTransportButton(
                     palette: palette,
                     tooltip: 'السورة التالية',

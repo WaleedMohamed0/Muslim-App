@@ -6,6 +6,7 @@ import 'package:muslim/core/utils/arabic_digits.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
 import 'package:muslim/features/app/data/services/post_prayer_adhkar_reminder_service.dart';
 import '../../domain/entities/prayer_times.dart';
+import '../../domain/entities/prayer_alarm_time.dart';
 import '../../domain/use_cases/get_prayer_times.dart';
 import '../../data/data_sources/prayer_location_data_source.dart';
 import '../../data/repositories/prayer_times_repository_impl.dart';
@@ -18,6 +19,10 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
           GetPrayerTimes(PrayerTimesRepositoryImpl(PrayerLocationDataSource())),
       super(const PrayerTimesState()) {
     _scheduleDateRefresh();
+    _prayerEventTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _emitDuePrayer(),
+    );
   }
 
   final GetPrayerTimes _getPrayerTimes;
@@ -27,7 +32,41 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   bool isOnline = false;
   bool _isLoadingPrayerTimes = false;
   Timer? _dateRefreshTimer;
+  Timer? _prayerEventTimer;
+  final StreamController<PrayerAlarmTime> _duePrayers =
+      StreamController<PrayerAlarmTime>.broadcast();
+  final Set<String> _emittedPrayerEvents = <String>{};
+  DateTime _lastCheckedMinute = _minuteOf(DateTime.now());
+  Stream<PrayerAlarmTime> get duePrayers => _duePrayers.stream;
   PrayerTimesErrorType? lastRefreshErrorType;
+
+  static DateTime _minuteOf(DateTime value) =>
+      DateTime(value.year, value.month, value.day, value.hour, value.minute);
+
+  void _emitDuePrayer() {
+    final alarms = state.prayerTimes?.alarmTimes;
+    if (alarms == null) return;
+    final now = DateTime.now();
+    final currentMinute = _minuteOf(now);
+    if (currentMinute == _lastCheckedMinute) return;
+    _lastCheckedMinute = currentMinute;
+    for (final alarm in alarms) {
+      final at = alarm.at;
+      if (at.year != now.year ||
+          at.month != now.month ||
+          at.day != now.day ||
+          at.hour != now.hour ||
+          at.minute != now.minute) {
+        continue;
+      }
+      final key = '${alarm.prayerId}_${at.year}_${at.month}_${at.day}';
+      if (_emittedPrayerEvents.add(key)) _duePrayers.add(alarm);
+    }
+    if (_emittedPrayerEvents.length > 10) {
+      final today = '${now.year}_${now.month}_${now.day}';
+      _emittedPrayerEvents.removeWhere((key) => !key.endsWith(today));
+    }
+  }
 
   Future<void> loadCachedPrayerTimes() async {
     if (state.prayerTimes != null) return;
@@ -116,6 +155,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesState> {
   @override
   Future<void> close() {
     _dateRefreshTimer?.cancel();
+    _prayerEventTimer?.cancel();
+    _duePrayers.close();
     return super.close();
   }
 

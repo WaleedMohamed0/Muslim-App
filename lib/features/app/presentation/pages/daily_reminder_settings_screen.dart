@@ -12,7 +12,8 @@ class DailyReminderSettingsScreen extends StatefulWidget {
       _DailyReminderSettingsScreenState();
 }
 
-class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScreen>
+class _DailyReminderSettingsScreenState
+    extends State<DailyReminderSettingsScreen>
     with WidgetsBindingObserver {
   final _service = PrayerAdhanService.instance;
   late List<Map<String, dynamic>> _reminders;
@@ -171,9 +172,7 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
     ).format(context);
     final arabicTime = time.replaceAllMapped(
       RegExp(r'[0-9]'),
-      (match) => String.fromCharCode(
-        0x0660 + int.parse(match.group(0)!),
-      ),
+      (match) => String.fromCharCode(0x0660 + int.parse(match.group(0)!)),
     );
     final scheduled = reminder['scheduled'] == true;
     final enabled = reminder['enabled'] == true;
@@ -218,7 +217,11 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
                   ),
                 ),
                 const SizedBox(height: 16),
-                for (var index = 0; index < _visibleReminders.length; index++) ...[
+                for (
+                  var index = 0;
+                  index < _visibleReminders.length;
+                  index++
+                ) ...[
                   _reminderCard(
                     context,
                     _visibleReminders[index].value,
@@ -251,7 +254,10 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(_iconFor(reminder['id'] as String), color: colors.primary),
+              leading: Icon(
+                _iconFor(reminder['id'] as String),
+                color: colors.primary,
+              ),
               title: Text(
                 reminder['title'] as String,
                 textDirection: TextDirection.rtl,
@@ -262,7 +268,9 @@ class _DailyReminderSettingsScreenState extends State<DailyReminderSettingsScree
               ),
               trailing: AppSwitch(
                 value: scheduled,
-                onChanged: _saving ? null : (value) => _setReminder(index, value),
+                onChanged: _saving
+                    ? null
+                    : (value) => _setReminder(index, value),
               ),
             ),
             Align(

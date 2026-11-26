@@ -41,7 +41,6 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
   static const _eveningCompletionKey = 'azkar_evening_completed_date_v1';
   static const _favoriteEntryIdsKey = 'azkar_favorite_entry_ids';
   static const _postPrayerPeriodKey = 'azkar_post_prayer_period_v1';
-  static const _adhanPrayerPeriodKey = 'azkar_adhan_prayer_period_v1';
   static const MethodChannel _shareChannel = MethodChannel('com.muslim/quran_share');
   bool isOnline = false;
   void setConnectivity(bool connected) => isOnline = connected;
@@ -206,27 +205,6 @@ class AzkarCubit extends Cubit<AzkarState> with WidgetsBindingObserver {
 
   Future<void> beginPostPrayerSession(String period) =>
       resetPostPrayerSessionForPeriod(period);
-
-  /// Clears Adhan counters once for each prayer period.
-  ///
-  /// Returns true when this is a transition from a previously recorded
-  /// prayer period, which lets the foreground UI announce the new Adhan.
-  Future<bool> beginAdhanSessionForPeriod(String period) async {
-    if (isClosed) return false;
-    await loadContent();
-    final preferences = await SharedPreferences.getInstance();
-    await _ensureCurrentLocalDate(prefs: preferences);
-    final previousPeriod = preferences.getString(_adhanPrayerPeriodKey);
-    if (previousPeriod == period) return false;
-
-    for (final entry in entriesFor(10)) {
-      _progress[entry.id] = 0;
-      await preferences.remove(_progressKey(entry.id));
-    }
-    await preferences.setString(_adhanPrayerPeriodKey, period);
-    _emitProgress();
-    return previousPeriod != null;
-  }
 
   Future<String?> currentPostPrayerSessionPeriod() async {
     final preferences = await SharedPreferences.getInstance();

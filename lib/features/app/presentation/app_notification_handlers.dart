@@ -1,6 +1,54 @@
 part of 'muslim_app.dart';
 
 extension _AppNotificationHandlers on _MyAppState {
+  void _openAzanForPrayer(PrayerAlarmTime alarm) {
+    if (!mounted ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    final prayerId = alarm.prayerId.toLowerCase();
+    final prayerName = switch (prayerId) {
+      'fajr' => 'الفجر',
+      'dhuhr' => 'الظهر',
+      'asr' => 'العصر',
+      'maghrib' => 'المغرب',
+      'isha' => 'العشاء',
+      _ => null,
+    };
+    if (prayerName == null) return;
+    final routeName = '/elazan-screen/$prayerId';
+    if (_appRouteObserver.currentRouteName?.startsWith('/elazan-screen/') ==
+        true) {
+      return;
+    }
+    final navigator = appNavigatorKey.currentState;
+    if (navigator == null) return;
+    if (_appRouteObserver.containsRoute(routeName)) {
+      navigator.popUntil((route) => route.settings.name == routeName);
+      return;
+    }
+    final existingAzan = _appRouteObserver.latestRouteWithPrefix(
+      '/elazan-screen/',
+    );
+    final page = ElAzanScreen(prayer: prayerName);
+    if (existingAzan != null) {
+      navigator.popUntil((route) => route.settings.name == existingAzan);
+      navigator.pushReplacement<void, void>(
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: routeName),
+          builder: (_) => page,
+        ),
+      );
+      return;
+    }
+    navigator.push<void>(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(name: routeName),
+        builder: (_) => page,
+      ),
+    );
+  }
+
   Future<void> _consumePendingNotificationRoute() async {
     final route = await _readInitialNotificationRoute();
     if (!mounted || route == null || route.isEmpty) return;

@@ -53,5 +53,6 @@ void main() {
       expect(cubit.state.count, 0);
       expect(cubit.state.target, 33);
     });
+
   });
 }

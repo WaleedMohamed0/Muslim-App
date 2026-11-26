@@ -116,19 +116,6 @@ class SurahReaderController extends ChangeNotifier {
       _pageIndex >= (_maximumPageNumber ?? quran.totalPagesCount) - 1;
   bool get isCurrentPageBookmarked => cubit.pageBookmarks.contains(pageNumber);
 
-  int? get bookmarkAyahForPlayback {
-    if (cubit.pageBookmarks.contains(pageNumber)) {
-      final pageData = MushafLineLayoutData.pageData(pageNumber);
-      return pageData.first['start'];
-    }
-    if (cubit.ayahBookmarks.contains(
-      '$_visibleSurahNumber:$_readerCurrentAyah',
-    )) {
-      return _readerCurrentAyah;
-    }
-    return null;
-  }
-
   static int? _bookmarkAyahForSurah(QuranBookmark? bookmark, int surahNumber) {
     if (bookmark == null) return null;
     if (bookmark.surahNumber == surahNumber && bookmark.ayahNumber != null) {

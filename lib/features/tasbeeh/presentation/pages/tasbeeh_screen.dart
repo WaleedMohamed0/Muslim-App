@@ -35,7 +35,7 @@ class _TasbeehViewState extends State<_TasbeehView> {
       context: context,
       icon: Icons.restart_alt_rounded,
       title: 'إعادة ضبط جميع التسابيح؟',
-      message: 'سيتم تصفير عدادات جميع التسابيح في شاشة التسبيح.',
+      message: 'سيتم تصفير عدادات جميع التسابيح.',
       confirmLabel: 'إعادة الضبط',
     );
     if (confirmed && context.mounted) {
