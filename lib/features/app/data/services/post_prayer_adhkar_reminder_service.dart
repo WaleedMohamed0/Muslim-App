@@ -14,6 +14,7 @@ class PostPrayerAdhkarReminderService {
   static final instance = PostPrayerAdhkarReminderService._();
   static const route = 'post_prayer_adhkar';
   static const _idsKey = 'post_prayer_adhkar_scheduled_ids_v1';
+  static const enabledKey = 'post_prayer_adhkar_enabled_v1';
   static const _completedPeriodsKey =
       'post_prayer_adhkar_completed_periods_v1';
   static const _idBase = 62000000;
@@ -79,6 +80,27 @@ class PostPrayerAdhkarReminderService {
     return route;
   }
 
+  Future<bool> isEnabled() async =>
+      (await SharedPreferences.getInstance()).getBool(enabledKey) ?? true;
+
+  /// Saves the category preference independently of the device permission.
+  Future<void> setEnabled(bool enabled) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(enabledKey, enabled);
+    if (!enabled) await cancelAll();
+  }
+
+  Future<void> cancelAll() async {
+    await initialize();
+    final preferences = await SharedPreferences.getInstance();
+    final ids = preferences.getStringList(_idsKey) ?? const <String>[];
+    for (final value in ids) {
+      final id = int.tryParse(value);
+      if (id != null) await _notifications.cancel(id: id);
+    }
+    await preferences.setStringList(_idsKey, const <String>[]);
+  }
+
   void consumePendingLaunch() {
     final pending = takePendingLaunchRoute();
     if (pending != null) onNotificationTap?.call(pending);
@@ -112,6 +134,10 @@ class PostPrayerAdhkarReminderService {
 
   Future<void> schedule(PrayerTimes times) async {
     await initialize();
+    if (!await isEnabled()) {
+      await cancelAll();
+      return;
+    }
     final preferences = await SharedPreferences.getInstance();
     final previousIds = preferences.getStringList(_idsKey) ?? const [];
     for (final id in previousIds) {

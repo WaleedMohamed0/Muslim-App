@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:muslim/core/widgets/app_switch.dart';
 import 'package:muslim/core/widgets/app_action_dialog.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:muslim/core/widgets/app_widgets.dart';
 import 'package:muslim/features/prayer_times/data/services/prayer_adhan_service.dart';
+import 'package:muslim/features/app/data/services/post_prayer_adhkar_reminder_service.dart';
+import 'package:muslim/features/prayer_times/presentation/cubit/prayer_times_cubit.dart';
 import 'package:muslim/features/prayer_times/domain/entities/adhan_audio_option.dart';
 import 'package:muslim/features/prayer_times/presentation/widgets/adhan_settings_widgets.dart';
 
@@ -27,6 +30,9 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       PrayerAdhanService.instance.cachedPermissions ?? const {};
   bool _loading = false;
   bool _enablingAdhan = false;
+  bool _postPrayerAdhkarEnabled = true;
+  bool _savingPostPrayerAdhkar = false;
+  final _postPrayerReminder = PostPrayerAdhkarReminderService.instance;
   String? _previewingId;
 
   static const _prayerNames = {
@@ -44,9 +50,12 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     _settings = cachedSettings ?? const PrayerAdhanSettings();
     _loading = cachedSettings == null;
     WidgetsBinding.instance.addObserver(this);
-    _previewStateSubscription = _previewPlayer.playerStateStream.listen((state) {
+    _previewStateSubscription = _previewPlayer.playerStateStream.listen((
+      state,
+    ) {
       if (state.processingState == ProcessingState.completed &&
-          _previewingId != null && mounted) {
+          _previewingId != null &&
+          mounted) {
         setState(() => _previewingId = null);
       }
     });
@@ -74,10 +83,12 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
     try {
       final settings = await _service.loadSettings();
       final permissions = await _service.permissionStatus();
+      final postPrayerEnabled = await _postPrayerReminder.isEnabled();
       if (!mounted) return;
       setState(() {
         _settings = settings;
         _permissions = permissions;
+        _postPrayerAdhkarEnabled = postPrayerEnabled;
         _loading = false;
       });
     } catch (_) {
@@ -90,6 +101,28 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
       final status = await _service.permissionStatus();
       if (mounted) setState(() => _permissions = status);
     } catch (_) {}
+  }
+
+  Future<void> _setPostPrayerAdhkarEnabled(bool enabled) async {
+    if (_savingPostPrayerAdhkar) return;
+    setState(() {
+      _savingPostPrayerAdhkar = true;
+      _postPrayerAdhkarEnabled = enabled;
+    });
+    try {
+      await _postPrayerReminder.setEnabled(enabled);
+      if (enabled && mounted) {
+        final times = context.read<PrayerTimesCubit>().state.prayerTimes;
+        if (times != null) await _postPrayerReminder.schedule(times);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _postPrayerAdhkarEnabled = !enabled);
+        AppSnackBar.show(message: 'تعذر حفظ إعداد التذكير');
+      }
+    } finally {
+      if (mounted) setState(() => _savingPostPrayerAdhkar = false);
+    }
   }
 
   Future<bool> _explainPermission(String title, String description) =>
@@ -267,16 +300,40 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                           ? 'يلزم السماح بالمنبهات الدقيقة لتشغيل الصوت تلقائيًا'
                           : 'تشغيل الأذان عند حلول المواقيت المحددة',
                     ),
-                    leading: Icon(Icons.notifications_active_outlined,
-                        color: colors.primary),
+                    leading: Icon(
+                      Icons.notifications_active_outlined,
+                      color: colors.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'تذكيرات الصلاة',
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: AppSwitchListTile(
+                    value: _postPrayerAdhkarEnabled,
+                    onChanged: _savingPostPrayerAdhkar
+                        ? null
+                        : _setPostPrayerAdhkarEnabled,
+                    title: const Text('أذكار ما بعد الصلاة'),
+                    subtitle: const Text(
+                      'تذكير بأذكار ما بعد الصلاة بعد الأذان بـ15 دقيقة',
+                    ),
+                    leading: Icon(
+                      Icons.self_improvement_rounded,
+                      color: colors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   'الأذان لكل صَلَاة',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Card(
@@ -286,11 +343,14 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                         AppSwitchListTile(
                           value: _settings.prayers[prayer.key] ?? true,
                           title: Text(prayer.value),
-                          leading: Icon(_prayerIcon(prayer.key),
-                              color: colors.primary),
+                          leading: Icon(
+                            _prayerIcon(prayer.key),
+                            color: colors.primary,
+                          ),
                           onChanged: (value) {
-                            final prayers = Map<String, bool>.from(_settings.prayers)
-                              ..[prayer.key] = value;
+                            final prayers = Map<String, bool>.from(
+                              _settings.prayers,
+                            )..[prayer.key] = value;
                             _save(_settings.copyWith(prayers: prayers));
                           },
                         ),
@@ -300,9 +360,8 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                 const SizedBox(height: 20),
                 Text(
                   'الصوت',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Card(
@@ -313,7 +372,10 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.music_note_rounded, color: colors.primary),
+                            Icon(
+                              Icons.music_note_rounded,
+                              color: colors.primary,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -331,9 +393,8 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                             option: option,
                             selected: _settings.audioId == option.id,
                             previewing: _previewingId == option.id,
-                            onSelect: () => _save(
-                              _settings.copyWith(audioId: option.id),
-                            ),
+                            onSelect: () =>
+                                _save(_settings.copyWith(audioId: option.id)),
                             onPreview: () => _previewAudio(option),
                           ),
                         const SizedBox(height: 12),
@@ -387,18 +448,14 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                                 Text(
                                   'إيقاف الأذان أثناء تشغيله',
                                   textDirection: TextDirection.rtl,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
+                                  style: Theme.of(context).textTheme.titleSmall
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'يمكنك إيقافه بالضغط على زر رفع أو خفض الصوت في هاتفك.',
                                   textDirection: TextDirection.rtl,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
+                                  style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colors.onSurfaceVariant,
                                         height: 1.5,
@@ -415,10 +472,7 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                           top: 14,
                           bottom: 14,
                         ),
-                        child: Divider(
-                          height: 1,
-                          color: colors.outlineVariant,
-                        ),
+                        child: Divider(height: 1, color: colors.outlineVariant),
                       ),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,18 +498,14 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
                                 Text(
                                   'ملاحظات التشغيل',
                                   textDirection: TextDirection.rtl,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
+                                  style: Theme.of(context).textTheme.titleSmall
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'عند اكتشاف أن الجهاز في وضع مكالمة، لا يُشغّل الأذان ويصل تنبيه الصَّلَاة بصمت. قد تؤثر قيود النظام أو الشركة المصنّعة في توقيت التنبيهات، كما يلتزم الصوت بإعدادات عدم الإزعاج في الجهاز.',
                                   textDirection: TextDirection.rtl,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
+                                  style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colors.onSurfaceVariant,
                                         height: 1.5,
@@ -475,10 +525,10 @@ class _PrayerAdhanSettingsScreenState extends State<PrayerAdhanSettingsScreen>
   }
 
   IconData _prayerIcon(String id) => switch (id) {
-        'fajr' => Icons.wb_twilight_rounded,
-        'dhuhr' => Icons.wb_sunny_rounded,
-        'asr' => Icons.access_time_filled_rounded,
-        'maghrib' => Icons.wb_twilight_outlined,
-        _ => Icons.nights_stay_rounded,
-      };
+    'fajr' => Icons.wb_twilight_rounded,
+    'dhuhr' => Icons.wb_sunny_rounded,
+    'asr' => Icons.access_time_filled_rounded,
+    'maghrib' => Icons.wb_twilight_outlined,
+    _ => Icons.nights_stay_rounded,
+  };
 }
