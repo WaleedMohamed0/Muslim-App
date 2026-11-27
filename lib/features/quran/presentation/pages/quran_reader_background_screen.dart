@@ -118,7 +118,7 @@ class _QuranReaderBackgroundScreenState
                         accent: accent,
                         darkMode: darkMode,
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 18),
                       Text(
                         'ألوان مقترحة',
                         textDirection: TextDirection.rtl,
@@ -180,30 +180,30 @@ class _QuranReaderBackgroundScreenState
                               ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: TextButton.icon(
-                          onPressed:
-                              () => cubit.setReaderBackgroundColor(
-                                darkMode: darkMode,
-                                color: null,
-                              ),
+                      const SizedBox(height: 11),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () => cubit.setReaderBackgroundColor(
+                            darkMode: darkMode,
+                            color: null,
+                          ),
                           icon: const Icon(Icons.restart_alt_rounded),
                           label: const Text('استعادة اللون الافتراضي'),
+                          style: FilledButton.styleFrom(
+                          foregroundColor: theme.colorScheme.primary,
+                            backgroundColor: theme.colorScheme.primaryContainer,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            textStyle: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsetsDirectional.fromSTEB(18, 8, 18, 14),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      child: const Text('تم'),
-                    ),
                   ),
                 ),
               ],

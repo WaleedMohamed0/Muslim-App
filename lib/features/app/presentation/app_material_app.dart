@@ -9,6 +9,7 @@ extension _AppMaterialAppConfiguration on _MyAppState {
       navigatorKey: appNavigatorKey,
       navigatorObservers: [
         _appRouteObserver,
+        QuranMushafSystemBars.routeObserver,
         DiagnosticContext.analyticsObserver,
         dailyWirdRouteObserver,
       ],
@@ -18,7 +19,10 @@ extension _AppMaterialAppConfiguration on _MyAppState {
         return BlocBuilder<QuranCubit, QuranState>(
           builder:
               (context, _) => AnimatedBuilder(
-                animation: _activeRouteName,
+                animation: Listenable.merge([
+                  _activeRouteName,
+                  QuranMushafSystemBars.activeBackground,
+                ]),
                 builder: (context, _) {
                   final isReaderRoute =
                       _activeRouteName.value?.startsWith('/quran-reader/') ??
@@ -29,8 +33,12 @@ extension _AppMaterialAppConfiguration on _MyAppState {
                       isDark
                           ? quranCubit.darkReaderBackgroundColorValue
                           : quranCubit.lightReaderBackgroundColorValue;
+                  final activeMushafColor =
+                      QuranMushafSystemBars.activeBackground.value?.color;
                   final insetColor =
-                      isReaderRoute
+                      activeMushafColor != null
+                          ? Color(activeMushafColor)
+                          : isReaderRoute
                           ? Color(
                             readerBackground ??
                                 QuranReaderBackgroundColors.defaultFor(
@@ -40,23 +48,31 @@ extension _AppMaterialAppConfiguration on _MyAppState {
                           : quranCubit.quranSoundActive
                           ? theme.colorScheme.surface
                           : theme.scaffoldBackgroundColor;
+                  final useLightSystemBarIcons =
+                      insetColor.computeLuminance() < .5;
                   return ColoredBox(
                     color: insetColor,
-                    child: DismissKeyboardOnOutsideTap(
-                      child: SafeArea(
-                        child: AnnotatedRegion<SystemUiOverlayStyle>(
-                          value: SystemUiOverlayStyle(
+                    child: AnnotatedRegion<SystemUiOverlayStyle>(
+                      value: SystemUiOverlayStyle(
                             statusBarColor: insetColor,
                             statusBarIconBrightness:
-                                isDark ? Brightness.light : Brightness.dark,
+                                useLightSystemBarIcons
+                                    ? Brightness.light
+                                    : Brightness.dark,
                             statusBarBrightness:
-                                isDark ? Brightness.dark : Brightness.light,
+                                useLightSystemBarIcons
+                                    ? Brightness.dark
+                                    : Brightness.light,
                             systemNavigationBarColor: insetColor,
                             systemNavigationBarIconBrightness:
-                                isDark ? Brightness.light : Brightness.dark,
+                                useLightSystemBarIcons
+                                    ? Brightness.light
+                                    : Brightness.dark,
                             systemNavigationBarDividerColor: insetColor,
                             systemNavigationBarContrastEnforced: false,
-                          ),
+                      ),
+                      child: DismissKeyboardOnOutsideTap(
+                        child: SafeArea(
                           child: child ?? const SizedBox.shrink(),
                         ),
                       ),

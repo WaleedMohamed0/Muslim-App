@@ -107,9 +107,11 @@ class PresetColorTile extends StatelessWidget {
               child: selected
                   ? Icon(
                       Icons.check_rounded,
-                      color: QuranReaderBackgroundColors.accentFor(
-                        preset.color.computeLuminance() < .25,
-                      ),
+                      color:
+                          preset.color.computeLuminance() > .5
+                              ? const Color(0xFF26372F)
+                              : Colors.white,
+                      size: 25,
                     )
                   : null,
             ),

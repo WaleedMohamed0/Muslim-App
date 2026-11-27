@@ -36,6 +36,7 @@ import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
 import 'package:muslim/features/quran/presentation/pages/home_screen.dart';
 import 'package:muslim/features/quran/presentation/pages/surah_screen.dart';
+import 'package:muslim/features/quran/presentation/system/quran_mushaf_system_bars.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_background_colors.dart';
 
 part 'app_routes.dart';

@@ -13,6 +13,7 @@ import 'package:muslim/features/quran/data/data_sources/mushaf_long_press_hint_p
 import 'package:muslim/features/quran/data/data_sources/mushaf_zoom_hint_preferences.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:muslim/features/quran/presentation/cubit/quran_state.dart';
+import 'package:muslim/features/quran/presentation/system/quran_mushaf_system_bars.dart';
 import 'package:muslim/features/quran/presentation/widgets/quran_reader_palette.dart';
 import 'package:muslim/features/quran/presentation/widgets/surah_reader_action_sheets.dart';
 import 'package:muslim/features/quran/presentation/widgets/surah_reader_view.dart';
@@ -45,10 +46,12 @@ class SurahScreen extends StatefulWidget {
   State<SurahScreen> createState() => _SurahScreenState();
 }
 
-class _SurahScreenState extends State<SurahScreen> {
+class _SurahScreenState extends State<SurahScreen> with RouteAware {
   late final QuranCubit _cubit;
   late final SurahReaderController _reader;
   String? _lastSystemUiStyleSignature;
+  PageRoute<dynamic>? _subscribedRoute;
+  int? _lastPublishedSystemBarColor;
   late bool _searchHighlightActive;
   Timer? _searchHighlightTimer;
   bool _showLongPressHint = false;
@@ -205,6 +208,10 @@ class _SurahScreenState extends State<SurahScreen> {
 
   @override
   void dispose() {
+    QuranMushafSystemBars.routeObserver.unsubscribe(this);
+    if (_subscribedRoute?.isCurrent == true) {
+      _clearActiveMushafSystemBarColor();
+    }
     _reader
       ..removeListener(_handleReaderChanged)
       ..dispose();
@@ -215,13 +222,76 @@ class _SurahScreenState extends State<SurahScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is! PageRoute<dynamic> || identical(route, _subscribedRoute)) {
+      return;
+    }
+    if (_subscribedRoute != null) {
+      QuranMushafSystemBars.routeObserver.unsubscribe(this);
+    }
+    _subscribedRoute = route;
+    QuranMushafSystemBars.routeObserver.subscribe(this, route);
+    if (route.isCurrent) _syncActiveMushafSystemBarColor();
+  }
+
+  void _syncActiveMushafSystemBarColor() {
+    final route = _subscribedRoute;
+    if (!mounted || route?.isCurrent != true) return;
+    final color = QuranReaderPalette.fromTheme(context).background.toARGB32();
+    final active = QuranMushafSystemBars.activeBackground.value;
+    if (identical(active?.route, route) && active?.color == color) {
+      _lastPublishedSystemBarColor = color;
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !identical(_subscribedRoute, route) ||
+          !route!.isCurrent) {
+        return;
+      }
+      _lastPublishedSystemBarColor = color;
+      QuranMushafSystemBars.activeBackground.value =
+          (route: route, color: color);
+    });
+  }
+
+  void _clearActiveMushafSystemBarColor() {
+    final route = _subscribedRoute;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (route?.isCurrent == true) return;
+      if (_lastPublishedSystemBarColor != null &&
+          identical(QuranMushafSystemBars.activeBackground.value?.route, route)) {
+        QuranMushafSystemBars.activeBackground.value = null;
+        _lastPublishedSystemBarColor = null;
+      }
+    });
+  }
+
+  @override
+  void didPush() => _syncActiveMushafSystemBarColor();
+
+  @override
+  void didPopNext() => _syncActiveMushafSystemBarColor();
+
+  @override
+  void didPushNext() {
+    if (_subscribedRoute?.isCurrent == false) {
+      _clearActiveMushafSystemBarColor();
+    }
+  }
+
+  @override
+  void didPop() => _clearActiveMushafSystemBarColor();
+
+  @override
   Widget build(BuildContext context) => BlocBuilder<QuranCubit, QuranState>(
     builder: (context, state) {
       final palette = QuranReaderPalette.fromTheme(context);
+      _syncActiveMushafSystemBarColor();
       final statusBarColor = palette.background;
-      final navigationBarColor = _reader.controlsVisible
-          ? palette.surface
-          : palette.background;
+      final navigationBarColor = palette.background;
       final useLightStatusIcons = statusBarColor.computeLuminance() < .5;
       final useLightNavigationIcons =
           navigationBarColor.computeLuminance() < .5;

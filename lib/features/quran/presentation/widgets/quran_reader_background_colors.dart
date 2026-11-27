@@ -13,15 +13,15 @@ class QuranReaderBackgroundPreset {
 abstract final class QuranReaderBackgroundColors {
   static const lightDefault = Color(0xFFEBF0EB);
   static const darkDefault = Color(0xFF171D19);
-  static const lightText = Color(0xFF26372F);
+  static const lightText = Color(0xFF292D29);
   static const darkText = Color(0xFFE8EEE9);
-  static const lightAccent = Color(0xFF315C4C);
+  static const lightAccent = Color(0xFF49634F);
   static const darkAccent = Color(0xFFA5C2B1);
 
   static const light = <QuranReaderBackgroundPreset>[
     QuranReaderBackgroundPreset(name: 'أخضر هادئ', color: lightDefault),
-    QuranReaderBackgroundPreset(name: 'ورق كريمي', color: Color(0xFFF8F3E7)),
-    QuranReaderBackgroundPreset(name: 'عاجي دافئ', color: Color(0xFFF2EBDD)),
+    QuranReaderBackgroundPreset(name: 'ورق كريمي', color: Color(0xFFFBF9F2)),
+    QuranReaderBackgroundPreset(name: 'بيج دافئ', color: Color(0xFFF2EBDD)),
     QuranReaderBackgroundPreset(name: 'أخضر فاتح', color: Color(0xFFE3EEE5)),
     QuranReaderBackgroundPreset(name: 'أزرق هادئ', color: Color(0xFFE5EDF1)),
     QuranReaderBackgroundPreset(name: 'وردي باهت', color: Color(0xFFF2E7E5)),
